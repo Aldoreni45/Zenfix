@@ -1,0 +1,3 @@
+public/*.png !text !filter !merge !diff
+public/projects/*.png !text !filter !merge !diff
+public/projects/*.jpeg !text !filter !merge !diff
