@@ -1,0 +1,248 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1. Write bug condition exploration tests (BEFORE implementing any fix)": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524067
+      },
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180536543
+      }
+    ],
+    "2. Write preservation property tests (BEFORE implementing any fix)": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524193
+      }
+    ],
+    "3.1 Fix `recipient` → `receiver` and `type: 'task'` → `type: 'task_assigned'` in `lib/actions/task.ts`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524246
+      }
+    ],
+    "3.2 Verify bug condition exploration test (Group A) now passes": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524292
+      }
+    ],
+    "3.3 Verify preservation tests (Group A) still pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524346
+      }
+    ],
+    "4.1 Fix Activity Logs href, icon, and add Calendar entry in `app/(admin)/adminzenfix/(dashboard)/layout.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524387
+      }
+    ],
+    "4.2 Verify bug condition exploration test (Group B) now passes": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524431
+      }
+    ],
+    "4.3 Verify preservation tests (Group B) still pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524473
+      }
+    ],
+    "5.1 Replace invalid classes in `app/(admin)/adminzenfix/(dashboard)/reports/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524562
+      }
+    ],
+    "5.2 Replace invalid classes in `app/(admin)/adminzenfix/(dashboard)/tasks/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524602
+      }
+    ],
+    "5.3 Replace invalid classes in `app/(admin)/adminzenfix/(dashboard)/tasks/[id]/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524717
+      }
+    ],
+    "5.4 Replace invalid classes in `app/(admin)/adminzenfix/(dashboard)/users/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524762
+      }
+    ],
+    "5.5 Replace invalid classes in `app/(admin)/adminzenfix/(dashboard)/users/create/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524806
+      }
+    ],
+    "5.6 Replace invalid classes in `app/(admin)/adminzenfix/(dashboard)/activity-logs/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524853
+      }
+    ],
+    "5.7 Check and fix remaining pages for any invalid class occurrences": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524895
+      }
+    ],
+    "5.8 Verify bug condition exploration tests (Group C) now pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180524939
+      }
+    ],
+    "5.9 Verify preservation tests (Group C) still pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525020
+      }
+    ],
+    "6.1 Add completion notes modal state and refactor `handleCompleteTask`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525061
+      }
+    ],
+    "6.2 Add completion modal JSX (matching existing `showNotCompletedModal` pattern)": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525104
+      }
+    ],
+    "6.3 Verify bug condition exploration test (Group D) now passes": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525147
+      }
+    ],
+    "6.4 Verify preservation tests (Group D) still pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525191
+      }
+    ],
+    "7.1 Implement the PATCH export function": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525236
+      }
+    ],
+    "7.2 Verify bug condition exploration test (Group E1) now passes": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525288
+      }
+    ],
+    "7.3 Verify preservation tests (Group E1) still pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525346
+      }
+    ],
+    "8.1 Implement search filtering on the populated logs array": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525392
+      }
+    ],
+    "8.2 Verify bug condition exploration test (Group E2) now passes": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525435
+      }
+    ],
+    "8.3 Verify preservation tests (Group E2) still pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525506
+      }
+    ],
+    "9.1 Add dropdown state, ref, and click-outside handler": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525553
+      }
+    ],
+    "9.2 Replace inert MoreVertical button with toggle button and render dropdown menu": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525589
+      }
+    ],
+    "9.3 Verify bug condition exploration test (Group F) now passes": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525636
+      }
+    ],
+    "9.4 Verify preservation tests (Group F) still pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525679
+      }
+    ],
+    "10.1 Add 30-second auto-refresh to `app/(admin)/adminzenfix/(dashboard)/dashboard/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525724
+      }
+    ],
+    "10.2 Add admin-only \"Recent Activity\" section to `app/(admin)/adminzenfix/(dashboard)/dashboard/page.tsx`": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525764
+      }
+    ],
+    "11. Checkpoint — Ensure all tests pass": [
+      {
+        "executionId": "e2326c41-5421-4223-a30c-2c96c0978fde",
+        "chatSessionId": "sess_58d63eec-5493-4f81-af9c-2eb4f9e5c674",
+        "timestamp": 1783180525825
+      }
+    ]
+  }
+}

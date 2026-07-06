@@ -12,6 +12,7 @@ export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y'>('30d');
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -29,8 +30,14 @@ export default function AnalyticsPage() {
       if (response.ok) {
         const data = await response.json();
         setAnalytics(data);
+        setError(null);
+      } else {
+        const errorText = await response.text();
+        setError(`Failed to load analytics: ${response.status} - ${errorText}`);
+        console.error('Analytics API returned error:', response.status, errorText);
       }
     } catch (error) {
+      setError('Network error: Unable to connect to analytics API. Please check your internet connection.');
       console.error('Error fetching analytics:', error);
     } finally {
       setLoading(false);
@@ -88,9 +95,9 @@ export default function AnalyticsPage() {
 
   const departmentStats = analytics?.tasksByDepartment?.map((item: any) => ({
     name: item._id || 'Unknown',
-    tasks: item.count,
-    completed: Math.floor(item.count * 0.8),
-    efficiency: 85 + Math.floor(Math.random() * 10),
+    tasks: item.total,
+    completed: item.completed,
+    efficiency: Math.round(item.efficiency || 0),
   })) || [];
 
   // Map day of week numbers to names (MongoDB uses 1=Sunday, 7=Saturday)
@@ -108,7 +115,25 @@ export default function AnalyticsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-electric-cyan" />
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4" />
+          <p className="text-slate-400">Loading analytics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <p className="text-white font-medium mb-2">Unable to load analytics</p>
+          <p className="text-slate-400 text-sm mb-4">{error}</p>
+          <Button onClick={fetchAnalytics} className="bg-cyan-500 hover:bg-cyan-600">
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }
@@ -189,27 +214,33 @@ export default function AnalyticsPage() {
         {/* Task Completion Trend */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-white">Task Completion Trend</h3>
+            <h3 className="text-lg font-semibold text-white">Task Completion Trend (by Day of Week)</h3>
             <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
               <Filter className="h-4 w-4 mr-2" />
               Filter
             </Button>
           </div>
-          <div className="h-64 flex items-end justify-between gap-2">
-            {completionTrendData.map((item: any) => {
-              const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
-              return (
-                <div key={item.day} className="flex-1 flex flex-col items-center gap-2">
-                  <div
-                    className="w-full bg-gradient-to-t from-cyan-500 to-purple-600 rounded-t-lg transition-all duration-300 hover:opacity-80"
-                    style={{ height: `${Math.max(height, 5)}%` }}
-                  />
-                  <span className="text-xs text-slate-400">{item.day}</span>
-                  <span className="text-xs text-slate-500">{item.count}</span>
-                </div>
-              );
-            })}
-          </div>
+          {completionTrendData.every((d: any) => d.count === 0) ? (
+            <div className="h-64 flex items-center justify-center">
+              <p className="text-slate-400 text-sm">No completed tasks data available</p>
+            </div>
+          ) : (
+            <div className="h-64 flex items-end justify-between gap-2">
+              {completionTrendData.map((item: any) => {
+                const height = maxCount > 0 ? (item.count / maxCount) * 100 : 0;
+                return (
+                  <div key={item.day} className="flex-1 flex flex-col items-center gap-2">
+                    <div
+                      className="w-full bg-gradient-to-t from-cyan-500 to-purple-600 rounded-t-lg transition-all duration-300 hover:opacity-80"
+                      style={{ height: `${Math.max(height, 5)}%` }}
+                    />
+                    <span className="text-xs text-slate-400">{item.day}</span>
+                    <span className="text-xs text-slate-500">{item.count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Department Performance */}

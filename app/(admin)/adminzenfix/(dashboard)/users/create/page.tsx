@@ -43,15 +43,19 @@ export default function CreateUserPage() {
       });
 
       const data = await response.json();
+      console.log('User creation response:', data, 'Status:', response.status);
 
-      if (response.ok) {
+      if (response.ok || response.status === 201) {
         toast.success('User created successfully');
-        redirect('/adminzenfix/users');
+        setTimeout(() => {
+          redirect('/adminzenfix/users');
+        }, 500);
       } else {
         toast.error(data.error || 'Failed to create user');
       }
     } catch (error) {
-      toast.error('An error occurred');
+      console.error('User creation error:', error);
+      toast.error('An error occurred while creating user');
     } finally {
       setLoading(false);
     }

@@ -47,25 +47,22 @@ export default function CalendarPage() {
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const daysInPrevMonth = new Date(year, month, 0).getDate();
-    
+
     const calendarDays = [];
-    
-    // Previous month days
+
     for (let i = firstDay - 1; i >= 0; i--) {
       calendarDays.push({ day: daysInPrevMonth - i, isCurrentMonth: false });
     }
-    
-    // Current month days
+
     for (let i = 1; i <= daysInMonth; i++) {
       calendarDays.push({ day: i, isCurrentMonth: true });
     }
-    
-    // Next month days
+
     const remainingDays = 42 - calendarDays.length;
     for (let i = 1; i <= remainingDays; i++) {
       calendarDays.push({ day: i, isCurrentMonth: false });
     }
-    
+
     return calendarDays;
   };
 
@@ -80,10 +77,8 @@ export default function CalendarPage() {
   const calendarDays = getDaysInMonth(currentDate);
   const today = new Date();
 
-  // Get tasks for a specific day
   const getTasksForDay = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return [];
-    
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     return tasks.filter((task) => {
       if (!task.deadline) return false;
@@ -92,7 +87,6 @@ export default function CalendarPage() {
     });
   };
 
-  // Get upcoming events (tasks with deadlines)
   const upcomingEvents = tasks
     .filter((task) => task.deadline && new Date(task.deadline) >= new Date())
     .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
@@ -181,11 +175,11 @@ export default function CalendarPage() {
         {/* Calendar Days */}
         <div className="grid grid-cols-7">
           {calendarDays.map((calendarDay, index) => {
-            const isToday = calendarDay.isCurrentMonth && 
-                           calendarDay.day === today.getDate() && 
+            const isToday = calendarDay.isCurrentMonth &&
+                           calendarDay.day === today.getDate() &&
                            currentDate.getMonth() === today.getMonth() &&
                            currentDate.getFullYear() === today.getFullYear();
-            
+
             return (
               <div
                 key={index}
@@ -214,13 +208,12 @@ export default function CalendarPage() {
                     </button>
                   )}
                 </div>
-                
-                {/* Real Tasks for this day */}
+
                 {getTasksForDay(calendarDay.day, calendarDay.isCurrentMonth).map((task) => (
                   <div
                     key={task._id}
                     className={cn(
-                      'px-2 py-1 rounded text-xs truncate cursor-pointer hover:opacity-80',
+                      'px-2 py-1 rounded text-xs truncate cursor-pointer hover:opacity-80 mb-0.5',
                       task.priority === 'high' || task.priority === 'critical'
                         ? 'bg-red-500/10 border border-red-500/20 text-red-400'
                         : task.priority === 'medium'

@@ -126,12 +126,15 @@ export default function CreateTaskPage() {
       });
 
       const result = await createTask(formDataObj);
+      console.log('Task creation result:', result);
 
       if (result.error) {
         toast.error(result.error);
       } else {
         toast.success('Task created and assigned successfully');
-        router.push('/adminzenfix/tasks');
+        setTimeout(() => {
+          router.push('/adminzenfix/tasks');
+        }, 500);
       }
     } catch (error) {
       console.error('Error creating task:', error);

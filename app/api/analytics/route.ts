@@ -35,7 +35,7 @@ export async function GET() {
       },
     ]);
 
-    // Tasks by department
+    // Tasks by department with performance metrics
     const tasksByDepartment = await Task.aggregate([
       { $match: userRole === 'admin' ? {} : taskQuery },
       {
@@ -52,7 +52,24 @@ export async function GET() {
       {
         $group: {
           _id: '$assignee.department',
-          count: { $sum: 1 },
+          total: { $sum: 1 },
+          completed: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          total: 1,
+          completed: 1,
+          efficiency: {
+            $cond: [
+              { $eq: ['$total', 0] },
+              0,
+              { $multiply: [{ $divide: ['$completed', '$total'] }, 100] },
+            ],
+          },
         },
       },
     ]);
@@ -80,13 +97,12 @@ export async function GET() {
       { $sort: { _id: 1 } },
     ]);
 
-    // Task completion by day of week (for bar chart)
+    // Task completion by day of week (for bar chart) - all time data
     const dayOfWeekTrend = await Task.aggregate([
       {
         $match: {
           ...taskQuery,
           status: 'completed',
-          updatedAt: { $gte: sevenDaysAgo },
         },
       },
       {
