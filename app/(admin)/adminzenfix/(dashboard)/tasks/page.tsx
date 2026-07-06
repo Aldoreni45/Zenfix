@@ -60,7 +60,7 @@ export default function TasksPage() {
   const [showPriorityMenu, setShowPriorityMenu] = useState(false);
 
   const userRole = (session?.user as any)?.role || 'worker';
-  const canCreate = userRole === 'admin';
+  const canCreate = userRole === 'admin' || userRole === 'manager';
 
   useEffect(() => {
     if (status === 'unauthenticated') redirect('/adminzenfix');

@@ -36,7 +36,7 @@ const workerNavigation = [
 const managerNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
-  { name: 'Assign Tasks', href: '/adminzenfix/tasks/assign', icon: KanbanSquare },
+  { name: 'Create Task', href: '/adminzenfix/tasks/create', icon: KanbanSquare },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Reports', href: '/adminzenfix/reports', icon: BarChart3 },
   { name: 'Notifications', href: '/adminzenfix/notifications', icon: Bell },
