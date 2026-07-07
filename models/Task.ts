@@ -9,6 +9,7 @@ export interface ITask extends Document {
   assignedTo: mongoose.Types.ObjectId;
   deadline: Date;
   estimatedHours?: number;
+  department?: 'Marketing' | 'SEO' | 'Development' | 'Design' | 'Sales' | 'HR';
   completionNotes?: string;
   notCompletedReason?: string;
   attachments?: string[];
@@ -57,6 +58,11 @@ const TaskSchema = new Schema<ITask>(
     deadline: {
       type: Date,
       required: [true, 'Task deadline is required'],
+    },
+    department: {
+      type: String,
+      enum: ['Marketing', 'SEO', 'Development', 'Design', 'Sales', 'HR'],
+      required: false,
     },
     estimatedHours: {
       type: Number,

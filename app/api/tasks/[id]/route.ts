@@ -104,11 +104,12 @@ export async function PATCH(
 
       // Notify the manager/admin who assigned the task
       await Notification.create({
-        recipient: task.assignedBy,
+        receiver: task.assignedBy,
         title: 'Task Completed',
         message: `Task "${task.title}" has been marked as completed and is awaiting your approval.`,
-        type: 'task',
+        type: 'task_completed',
         read: false,
+        link: `/adminzenfix/tasks/${task._id}`,
       });
 
       await ActivityLog.create({
@@ -138,11 +139,12 @@ export async function PATCH(
       await task.save();
 
       await Notification.create({
-        recipient: task.assignedBy,
+        receiver: task.assignedBy,
         title: 'Task Cannot Be Completed',
         message: `Task "${task.title}" has been marked as not completed. Reason: ${body.reason}`,
-        type: 'task',
+        type: 'task_updated',
         read: false,
+        link: `/adminzenfix/tasks/${task._id}`,
       });
 
       await ActivityLog.create({
@@ -168,11 +170,12 @@ export async function PATCH(
       await task.save();
 
       await Notification.create({
-        recipient: task.assignedTo,
+        receiver: task.assignedTo,
         title: 'Task Approved',
         message: `Your task "${task.title}" has been approved.`,
-        type: 'task',
+        type: 'task_updated',
         read: false,
+        link: `/adminzenfix/tasks/${task._id}`,
       });
 
       await ActivityLog.create({
@@ -198,11 +201,12 @@ export async function PATCH(
       await task.save();
 
       await Notification.create({
-        recipient: task.assignedTo,
+        receiver: task.assignedTo,
         title: 'Task Rejected',
         message: `Your task "${task.title}" has been rejected and needs to be redone.`,
-        type: 'task',
+        type: 'task_rejected',
         read: false,
+        link: `/adminzenfix/tasks/${task._id}`,
       });
 
       await ActivityLog.create({

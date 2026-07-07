@@ -29,7 +29,7 @@ export async function createTask(formData: FormData) {
   });
 
   if (!validatedFields.success) {
-    console.error('Validation errors:', validatedFields.error.errors);
+    console.error('Validation errors:', validatedFields.error.issues);
     return { error: 'Invalid fields. Please check all required fields.' };
   }
 
@@ -65,11 +65,12 @@ export async function createTask(formData: FormData) {
 
     // Create notification for the assigned user
     await Notification.create({
-      recipient: validatedFields.data.assignedTo,
+      receiver: validatedFields.data.assignedTo,
       title: 'New Task Assigned',
       message: `You have been assigned a new task: ${validatedFields.data.title}`,
-      type: 'task',
+      type: 'task_assigned',
       read: false,
+      link: `/adminzenfix/tasks/${task._id}`,
     });
 
     // Log the activity
