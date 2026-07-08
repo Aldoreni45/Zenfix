@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Facebook, Instagram, Linkedin, Twitter, Mail, MapPin, Phone } from "lucide-react";
 
 export default function Footer() {
@@ -14,8 +15,8 @@ export default function Footer() {
           
           <div className="lg:col-span-4 md:pr-6 lg:pr-8">
             <Link href="#home" className="inline-flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center shadow-lg shadow-electric-cyan/20">
-                <div className="w-5 h-5 bg-white rounded-md rotate-45" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center shadow-lg shadow-electric-cyan/20 overflow-hidden">
+                <Image src="/Z logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
               </div>
               <span className="font-heading font-bold text-2xl tracking-wide text-white uppercase">
                 ZenFix
@@ -27,15 +28,15 @@ export default function Footer() {
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-4 text-gray-400">
                 <Mail size={20} className="text-electric-cyan" />
-                <span className="text-sm">hello@zenfix.agency</span>
+                <span className="text-sm">zenfixin@gmail.com</span>
               </div>
               <div className="flex items-center gap-4 text-gray-400">
                 <Phone size={20} className="text-electric-cyan" />
-                <span className="text-sm">+1 (555) 123-4567</span>
+                <span className="text-sm">+91 83009 80023</span>
               </div>
               <div className="flex items-center gap-4 text-gray-400">
                 <MapPin size={20} className="text-electric-cyan" />
-                <span className="text-sm">San Francisco, CA</span>
+                <span className="text-sm">Chentharai, Tamil Nadu 629193</span>
               </div>
             </div>
             <div className="flex gap-4">

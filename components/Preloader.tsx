@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 
 export default function Preloader({
   children,
@@ -32,8 +33,8 @@ export default function Preloader({
         <div className="text-center">
           {/* Logo */}
           <div className="relative mb-8">
-            <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center shadow-lg shadow-electric-cyan/30 animate-pulse-glow">
-              <div className="w-10 h-10 bg-white rounded-md rotate-45" />
+            <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center shadow-lg shadow-electric-cyan/30 animate-pulse-glow overflow-hidden">
+              <Image src="/Z logo.png" alt="ZenFix Logo" width={80} height={80} className="w-full h-full object-contain" />
             </div>
           </div>
 

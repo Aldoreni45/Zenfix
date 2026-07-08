@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { SessionProvider } from 'next-auth/react';
@@ -96,8 +97,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="flex items-center justify-between h-20 px-6 border-b border-white/5">
             <Link href="/adminzenfix/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center">
-                <span className="text-white font-bold text-lg">Z</span>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center overflow-hidden">
+                <Image src="/Z logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
               </div>
               <span className="text-xl font-bold text-white tracking-tight">ZenFix</span>
             </Link>

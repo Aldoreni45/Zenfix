@@ -5,10 +5,10 @@ import { MapPin, Phone, Mail, Clock3, ArrowRight, CheckCircle2 } from "lucide-re
 import { motion } from "framer-motion";
 
 const contactItems = [
-  { icon: MapPin, label: "HQ Studio", value: "San Francisco, CA" },
-  { icon: Phone, label: "Call Us", value: "+1 (555) 123-4567" },
-  { icon: Mail, label: "Email Us", value: "hello@zenfix.agency" },
-  { icon: Clock3, label: "Working Hours", value: "Mon – Fri · 9 AM – 6 PM PST" },
+  { icon: MapPin, label: "Address", value: "Chentharai, P.O, Keezhkulam, Karungal, Tamil Nadu 629193" },
+  { icon: Phone, label: "Call Us", value: "+91 83009 80023" },
+  { icon: Mail, label: "Email Us", value: "zenfixin@gmail.com" },
+  { icon: Clock3, label: "Working Hours", value: "Monday – Saturday · 9:00 AM – 5:00 PM" },
 ];
 
 const services = [
@@ -93,11 +93,19 @@ export default function ContactSection() {
             </div>
             
             <div className="w-full h-56 glass-card rounded-[32px] border border-white/10 overflow-hidden relative group shadow-xl">
-              <div className="absolute inset-0 bg-navy opacity-50 mix-blend-multiply group-hover:opacity-30 transition-opacity duration-500" />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-electric-cyan/10 via-surface to-surface" />
-              <div className="absolute bottom-6 left-6 right-6 flex items-center gap-3 text-white">
-                <MapPin size={20} className="text-electric-cyan" />
-                <span className="text-base font-bold tracking-wide">San Francisco, CA</span>
+              <iframe
+                src="https://maps.google.com/maps?q=Chentharai,Keezhkulam,Karungal,Tamil+Nadu+629193&t=&z=13&ie=UTF8&iwloc=&output=embed"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-4 left-4 right-4 glass px-4 py-2 rounded-xl border border-white/10 flex items-center gap-2 text-white">
+                <MapPin size={16} className="text-electric-cyan" />
+                <span className="text-xs font-bold tracking-wide">Chentharai, Tamil Nadu</span>
               </div>
             </div>
           </motion.div>
