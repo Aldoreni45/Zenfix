@@ -1,3 +1,6 @@
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text
 public/*.png !text !filter !merge !diff
 public/projects/*.png !text !filter !merge !diff
 public/projects/*.jpeg !text !filter !merge !diff
