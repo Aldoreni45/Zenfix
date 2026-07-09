@@ -124,7 +124,7 @@ export default function FounderMessage() {
                 className="overflow-hidden rounded-[30px] border border-white/10 bg-surface shadow-2xl transition duration-500 md:rounded-[40px]"
               >
                 <Image
-                  src="/projects/ZENFIXIN LOGO 2.png"
+                  src="/projects/zenfixin-logo-2.png"
                   alt="Founder"
                   width={500}
                   height={650}

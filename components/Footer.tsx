@@ -16,7 +16,7 @@ export default function Footer() {
           <div className="lg:col-span-4 md:pr-6 lg:pr-8">
             <Link href="#home" className="inline-flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center shadow-lg shadow-electric-cyan/20 overflow-hidden">
-                <Image src="/Z logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
+                <Image src="/z-logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
               </div>
               <span className="font-heading font-bold text-2xl tracking-wide text-white uppercase">
                 ZenFix
