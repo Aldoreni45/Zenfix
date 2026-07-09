@@ -14,9 +14,9 @@ export const metadata: Metadata = {
   description: "ZenFix is a full-service Digital Growth Agency helping startups, local businesses, and enterprises accelerate growth through Digital Marketing, SEO, Google Ads, Meta Ads, Social Media Management, Lead Generation, Website Development, Web Applications, Mobile App Development, Branding, UI/UX Design, AI Automation, Content Marketing, Email Marketing, and Performance Marketing.",
   keywords: ["Digital Marketing Agency", "SEO", "Google Ads", "Meta Ads", "Social Media Management", "Lead Generation", "Website Development", "Mobile App Development", "Branding", "UI/UX Design", "AI Automation", "Content Marketing", "Email Marketing", "Performance Marketing"],
   icons: {
-    icon: "/Z logo.png",
-    shortcut: "/Z logo.png",
-    apple: "/Z logo.png",
+    icon: "/z-logo.png",
+    shortcut: "/z-logo.png",
+    apple: "/z-logo.png",
   },
 };
 
