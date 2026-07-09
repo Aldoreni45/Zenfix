@@ -63,7 +63,7 @@ export default function Navbar() {
             {/* LOGO */}
             <Link href="#home" onClick={closeMenu} className="relative z-10 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan via-royal-blue to-purple flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)] overflow-hidden">
-                <Image src="/z-logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
+                <Image src="/z_logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
               </div>
               <span className="font-heading font-bold text-2xl tracking-wide text-white uppercase">
                 ZenFix
