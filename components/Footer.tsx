@@ -23,7 +23,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-gray-400 mb-10 max-w-md text-lg leading-relaxed">
-              The premier digital marketing agency for ambitious brands looking to dominate their market through data-driven strategies and AI-powered execution.
+              The premier digital marketing agency for ambitious brands looking to dominate their market through data-driven strategies and AI-powered execution. Founded in 2020.
             </p>
             <div className="space-y-4 mb-8">
               <div className="flex items-center gap-4 text-gray-400">
