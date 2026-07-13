@@ -5,6 +5,7 @@ import MarketingProcess from "@/components/MarketingProcess";
 import WorkProcess from "@/components/WorkProcess";
 import CaseStudies from "@/components/CaseStudies";
 import QuoteSection from "@/components/QuoteSection"; // Trusted By Marquee
+import TechMarquee from "@/components/TechMarquee";
 import FounderMessage from "@/components/FounderMessage";
 import CompanyStats from "@/components/CompanyStats";
 import TestimonialsSection from "@/components/TestimonialsSection";
@@ -41,6 +42,9 @@ export default function Home() {
       
       {/* 7. Case Studies */}
       <CaseStudies />
+      
+      {/* 8. Technologies We Use */}
+      <TechMarquee />
       
       {/* 7. Founder Message */}
       <FounderMessage />

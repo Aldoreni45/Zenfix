@@ -29,7 +29,7 @@ export default function HeroSlider() {
   ];
 
   return (
-    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 bg-background">
+    <section id="home" className="relative min-h-screen flex flex-col items-start justify-start md:items-center md:justify-center overflow-hidden pt-20 sm:pt-24 md:pt-28 lg:pt-36 bg-background">
       {/* Animated Gradient Background */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-electric-cyan/20 rounded-full mix-blend-screen filter blur-[150px] animate-aurora" />
@@ -50,21 +50,10 @@ export default function HeroSlider() {
       </div>
 
       <motion.div style={{ opacity }} className="relative z-10 w-full px-4 sm:px-6 md:px-10 lg:px-16 xl:px-24 2xl:px-32">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 xl:gap-20 2xl:gap-24 items-center min-h-[calc(100vh-80px)]">
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 xl:gap-20 2xl:gap-24 items-center w-full md:min-h-[calc(100vh-80px)]">
           {/* Left Content */}
           <div className="flex flex-col items-start gap-6 md:gap-8 lg:gap-10 w-full">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-electric-cyan/30 bg-electric-cyan/5 text-electric-cyan"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-electric-cyan opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-electric-cyan"></span>
-              </span>
-              <span className="text-xs font-semibold tracking-wide uppercase text-white">Premium Digital Agency</span>
-            </motion.div>
+
 
             <motion.h1
               initial={{ opacity: 0, y: 20 }}

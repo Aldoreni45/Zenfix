@@ -51,27 +51,32 @@ export default function Navbar() {
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-          scrolled ? "py-4" : "py-6"
-        }`}
+        className="fixed top-0 left-0 w-full z-50 transition-all duration-300"
       >
-        <div className="w-full mx-auto px-4 sm:px-6 md:px-10 lg:px-16 xl:px-24 2xl:px-32">
-          <div className={`flex items-center justify-between rounded-full transition-all duration-500 ${
-            scrolled ? "glass px-6 py-3 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.3)]" : "bg-transparent px-2 py-2"
+        <div className={`w-full mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 transition-all duration-300 ${
+          scrolled ? "pt-3" : "pt-5"
+        }`}>
+          <div className={`flex items-center justify-between h-16 rounded-2xl transition-all duration-500 ${
+            scrolled ? "bg-slate-900/65 backdrop-blur-xl px-5 border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.18)]" : "bg-transparent px-2"
           }`}>
             
             {/* LOGO */}
-            <Link href="#home" onClick={closeMenu} className="relative z-10 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan via-royal-blue to-purple flex items-center justify-center shadow-[0_0_20px_rgba(6,182,212,0.4)] overflow-hidden">
-                <Image src="/z_logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
-              </div>
-              <span className="font-heading font-bold text-2xl tracking-wide text-white uppercase">
-                ZenFix
-              </span>
-            </Link>
+            <div className="flex items-center shrink-0">
+              <Link href="#home" onClick={closeMenu}>
+                <Image
+                  src="/projects/zenfixin_logo_2.png"
+                  alt="ZenFixin Logo"
+                  width={0}
+                  height={0}
+                  sizes="100vw"
+                  className="w-28 sm:w-32 lg:w-36 h-auto object-contain"
+                  priority
+                />
+              </Link>
+            </div>
 
             {/* DESKTOP NAV */}
-            <nav className="hidden lg:flex items-center gap-10">
+            <nav className="hidden lg:flex flex-1 items-center justify-center gap-8">
               {navItems.map((item) => (
                 <Link
                   key={item.id}
@@ -91,10 +96,10 @@ export default function Navbar() {
               ))}
             </nav>
             
-            <div className="hidden lg:flex items-center gap-4">
+            <div className="hidden lg:flex flex-shrink-0 items-center gap-4">
               <Link 
                 href="#contact" 
-                className="relative inline-flex items-center justify-center px-5 md:px-6 py-2.5 md:py-3 text-sm font-medium text-white transition-all duration-300 bg-gradient-to-r from-royal-blue to-purple rounded-full hover:scale-105 active:scale-95 hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] overflow-hidden group min-h-[44px]"
+                className="relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 bg-gradient-to-r from-royal-blue to-purple rounded-full hover:scale-105 active:scale-95 hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   Get Started
