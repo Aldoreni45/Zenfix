@@ -12,7 +12,6 @@ import TestimonialsSection from "@/components/TestimonialsSection";
 import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import ContactSection from "@/components/ContactSection";
-import Newsletter from "@/components/Newsletter";
 import CTABanner from "@/components/CTABanner";
 import FloatingContact from "@/components/FloatingContact";
 import Footer from "@/components/Footer";
@@ -61,16 +60,13 @@ export default function Home() {
       {/* 9. FAQ */}
       <FAQ />
       
-      {/* 10. Newsletter */}
-      <Newsletter />
-      
-      {/* 11. CTA Banner */}
+      {/* 10. CTA Banner */}
       <CTABanner />
       
-      {/* 12. Contact */}
+      {/* 11. Contact */}
       <ContactSection />
       
-      {/* 13. Footer */}
+      {/* 12. Footer */}
       <Footer />
     </>
   );
