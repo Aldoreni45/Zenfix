@@ -143,38 +143,85 @@ export default function ServicesSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6 lg:gap-8 xl:gap-10 2xl:gap-12">
           {services.map((service, idx) => {
             const Icon = service.icon;
+            
+            // New elegant animation variants
+            const animationVariants = [
+              { 
+                initial: { opacity: 0, y: 30 }, 
+                whileInView: { opacity: 1, y: 0 }, 
+                transition: { duration: 0.4, delay: idx * 0.06 } 
+              },
+              { 
+                initial: { opacity: 0, scale: 0.95 }, 
+                whileInView: { opacity: 1, scale: 1 }, 
+                transition: { duration: 0.4, delay: idx * 0.06 } 
+              },
+              { 
+                initial: { opacity: 0, x: -20 }, 
+                whileInView: { opacity: 1, x: 0 }, 
+                transition: { duration: 0.4, delay: idx * 0.06 } 
+              },
+              { 
+                initial: { opacity: 0, x: 20 }, 
+                whileInView: { opacity: 1, x: 0 }, 
+                transition: { duration: 0.4, delay: idx * 0.06 } 
+              },
+              { 
+                initial: { opacity: 0, y: -20 }, 
+                whileInView: { opacity: 1, y: 0 }, 
+                transition: { duration: 0.4, delay: idx * 0.06 } 
+              },
+              { 
+                initial: { opacity: 0, scale: 0.9, y: 20 }, 
+                whileInView: { opacity: 1, scale: 1, y: 0 }, 
+                transition: { duration: 0.4, delay: idx * 0.06 } 
+              },
+            ];
+            
+            const variant = animationVariants[idx % animationVariants.length];
+            
             return (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.5, delay: idx * 0.05 }}
-                className="group relative gradient-border p-5 md:p-6 lg:p-8 xl:p-10 rounded-2xl md:rounded-3xl transition-all duration-500 overflow-hidden hover:-translate-y-2"
+                initial={variant.initial}
+                whileInView={variant.whileInView}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={variant.transition}
+                className="group relative gradient-border p-5 md:p-6 lg:p-8 xl:p-10 rounded-2xl md:rounded-3xl transition-all duration-700 overflow-hidden hover:-translate-y-3 hover:shadow-[0_20px_60px_-15px_rgba(6,182,212,0.3)]"
+                whileHover={{ 
+                  scale: 1.02,
+                  boxShadow: "0 25px 80px -15px rgba(6,182,212,0.4)"
+                }}
               >
-                {/* Hover Gradient Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-electric-cyan/5 via-royal-blue/5 to-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                {/* Premium Hover Gradient Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-electric-cyan/10 via-royal-blue/10 to-purple/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                
+                {/* Shimmer Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
+                
+                {/* Glow Effect */}
+                <div className="absolute -inset-1 bg-gradient-to-r from-electric-cyan via-royal-blue to-purple opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-700" />
                 
                 <div className="relative z-10 flex flex-col h-full">
                   <motion.div 
-                    className="w-10 h-10 md:w-12 md:h-12 lg:w-14 lg:h-16 rounded-xl md:rounded-2xl bg-gradient-to-br from-electric-cyan/20 to-royal-blue/20 flex items-center justify-center mb-4 md:mb-6 lg:mb-8 border border-electric-cyan/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500"
-                    whileHover={{ scale: 1.1, rotate: 6 }}
+                    className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-18 rounded-2xl md:rounded-3xl bg-gradient-to-br from-electric-cyan/30 to-royal-blue/30 flex items-center justify-center mb-5 md:mb-7 lg:mb-9 border border-electric-cyan/40 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 shadow-[0_8px_32px_rgba(6,182,212,0.2)] group-hover:shadow-[0_12px_48px_rgba(6,182,212,0.4)]"
+                    whileHover={{ scale: 1.25, rotate: 12 }}
                   >
-                    <Icon className="text-electric-cyan group-hover:text-royal-blue transition-colors w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-8" />
+                    <Icon className="text-electric-cyan group-hover:text-white transition-colors w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8" />
                   </motion.div>
                   
-                  <h4 className="text-base md:text-lg lg:text-xl xl:text-2xl font-heading font-bold text-white mb-2 md:mb-3 lg:mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-electric-cyan group-hover:to-royal-blue transition-colors">{service.title}</h4>
+                  <h4 className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-heading font-bold text-white mb-3 md:mb-4 lg:mb-5 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-electric-cyan group-hover:via-royal-blue group-hover:to-purple transition-colors duration-500">{service.title}</h4>
                   
-                  <p className="text-xs md:text-sm lg:text-base text-gray-400 leading-relaxed mb-4 md:mb-6 lg:mb-8 flex-grow">
+                  <p className="text-sm md:text-base lg:text-lg text-gray-400 leading-relaxed mb-5 md:mb-7 lg:mb-9 flex-grow group-hover:text-gray-300 transition-colors duration-500">
                     {service.desc}
                   </p>
                   
                   <motion.div 
-                    className="flex items-center gap-2 text-[10px] md:text-xs lg:text-sm font-bold text-electric-cyan uppercase tracking-wider group-hover:gap-4 transition-all mt-auto cursor-pointer"
-                    whileHover={{ gap: 16 }}
+                    className="flex items-center gap-3 text-xs md:text-sm lg:text-base font-bold text-electric-cyan uppercase tracking-wider group-hover:gap-6 transition-all duration-500 mt-auto cursor-pointer group-hover:text-royal-blue"
+                    whileHover={{ gap: 24 }}
                   >
                     <span>Learn More</span>
-                    <span className="w-6 h-[2px] bg-electric-cyan group-hover:w-10 transition-all" />
+                    <span className="w-8 h-[2px] bg-gradient-to-r from-electric-cyan to-royal-blue group-hover:w-16 transition-all duration-500" />
                   </motion.div>
                 </div>
               </motion.div>

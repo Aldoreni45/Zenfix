@@ -126,8 +126,8 @@ export default function QuoteSection() {
           Trusted By Industry Leaders &amp; Ambitious Brands
         </motion.p>
 
-        <div className="relative flex overflow-x-hidden">
-          <div className="flex animate-marquee whitespace-nowrap gap-20 md:gap-32 items-center">
+        <div className="relative flex overflow-hidden">
+          <div className="flex animate-marquee whitespace-nowrap gap-16 md:gap-24 items-center">
             {[...brands, ...brands, ...brands].map((brand, i) => (
               <motion.div
                 key={i}
@@ -137,16 +137,12 @@ export default function QuoteSection() {
                 transition={{ delay: i * 0.05 }}
                 className="flex-shrink-0 flex items-center justify-center hover:scale-105 transition-all duration-300"
               >
-                {/* Uniform white card for every logo */}
                 <div className="w-32 h-16 md:w-40 md:h-20 bg-white rounded-xl px-4 py-3 shadow-md flex items-center justify-center opacity-70 hover:opacity-100 transition-opacity duration-300">
                   {brand.logo}
                 </div>
               </motion.div>
             ))}
           </div>
-
-          <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-surface to-transparent pointer-events-none" />
-          <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-surface to-transparent pointer-events-none" />
         </div>
       </div>
 

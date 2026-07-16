@@ -1,268 +1,273 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRight, BarChart3, TrendingUp, Users, Target, Zap, Globe, ChevronDown } from "lucide-react";
+import { ArrowRight, TrendingUp, Zap, Target, BarChart3, Globe, Users, Sparkles } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 export default function HeroSlider() {
-  const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 500], [0, 200]);
-  const y2 = useTransform(scrollY, [0, 500], [0, -150]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
-  
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
-
-  const stats = [
-    { value: "1200+", label: "Projects Delivered", icon: Target },
-    { value: "600+", label: "Happy Clients", icon: Users },
-    { value: "98%", label: "Client Satisfaction", icon: TrendingUp },
-    { value: "25+", label: "Marketing Experts", icon: Zap },
-  ];
-
   return (
-    <section id="home" className="relative min-h-screen flex flex-col items-start justify-start md:items-center md:justify-center overflow-hidden pt-20 sm:pt-24 md:pt-28 lg:pt-36 bg-background">
-      {/* Animated Gradient Background */}
+    <section id="home" className="relative min-h-screen pt-[80px] pb-[40px] md:pt-[100px] md:pb-[60px] lg:pt-[120px] lg:pb-[60px] bg-background overflow-hidden">
+      {/* Premium Background */}
       <div className="absolute inset-0">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-electric-cyan/20 rounded-full mix-blend-screen filter blur-[150px] animate-aurora" />
-        <div className="absolute bottom-1/4 right-1/4 w-[700px] h-[700px] bg-royal-blue/20 rounded-full mix-blend-screen filter blur-[150px] animate-aurora" style={{ animationDelay: "3s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple/10 rounded-full mix-blend-screen filter blur-[200px] animate-aurora" style={{ animationDelay: "5s" }} />
+        {/* Animated Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:4rem_4rem] opacity-50" />
         
-        {/* Grid overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem]" />
+        {/* Aurora Background */}
+        <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-electric-cyan/10 rounded-full mix-blend-screen filter blur-[200px] animate-aurora-1" />
+        <div className="absolute bottom-0 right-1/4 w-[900px] h-[900px] bg-royal-blue/10 rounded-full mix-blend-screen filter blur-[200px] animate-aurora-2" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-purple/5 rounded-full mix-blend-screen filter blur-[250px] animate-aurora-3" />
         
-        {/* Mouse glow effect */}
-        <motion.div
-          className="fixed w-[400px] h-[400px] bg-electric-cyan/5 rounded-full pointer-events-none blur-[100px]"
-          style={{
-            x: mousePosition.x - 200,
-            y: mousePosition.y - 200,
-          }}
-        />
+        {/* Moving Gradient Lines */}
+        <div className="absolute inset-0 overflow-hidden opacity-20">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-electric-cyan to-transparent" />
+          <div className="absolute top-1/3 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-royal-blue to-transparent" />
+          <div className="absolute top-2/3 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-purple to-transparent" />
+        </div>
       </div>
 
-      <motion.div style={{ opacity }} className="relative z-10 w-full px-4 sm:px-6 md:px-10 lg:px-16 xl:px-24 2xl:px-32">
-        <div className="grid md:grid-cols-2 gap-8 md:gap-12 lg:gap-16 xl:gap-20 2xl:gap-24 items-center w-full md:min-h-[calc(100vh-80px)]">
+      <div className="relative z-10 w-full max-w-[1800px] mx-auto px-[20px] md:px-[40px] lg:px-[80px] xl:px-[100px]">
+        <div className="grid lg:grid-cols-[55%_45%] gap-12 md:gap-16 lg:gap-[100px] items-start">
           {/* Left Content */}
-          <div className="flex flex-col items-start gap-6 md:gap-8 lg:gap-10 w-full">
+          <div className="flex flex-col items-start gap-10 md:gap-12 lg:gap-16">
 
+            <h1 className="text-[clamp(2.2rem,7vw,3rem)] md:text-[clamp(2.8rem,5vw,4rem)] lg:text-[clamp(3.5rem,5.5vw,5.5rem)] xl:text-[clamp(4rem,6vw,6rem)] font-heading font-bold text-white leading-[1.15] tracking-tight max-w-full">
+              <span className="block mb-2">Helping Businesses</span>{" "}
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-electric-cyan via-royal-blue to-purple bg-[length:200%_auto] animate-gradient-shine mb-2">
+                Dominate
+              </span>{" "}
+              <span className="block">the Digital World</span>
+            </h1>
 
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl font-heading font-bold text-white leading-[1.05] tracking-tight"
-            >
-              Helping Businesses <span className="text-transparent bg-clip-text bg-gradient-to-r from-electric-cyan via-royal-blue to-purple">Dominate</span> the Digital World
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-400 max-w-2xl lg:max-w-3xl leading-relaxed"
-            >
+            <p className="text-[clamp(0.95rem,1.2vw,1.15rem)] md:text-[clamp(1rem,1.3vw,1.2rem)] lg:text-[clamp(1.05rem,1.3vw,1.25rem)] text-gray-400 max-w-full leading-[1.9]">
               ZenFix delivers high-impact digital marketing, SEO, web development, mobile apps, branding, lead generation, and AI-powered automation that drives measurable business growth.
-            </motion.p>
+            </p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-3 md:gap-4 w-full sm:w-auto"
-            >
+            <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto mt-4">
               <Link
                 href="#contact"
-                className="group relative inline-flex items-center justify-center gap-2 px-5 sm:px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-royal-blue to-purple text-white font-semibold rounded-full overflow-hidden transition-transform hover:scale-105 active:scale-95 shadow-[0_0_40px_rgba(37,99,235,0.3)] text-sm md:text-base min-h-[48px]"
+                className="group relative inline-flex items-center justify-center gap-2 px-8 h-[58px] bg-gradient-to-r from-royal-blue to-purple text-white font-semibold rounded-full overflow-hidden transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(37,99,235,0.4)] hover:shadow-[0_0_60px_rgba(6,182,212,0.3)]"
               >
                 <span className="relative z-10">Get Free Consultation</span>
-                <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight size={18} className="relative z-10 group-hover:translate-x-1 transition-transform animate-arrow-bounce" />
                 <div className="absolute inset-0 bg-gradient-to-r from-electric-cyan to-royal-blue opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 rounded-full border border-white/20 opacity-0 group-hover:opacity-100 group-hover:animate-border-glow" />
               </Link>
               <Link
                 href="#services"
-                className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 md:px-8 py-3 md:py-4 glass border border-white/10 text-white font-semibold rounded-full hover:bg-white/10 active:bg-white/20 transition-colors text-sm md:text-base min-h-[48px]"
+                className="inline-flex items-center justify-center gap-2 px-8 h-[58px] glass border border-white/10 text-white font-semibold rounded-full hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.1)]"
               >
                 Explore Our Services
               </Link>
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 lg:gap-6 mt-6 md:mt-8 w-full"
-            >
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.5 + index * 0.1 }}
-                  className="glass-card rounded-2xl p-3 md:p-4 lg:p-5 text-center"
-                >
-                  <stat.icon className="w-6 h-6 mx-auto mb-2 text-electric-cyan" />
-                  <p className="text-xl md:text-2xl lg:text-3xl font-heading font-bold text-white">{stat.value}</p>
-                  <p className="text-[10px] md:text-xs text-gray-400 mt-1">{stat.label}</p>
-                </motion.div>
-              ))}
-            </motion.div>
+            </div>
           </div>
 
-          {/* Right Content - Dashboard Mockup */}
-          <motion.div style={{ y: y1 }} className="relative h-[400px] md:h-[500px] lg:h-[600px] xl:h-[700px] 2xl:h-[800px] hidden md:block w-full">
-            {/* Main Dashboard Card */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, rotateY: 10 }}
-              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="absolute top-0 right-0 w-[85%] md:w-[90%] max-w-[400px] md:max-w-[500px] lg:max-w-[600px] xl:max-w-[700px] 2xl:max-w-[800px] glass-card rounded-3xl p-5 md:p-6 lg:p-8 z-20 shadow-2xl border border-white/10"
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-white font-bold text-lg">Marketing Dashboard</h3>
-                <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                </div>
-              </div>
-              
-              {/* Chart */}
-              <div className="h-32 md:h-40 lg:h-48 w-full flex items-end gap-2 md:gap-3 mb-4 md:mb-6">
-                {[35, 55, 45, 75, 60, 90, 80, 100].map((h, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ height: 0 }}
-                    animate={{ height: `${h}%` }}
-                    transition={{ duration: 1, delay: 0.5 + i * 0.1 }}
-                    className="flex-1 bg-gradient-to-t from-royal-blue to-electric-cyan rounded-t-md opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
-                  />
-                ))}
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 md:gap-4">
-                {[
-                  { label: "Impressions", value: "2.4M", change: "+12%" },
-                  { label: "Clicks", value: "89K", change: "+8%" },
-                  { label: "Conversions", value: "3.2K", change: "+15%" },
-                ].map((item, i) => (
-                  <motion.div
-                    key={item.label}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.8 + i * 0.1 }}
-                    className="bg-white/5 rounded-xl p-2 md:p-3"
-                  >
-                    <p className="text-xs text-gray-400">{item.label}</p>
-                    <p className="text-base md:text-lg font-bold text-white">{item.value}</p>
-                    <p className="text-[10px] md:text-xs text-electric-cyan">{item.change}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* SEO Card */}
-            <motion.div
-              style={{ y: y2 }}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              className="absolute top-[35%] md:top-[40%] lg:top-[45%] -left-4 md:-left-8 lg:-left-12 xl:-left-16 w-[75%] md:w-[80%] max-w-[280px] md:max-w-[340px] lg:max-w-[380px] glass-card rounded-3xl p-3 md:p-4 lg:p-6 z-30 shadow-2xl border border-white/10"
-            >
-              <div className="flex gap-4 items-center mb-4">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center">
-                  <Globe className="text-white w-6 h-6 md:w-7 md:h-7" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400 font-semibold uppercase tracking-wider">SEO Ranking</p>
-                  <p className="text-2xl md:text-3xl font-heading font-bold text-white">#1</p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                {["Google", "Bing", "Yahoo"].map((engine, i) => (
-                  <div key={engine} className="flex items-center gap-3">
-                    <span className="text-[10px] md:text-xs text-gray-400 w-12 md:w-16">{engine}</span>
-                    <div className="flex-1 bg-white/5 rounded-full h-2">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: i === 0 ? "95%" : i === 1 ? "88%" : "82%" }}
-                        transition={{ duration: 1, delay: 1 + i * 0.1 }}
-                        className="bg-gradient-to-r from-electric-cyan to-royal-blue h-2 rounded-full"
-                      />
-                    </div>
+          {/* Right Content - AI Powered Dashboard */}
+          <div className="relative lg:mt-8">
+            <div className="grid grid-cols-2 gap-4 md:gap-5 lg:gap-6 max-w-full">
+              {/* Marketing Card - Top Center */}
+              <div className="col-span-2 glass-card rounded-3xl p-6 border border-white/10 animate-float-1 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 text-white" />
                   </div>
-                ))}
+                  <div>
+                    <p className="text-sm text-gray-400 font-semibold uppercase tracking-wider">Marketing Analytics</p>
+                    <p className="text-2xl font-heading font-bold text-white">+247%</p>
+                  </div>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-electric-cyan to-royal-blue rounded-full" style={{ width: "85%" }} />
+                </div>
               </div>
-            </motion.div>
 
-            {/* Lead Generation Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="absolute -bottom-4 md:-bottom-8 right-4 md:right-8 lg:right-12 xl:right-20 w-[65%] md:w-[70%] max-w-[220px] md:max-w-[260px] lg:max-w-[300px] glass-card rounded-3xl p-3 md:p-4 lg:p-6 z-10 shadow-2xl border border-white/10"
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-purple to-pink flex items-center justify-center">
-                  <Target className="text-white w-6 h-6 md:w-7 md:h-7" />
+              {/* Lead Card - Left */}
+              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-2 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple to-pink flex items-center justify-center">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Lead Gen</p>
+                    <p className="text-xl font-heading font-bold text-white">25K+</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-3xl md:text-4xl font-heading font-bold text-white">25K+</p>
-                  <p className="text-xs md:text-sm font-semibold text-gray-400 uppercase tracking-wider">New Leads</p>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-purple to-pink rounded-full" style={{ width: "78%" }} />
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-2">
-                <div className="flex-1 bg-white/5 rounded-full h-2">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: "78%" }}
-                    transition={{ duration: 1, delay: 1.2 }}
-                    className="bg-gradient-to-r from-purple to-pink h-2 rounded-full"
-                  />
-                </div>
-                <span className="text-[10px] md:text-xs text-gray-400">78%</span>
-              </div>
-            </motion.div>
 
-            {/* Floating Badge */}
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-[8%] md:top-[10%] lg:top-[15%] right-[20%] md:right-[25%] lg:right-[30%] glass-card rounded-2xl px-2 py-1.5 md:px-3 md:py-2 z-40 border border-electric-cyan/30"
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-electric-cyan animate-pulse" />
-                <span className="text-[9px] md:text-[10px] lg:text-xs font-semibold text-white">Live Campaign Active</span>
+              {/* SEO Card - Right */}
+              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-3 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">SEO Growth</p>
+                    <p className="text-xl font-heading font-bold text-white">#1</p>
+                  </div>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-electric-cyan to-royal-blue rounded-full" style={{ width: "95%" }} />
+                </div>
               </div>
-            </motion.div>
-          </motion.div>
+
+              {/* AI Card - Center */}
+              <div className="col-span-2 glass-card rounded-3xl p-6 border border-white/10 animate-float-4 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan via-royal-blue to-purple flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-400 font-semibold uppercase tracking-wider">AI Automation</p>
+                    <p className="text-2xl font-heading font-bold text-white">98% Efficient</p>
+                  </div>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-electric-cyan via-royal-blue to-purple rounded-full" style={{ width: "98%" }} />
+                </div>
+              </div>
+
+              {/* ROI Card - Left */}
+              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-5 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">ROI</p>
+                    <p className="text-xl font-heading font-bold text-white">5.2x</p>
+                  </div>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" style={{ width: "92%" }} />
+                </div>
+              </div>
+
+              {/* Social Card - Right */}
+              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-6 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
+                    <Users className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Social</p>
+                    <p className="text-xl font-heading font-bold text-white">1.2M</p>
+                  </div>
+                </div>
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-orange-400 to-red-500 rounded-full" style={{ width: "88%" }} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
-        >
-          <span className="text-xs text-gray-400 uppercase tracking-widest">Scroll to explore</span>
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <ChevronDown className="text-electric-cyan" size={24} />
-          </motion.div>
-        </motion.div>
-      </motion.div>
+      {/* CSS Animations */}
+      <style jsx>{`
+        @keyframes gradient-shine {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        @keyframes aurora-1 {
+          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.1; }
+          50% { transform: translate(50px, -30px) scale(1.1); opacity: 0.15; }
+        }
+        @keyframes aurora-2 {
+          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.1; }
+          50% { transform: translate(-50px, 30px) scale(1.1); opacity: 0.15; }
+        }
+        @keyframes aurora-3 {
+          0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.05; }
+          50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.08; }
+        }
+        @keyframes float-1 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes float-2 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes float-3 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-12px); }
+        }
+        @keyframes float-4 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes float-5 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes float-6 {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes arrow-bounce {
+          0%, 100% { transform: translateX(0); }
+          50% { transform: translateX(3px); }
+        }
+        @keyframes border-glow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(6,182,212,0.4); }
+          50% { box-shadow: 0 0 0 4px rgba(6,182,212,0); }
+        }
+        .animate-gradient-shine {
+          animation: gradient-shine 8s ease-in-out infinite;
+        }
+        .animate-aurora-1 {
+          animation: aurora-1 20s ease-in-out infinite;
+        }
+        .animate-aurora-2 {
+          animation: aurora-2 25s ease-in-out infinite;
+        }
+        .animate-aurora-3 {
+          animation: aurora-3 30s ease-in-out infinite;
+        }
+        .animate-float-1 {
+          animation: float-1 6s ease-in-out infinite;
+        }
+        .animate-float-2 {
+          animation: float-2 5s ease-in-out infinite;
+        }
+        .animate-float-3 {
+          animation: float-3 7s ease-in-out infinite;
+        }
+        .animate-float-4 {
+          animation: float-4 5.5s ease-in-out infinite;
+        }
+        .animate-float-5 {
+          animation: float-5 6.5s ease-in-out infinite;
+        }
+        .animate-float-6 {
+          animation: float-6 5.8s ease-in-out infinite;
+        }
+        .animate-bar-fill {
+          animation: bar-fill 1.5s ease-out forwards;
+        }
+        .animate-bar-fill-delayed {
+          animation: bar-fill-delayed 1.5s ease-out 0.2s forwards;
+        }
+        .animate-bar-fill-delayed-2 {
+          animation: bar-fill-delayed-2 1.5s ease-out 0.4s forwards;
+        }
+        .animate-bar-fill-delayed-3 {
+          animation: bar-fill-delayed-3 1.5s ease-out 0.6s forwards;
+        }
+        .animate-bar-fill-delayed-4 {
+          animation: bar-fill-delayed-4 1.5s ease-out 0.8s forwards;
+        }
+        .animate-bar-fill-delayed-5 {
+          animation: bar-fill-delayed-5 1.5s ease-out 1s forwards;
+        }
+        .animate-arrow-bounce {
+          animation: arrow-bounce 2s ease-in-out infinite;
+        }
+        .animate-border-glow {
+          animation: border-glow 2s ease-in-out infinite;
+        }
+      `}</style>
     </section>
   );
 }

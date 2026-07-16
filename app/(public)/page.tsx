@@ -1,4 +1,5 @@
 import HeroSlider from "@/components/HeroSlider";
+import Achievements from "@/components/Achievements";
 import WhyChooseUs from "@/components/WhyChooseUs";
 import ServicesSection from "@/components/ServicesSection";
 import MarketingProcess from "@/components/MarketingProcess";
@@ -24,7 +25,10 @@ export default function Home() {
       {/* 1. Hero */}
       <HeroSlider />
 
-      {/* 2. Trusted By Marquee */}
+      {/* 2. Achievements */}
+      <Achievements />
+
+      {/* 3. Trusted By Marquee */}
       <QuoteSection />
       
       {/* 3. Services */}

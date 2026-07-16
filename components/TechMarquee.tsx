@@ -1,7 +1,6 @@
 ﻿"use client";
 
-import { useRef, useState, useCallback } from "react";
-import { motion, useMotionValue } from "framer-motion";
+import { useRef, useState } from "react";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 interface Technology {
@@ -1070,23 +1069,6 @@ const STYLES = `
   100% { transform: translate(-20px,30px) scale(.95); }
 }
 
-/* Particles */
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 1;
-  animation: particleFloat linear infinite;
-  will-change: transform, opacity;
-}
-@keyframes particleFloat {
-  0%   { opacity: 0;   transform: translateY(0) scale(0); }
-  10%  { opacity: 1;   transform: translateY(-20px) scale(1); }
-  90%  { opacity: .6;  transform: translateY(-120px) scale(.8); }
-  100% { opacity: 0;   transform: translateY(-160px) scale(0); }
-}
-
 /* Header */
 .tech-header {
   position: relative;
@@ -1189,7 +1171,7 @@ const STYLES = `
   gap: .55rem;
   cursor: pointer;
   overflow: hidden;
-  transition: border-color .25s ease, box-shadow .25s ease;
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
 }
 .tech-card:hover {
   border-color: color-mix(in srgb, var(--card-color) 55%, transparent);
@@ -1198,6 +1180,7 @@ const STYLES = `
     0 8px 40px color-mix(in srgb, var(--card-color) 28%, transparent),
     0 20px 60px rgba(0,0,0,.4),
     inset 0 1px 0 rgba(255,255,255,.12);
+  transform: translateY(-4px) scale(1.05);
 }
 
 /* Shimmer */
@@ -1280,17 +1263,16 @@ function distributeRows(items: Technology[], numRows: number): Technology[][] {
 // ─── Individual card ────────────────────────────────────────────────────────
 function TechCard({ tech }: { tech: Technology }) {
   return (
-    <motion.div
+    <div
       className="tech-card"
       style={{ "--card-color": tech.color } as React.CSSProperties}
-      whileHover={{ scale: 1.08, y: -6, transition: { duration: 0.2, ease: "easeOut" } }}
       aria-label={tech.name}
     >
       <div className="tech-card__shimmer" />
       <div className="tech-card__glow" />
       <div className="tech-card__icon">{tech.svg}</div>
       <span className="tech-card__label">{tech.name}</span>
-    </motion.div>
+    </div>
   );
 }
 
@@ -1317,93 +1299,40 @@ function MarqueeRow({ items, direction, speed = 40 }: { items: Technology[]; dir
   );
 }
 
-// ─── Floating particle ──────────────────────────────────────────────────────
-function Particle({ x, y, size, duration, delay, color }: { x: number; y: number; size: number; duration: number; delay: number; color: string }) {
-  return (
-    <div
-      className="particle"
-      style={{ left: `${x}%`, top: `${y}%`, width: size, height: size, background: color, animationDuration: `${duration}s`, animationDelay: `${delay}s` }}
-    />
-  );
-}
-
 // ─── Main section ───────────────────────────────────────────────────────────
 export default function TechMarquee() {
   const rows = distributeRows(techs, NUM_ROWS);
   const sectionRef = useRef<HTMLElement>(null);
-
-  const particles = useRef(
-    Array.from({ length: 28 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 8 + 6,
-      delay: Math.random() * 5,
-      color: i % 3 === 0 ? "rgba(37,99,235,0.55)" : i % 3 === 1 ? "rgba(124,58,237,0.55)" : "rgba(6,182,212,0.45)",
-    }))
-  ).current;
-
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const rect = sectionRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    mouseX.set(((e.clientX - rect.left) / rect.width - 0.5) * 35);
-    mouseY.set(((e.clientY - rect.top) / rect.height - 0.5) * 35);
-  }, [mouseX, mouseY]);
 
   const speeds = [42, 56, 48, 62, 52];
 
   return (
     <>
       <style>{STYLES}</style>
-      <section id="technologies" ref={sectionRef} className="tech-section" onMouseMove={handleMouseMove}>
+      <section id="technologies" ref={sectionRef} className="tech-section">
         {/* Blobs */}
-        <motion.div className="blob blob--blue" style={{ x: mouseX, y: mouseY }} />
-        <motion.div className="blob blob--purple" style={{ x: mouseX, y: mouseY }} />
-        <motion.div className="blob blob--cyan" style={{ x: mouseX, y: mouseY }} />
+        <div className="blob blob--blue" />
+        <div className="blob blob--purple" />
+        <div className="blob blob--cyan" />
 
         {/* Grid */}
         <div className="tech-grid" />
 
-        {/* Particles */}
-        {particles.map((p) => <Particle key={p.id} {...p} />)}
-
         {/* Header */}
         <div className="tech-header">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-            className="tech-header__badge"
-          >
+          <div className="tech-header__badge">
             <span className="badge-dot" />
             Our Tech Stack
-          </motion.div>
+          </div>
 
-          <motion.h2
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
-            className="tech-header__title"
-          >
+          <h2 className="tech-header__title">
             Technologies <span className="gradient-text">We Use</span>
-          </motion.h2>
+          </h2>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
-            className="tech-header__subtitle"
-          >
+          <p className="tech-header__subtitle">
             Explore the trusted technologies, frameworks, cloud platforms, AI tools, and software we use to build
             fast, scalable, secure, and future-ready digital products.
-          </motion.p>
+          </p>
         </div>
 
         {/* Marquee rows */}
