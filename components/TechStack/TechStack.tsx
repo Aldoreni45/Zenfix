@@ -32,7 +32,7 @@ function distributeRows(items: Technology[], numRows: number): Technology[][] {
 }
 
 // Memoized tech card component
-const TechCard = memo(({ tech }: { tech: Technology }) => {
+const TechCard = memo(({ tech, priority = false }: { tech: Technology; priority?: boolean }) => {
   return (
     <div
       className="tech-card"
@@ -47,8 +47,11 @@ const TechCard = memo(({ tech }: { tech: Technology }) => {
           alt={tech.name}
           width={32}
           height={32}
-          loading="lazy"
+          loading={priority ? "eager" : "lazy"}
+          fetchPriority={priority ? "high" : "auto"}
           className="w-8 h-8"
+          unoptimized={false}
+          quality={75}
         />
       </div>
       <span className="tech-card__label">{tech.name}</span>
@@ -68,7 +71,7 @@ const MarqueeRow = memo(({
   direction: "left" | "right"; 
   speed?: number 
 }) => {
-  const doubled = [...items, ...items, ...items];
+  const doubled = [...items, ...items];
 
   return (
     <div className="marquee-row">
@@ -123,24 +126,25 @@ export default function TechStack() {
           pointer-events: none;
           z-index: 0;
           will-change: transform;
+          opacity: 0.6;
         }
         .blob--blue {
           width: 650px; height: 650px;
           top: -180px; left: -180px;
-          background: radial-gradient(circle, rgba(37,99,235,.22) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(37,99,235,.15) 0%, transparent 70%);
           animation: blobFloat 18s ease-in-out infinite alternate;
         }
         .blob--purple {
           width: 580px; height: 580px;
           bottom: -120px; right: -120px;
-          background: radial-gradient(circle, rgba(124,58,237,.2) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(124,58,237,.15) 0%, transparent 70%);
           animation: blobFloat 23s ease-in-out infinite alternate-reverse;
         }
         .blob--cyan {
           width: 450px; height: 450px;
           top: 35%; left: 50%;
           transform: translateX(-50%);
-          background: radial-gradient(circle, rgba(6,182,212,.1) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(6,182,212,.08) 0%, transparent 70%);
           animation: blobFloat 16s ease-in-out infinite alternate;
         }
         @keyframes blobFloat {
@@ -233,10 +237,10 @@ export default function TechStack() {
 
         @keyframes marqueeLeft {
           from { transform: translateX(0); }
-          to   { transform: translateX(-33.3333%); }
+          to   { transform: translateX(-50%); }
         }
         @keyframes marqueeRight {
-          from { transform: translateX(-33.3333%); }
+          from { transform: translateX(-50%); }
           to   { transform: translateX(0); }
         }
 
@@ -248,8 +252,6 @@ export default function TechStack() {
           height: 100px;
           border-radius: 1rem;
           background: rgba(255,255,255,.04);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
           border: 1px solid rgba(255,255,255,.08);
           box-shadow: 0 4px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.06);
           display: flex;
@@ -260,6 +262,9 @@ export default function TechStack() {
           cursor: pointer;
           overflow: hidden;
           transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+          will-change: transform;
+          content-visibility: auto;
+          contain: layout style paint;
         }
         .tech-card:hover {
           border-color: color-mix(in srgb, var(--card-color) 55%, transparent);
@@ -278,6 +283,7 @@ export default function TechStack() {
           opacity: 0;
           transition: opacity .25s ease;
           pointer-events: none;
+          will-change: opacity;
         }
         .tech-card:hover .tech-card__shimmer { opacity: 1; }
 
@@ -290,6 +296,7 @@ export default function TechStack() {
           transition: opacity .3s ease;
           pointer-events: none;
           z-index: -1;
+          will-change: opacity;
         }
         .tech-card:hover .tech-card__glow { opacity: 1; }
 
@@ -297,6 +304,7 @@ export default function TechStack() {
         .tech-card__icon {
           display: flex; align-items: center; justify-content: center;
           transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+          will-change: transform;
         }
         .tech-card:hover .tech-card__icon { transform: rotate(8deg) scale(1.1); }
 

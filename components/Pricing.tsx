@@ -54,7 +54,7 @@ const plans = [
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="py-20 md:py-24 lg:py-32 xl:py-40 2xl:py-48 relative bg-background overflow-hidden">
+    <section id="pricing" className="py-20 md:py-24 lg:py-24 xl:py-28 2xl:py-32 relative bg-background overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-purple/10 rounded-full blur-[150px] pointer-events-none" />
       
       <div className="w-full mx-auto px-4 sm:px-6 md:px-10 lg:px-16 xl:px-24 2xl:px-32 relative z-10">

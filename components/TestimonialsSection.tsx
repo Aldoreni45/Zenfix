@@ -6,7 +6,7 @@ import { testimonials } from "../data/testimonials";
 
 export default function TestimonialsSection() {
   return (
-    <section id="testimonials" className="py-20 md:py-24 lg:py-32 xl:py-40 2xl:py-48 relative overflow-hidden bg-background">
+    <section id="testimonials" className="py-20 md:py-24 lg:py-24 xl:py-28 2xl:py-32 relative overflow-hidden bg-background">
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="absolute top-1/4 -left-[300px] w-[600px] h-[600px] bg-purple/10 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-1/4 -right-[300px] w-[600px] h-[600px] bg-electric-cyan/10 rounded-full blur-[150px] pointer-events-none" />

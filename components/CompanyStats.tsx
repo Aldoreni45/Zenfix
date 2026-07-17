@@ -1,7 +1,37 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
 import { Mail, Phone, MapPin, Award, Users, Briefcase, Calendar } from "lucide-react";
+
+function AnimatedCounter({ end, duration = 2, suffix = "" }: { end: number; duration?: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  useEffect(() => {
+    if (isInView) {
+      let startTime: number;
+      const animate = (currentTime: number) => {
+        if (!startTime) startTime = currentTime;
+        const progress = Math.min((currentTime - startTime) / (duration * 1000), 1);
+        setCount(Math.floor(progress * end));
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setCount(end);
+        }
+      };
+      requestAnimationFrame(animate);
+    }
+  }, [isInView, end, duration]);
+
+  return (
+    <span ref={ref}>
+      {count}{suffix}
+    </span>
+  );
+}
 
 export default function CompanyStats() {
   return (
@@ -72,7 +102,7 @@ export default function CompanyStats() {
             className="rounded-2xl border border-electric-cyan/20 bg-gradient-to-br from-electric-cyan/10 to-transparent p-6 backdrop-blur-lg transition-all duration-300"
           >
             <Calendar className="mb-4 h-8 w-8 text-electric-cyan md:h-10 md:w-10" />
-            <div className="mb-2 text-3xl font-bold text-white md:text-4xl">2020</div>
+            <div className="mb-2 text-3xl font-bold text-white md:text-4xl"><AnimatedCounter end={2020} duration={2} /></div>
             <div className="text-sm font-semibold text-gray-400 md:text-base">Founded</div>
           </motion.div>
 
@@ -82,7 +112,7 @@ export default function CompanyStats() {
             className="rounded-2xl border border-purple/20 bg-gradient-to-br from-purple/10 to-transparent p-6 backdrop-blur-lg transition-all duration-300"
           >
             <Briefcase className="mb-4 h-8 w-8 text-purple md:h-10 md:w-10" />
-            <div className="mb-2 text-3xl font-bold text-white md:text-4xl">256+</div>
+            <div className="mb-2 text-3xl font-bold text-white md:text-4xl"><AnimatedCounter end={256} duration={2} suffix="+" /></div>
             <div className="text-sm font-semibold text-gray-400 md:text-base">Projects</div>
           </motion.div>
 
@@ -92,7 +122,7 @@ export default function CompanyStats() {
             className="rounded-2xl border border-electric-cyan/20 bg-gradient-to-br from-electric-cyan/10 to-transparent p-6 backdrop-blur-lg transition-all duration-300"
           >
             <Users className="mb-4 h-8 w-8 text-electric-cyan md:h-10 md:w-10" />
-            <div className="mb-2 text-3xl font-bold text-white md:text-4xl">128+</div>
+            <div className="mb-2 text-3xl font-bold text-white md:text-4xl"><AnimatedCounter end={128} duration={2} suffix="+" /></div>
             <div className="text-sm font-semibold text-gray-400 md:text-base">Clients</div>
           </motion.div>
 
@@ -102,7 +132,7 @@ export default function CompanyStats() {
             className="rounded-2xl border border-purple/20 bg-gradient-to-br from-purple/10 to-transparent p-6 backdrop-blur-lg transition-all duration-300"
           >
             <Award className="mb-4 h-8 w-8 text-purple md:h-10 md:w-10" />
-            <div className="mb-2 text-3xl font-bold text-white md:text-4xl">16</div>
+            <div className="mb-2 text-3xl font-bold text-white md:text-4xl"><AnimatedCounter end={16} duration={2} /></div>
             <div className="text-sm font-semibold text-gray-400 md:text-base">Awards</div>
           </motion.div>
         </motion.div>
