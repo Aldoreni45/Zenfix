@@ -1,305 +1,368 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Loader2, Save, ArrowLeft, Calendar, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { ArrowLeft, Loader2 } from 'lucide-react';
-import Link from 'next/link';
-import { createTask } from '@/lib/actions/task';
+import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
+import { useClients, useUsers, useManagers, useIsOwner, useIsManager } from '@/lib/hooks';
+import { useAuth } from '@/lib/auth-context';
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  department: string;
-}
+const TASK_TYPES = [
+  { value: 'shoot_video', label: 'Shoot Video' },
+  { value: 'edit_video', label: 'Edit Video' },
+  { value: 'review_video', label: 'Review Video' },
+  { value: 'client_approval', label: 'Client Approval' },
+  { value: 'instagram_post', label: 'Instagram Post' },
+  { value: 'general', label: 'General Task' },
+];
+
+const PRIORITIES = [
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'urgent', label: 'Urgent' },
+];
 
 export default function CreateTaskPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(false);
-  const [formData, setFormData] = useState({
+  const { user, loading: authLoading } = useAuth();
+  const canManage = useIsOwner() || useIsManager();
+
+  const { data: clients, loading: clientsLoading } = useClients();
+  const { data: allUsers, loading: usersLoading } = useUsers();
+  const { data: managers, loading: managersLoading } = useManagers();
+
+  const [form, setForm] = useState({
     title: '',
     description: '',
+    task_type: 'general',
     priority: 'medium',
-    assignedTo: '',
-    deadline: '',
-    estimatedHours: '',
-    department: '',
-    tags: '',
+    due_date: '',
+    due_time: '',
+    client: '',
+    assigned_to: '',
+    assigned_manager: '',
+    estimated_hours: '',
+    notes: '',
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const [selectedDepartment, setSelectedDepartment] = useState('');
-
+  // Redirect in an effect so we never call the router during render.
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/adminzenfix');
+    if (!authLoading && (!user || !canManage)) {
+      router.replace('/adminzenfix/dashboard');
+    }
+  }, [authLoading, user, canManage, router]);
+
+  if (authLoading || !user || !canManage) {
+    return null;
+  }
+
+  const loading = clientsLoading || usersLoading || managersLoading;
+
+  const setField = (key: string, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setFieldErrors({});
+
+    if (!form.title.trim()) {
+      setFieldErrors({ title: 'Title is required' });
+      setSubmitting(false);
+      return;
+    }
+    if (!form.due_date) {
+      setFieldErrors({ due_date: 'Due date is required' });
+      setSubmitting(false);
+      return;
     }
 
-    if (status === 'authenticated') {
-      const userRole = (session.user as any)?.role;
-      if (!['manager', 'admin'].includes(userRole)) {
-        redirect('/adminzenfix/dashboard');
-      }
-    }
-  }, [status, session]);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      if (status === 'authenticated') {
-        setLoadingUsers(true);
-        try {
-          const params = new URLSearchParams();
-          params.append('role', 'worker');
-          if (selectedDepartment) {
-            params.append('department', selectedDepartment);
-          }
-          
-          const response = await fetch(`/api/users?${params.toString()}`);
-          if (response.ok) {
-            const data = await response.json();
-            setUsers(data.users || []);
-          } else {
-            const error = await response.json();
-            toast.error(error.error || 'Failed to fetch users');
-          }
-        } catch (error) {
-          console.error('Error fetching users:', error);
-          toast.error('Failed to fetch users');
-        } finally {
-          setLoadingUsers(false);
-        }
-      }
+    const payload: Record<string, any> = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      task_type: form.task_type,
+      priority: form.priority,
+      due_date: form.due_date,
+      due_time: form.due_time || undefined,
+      notes: form.notes.trim(),
+      assigned_manager: form.assigned_manager
+        ? Number(form.assigned_manager)
+        : user.role === 'manager'
+        ? user.id
+        : undefined,
     };
 
-    fetchUsers();
-  }, [status, selectedDepartment]);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-
-    // Validation
-    if (!formData.title.trim()) {
-      toast.error('Task title is required');
-      setLoading(false);
-      return;
+    if (form.client) payload.client = Number(form.client);
+    if (form.assigned_to) payload.assigned_to = Number(form.assigned_to);
+    if (form.estimated_hours) {
+      const hours = Number(form.estimated_hours);
+      if (Number.isFinite(hours) && hours >= 0) payload.estimated_hours = hours;
     }
 
-    if (!formData.description.trim()) {
-      toast.error('Task description is required');
-      setLoading(false);
-      return;
-    }
+    const res = await api.post(apiEndpoints.tasks, payload);
 
-    if (!formData.assignedTo) {
-      toast.error('Please assign the task to a user');
-      setLoading(false);
-      return;
-    }
-
-    if (!formData.deadline) {
-      toast.error('Deadline is required');
-      setLoading(false);
-      return;
-    }
-
-    const deadlineDate = new Date(formData.deadline);
-    if (deadlineDate < new Date()) {
-      toast.error('Deadline cannot be in the past');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const formDataObj = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        formDataObj.append(key, value);
-      });
-
-      const result = await createTask(formDataObj);
-      console.log('Task creation result:', result);
-
-      if (result.error) {
-        toast.error(result.error);
+    if (res.error) {
+      const status = res.status;
+      if (status && status >= 400 && status < 500 && res.error.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(res.error);
+          const errs: Record<string, string> = {};
+          for (const [key, value] of Object.entries(parsed)) {
+            const msgs = Array.isArray(value) ? value : [value];
+            errs[key] = String(msgs[0] ?? 'Invalid value');
+          }
+          setFieldErrors(errs);
+        } catch {
+          toast.error(extractApiErrorMessage(res));
+        }
       } else {
-        toast.success('Task created and assigned successfully');
-        setTimeout(() => {
-          router.push('/adminzenfix/tasks');
-        }, 500);
+        toast.error(extractApiErrorMessage(res));
       }
-    } catch (error) {
-      console.error('Error creating task:', error);
-      toast.error('Failed to create task. Please try again.');
-    } finally {
-      setLoading(false);
+    } else {
+      toast.success('Task created successfully');
+      router.push('/adminzenfix/tasks');
+      router.refresh();
     }
+
+    setSubmitting(false);
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/adminzenfix/tasks">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold text-white">Create Task</h1>
-          <p className="text-gray-400 mt-1">Assign a new task to your team</p>
-        </div>
+    <div className="space-y-6">
+      <div>
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-4 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+        <h1 className="text-2xl font-bold text-white">Create Task</h1>
+        <p className="text-slate-400 mt-1">Schedule a new task for your team</p>
       </div>
 
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="glass-card rounded-2xl p-8 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 space-y-6"
+      >
+        {loading && (
+          <div className="flex items-center gap-2 text-slate-400 text-sm">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading team data…
+          </div>
+        )}
+
+        {/* Title */}
         <div className="space-y-2">
-          <Label htmlFor="title" className="text-gray-300">Task Title</Label>
+          <Label htmlFor="title" className="text-slate-300">
+            Task Title <span className="text-red-400">*</span>
+          </Label>
           <Input
             id="title"
-            value={formData.title}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, title: e.target.value })}
-            required
-            className="bg-surface/50 border-white/10 text-white"
-            placeholder="Enter task title"
+            value={form.title}
+            onChange={(e) => setField('title', e.target.value)}
+            placeholder="e.g. Shoot promotional video for Acme Corp"
+            className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
           />
+          {fieldErrors.title && <p className="text-red-400 text-xs">{fieldErrors.title}</p>}
         </div>
 
+        {/* Description */}
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-gray-300">Description</Label>
+          <Label htmlFor="description" className="text-slate-300">Description</Label>
           <textarea
             id="description"
-            value={formData.description}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
-            required
-            rows={4}
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 bg-surface/50 border-white/10 text-white"
-            placeholder="Describe the task in detail"
+            value={form.description}
+            onChange={(e) => setField('description', e.target.value)}
+            rows={3}
+            placeholder="Add any details or instructions for this task"
+            className="w-full rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-500 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Task Type */}
           <div className="space-y-2">
-            <Label htmlFor="priority" className="text-gray-300">Priority</Label>
+            <Label htmlFor="task_type" className="text-slate-300">Task Type</Label>
+            <select
+              id="task_type"
+              value={form.task_type}
+              onChange={(e) => setField('task_type', e.target.value)}
+              className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+            >
+              {TASK_TYPES.map((t) => (
+                <option key={t.value} value={t.value} className="bg-slate-900">
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority */}
+          <div className="space-y-2">
+            <Label htmlFor="priority" className="text-slate-300">Priority</Label>
             <select
               id="priority"
-              value={formData.priority}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, priority: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-surface/50 border-white/10 text-white"
+              value={form.priority}
+              onChange={(e) => setField('priority', e.target.value)}
+              className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              {PRIORITIES.map((p) => (
+                <option key={p.value} value={p.value} className="bg-slate-900">
+                  {p.label}
+                </option>
+              ))}
             </select>
           </div>
 
+          {/* Client */}
           <div className="space-y-2">
-            <Label htmlFor="department" className="text-gray-300">Department</Label>
+            <Label htmlFor="client" className="text-slate-300">Client</Label>
             <select
-              id="department"
-              value={selectedDepartment}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                setSelectedDepartment(e.target.value);
-                setFormData({ ...formData, department: e.target.value });
-              }}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-surface/50 border-white/10 text-white"
+              id="client"
+              value={form.client}
+              onChange={(e) => setField('client', e.target.value)}
+              className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
             >
-              <option value="">Select Department</option>
-              <option value="Marketing">Marketing</option>
-              <option value="SEO">SEO</option>
-              <option value="Development">Development</option>
-              <option value="Design">Design</option>
-              <option value="Sales">Sales</option>
-              <option value="HR">HR</option>
+              <option value="" className="bg-slate-900">No client</option>
+              {(clients || []).map((c: any) => (
+                <option key={c.id} value={c.id} className="bg-slate-900">
+                  {c.name}
+                </option>
+              ))}
             </select>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="assignedTo" className="text-gray-300">Assign To</Label>
-          <select
-            id="assignedTo"
-            value={formData.assignedTo}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, assignedTo: e.target.value })}
-            required
-            disabled={loadingUsers}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-surface/50 border-white/10 text-white"
-          >
-            <option value="">Select User</option>
-            {users.map((user) => (
-              <option key={user._id} value={user._id}>
-                {user.name} ({user.email}) - {user.role}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Assigned To */}
           <div className="space-y-2">
-            <Label htmlFor="deadline" className="text-gray-300">Deadline</Label>
+            <Label htmlFor="assigned_to" className="text-slate-300">
+              <User className="inline h-3.5 w-3.5 mr-1" />
+              Assigned To
+            </Label>
+            <select
+              id="assigned_to"
+              value={form.assigned_to}
+              onChange={(e) => setField('assigned_to', e.target.value)}
+              className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+            >
+              <option value="" className="bg-slate-900">Unassigned</option>
+              {(allUsers || []).map((u: any) => (
+                <option key={u.id} value={u.id} className="bg-slate-900">
+                  {u.full_name || u.username} — {u.role_name || u.role}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Assigned Manager */}
+          {user.role === 'owner' && (
+            <div className="space-y-2">
+              <Label htmlFor="assigned_manager" className="text-slate-300">Assigned Manager</Label>
+              <select
+                id="assigned_manager"
+                value={form.assigned_manager}
+                onChange={(e) => setField('assigned_manager', e.target.value)}
+                className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              >
+                <option value="" className="bg-slate-900">None</option>
+                {(managers || []).map((m: any) => (
+                  <option key={m.id} value={m.id} className="bg-slate-900">
+                    {m.full_name || m.username}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Due Date */}
+          <div className="space-y-2">
+            <Label htmlFor="due_date" className="text-slate-300">
+              <Calendar className="inline h-3.5 w-3.5 mr-1" />
+              Due Date <span className="text-red-400">*</span>
+            </Label>
             <Input
-              id="deadline"
+              id="due_date"
               type="date"
-              value={formData.deadline}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, deadline: e.target.value })}
-              required
-              className="bg-surface/50 border-white/10 text-white"
+              value={form.due_date}
+              onChange={(e) => setField('due_date', e.target.value)}
+              className="bg-slate-800/50 border-white/10 text-white [color-scheme:dark]"
+            />
+            {fieldErrors.due_date && <p className="text-red-400 text-xs">{fieldErrors.due_date}</p>}
+          </div>
+
+          {/* Due Time */}
+          <div className="space-y-2">
+            <Label htmlFor="due_time" className="text-slate-300">Due Time</Label>
+            <Input
+              id="due_time"
+              type="time"
+              value={form.due_time}
+              onChange={(e) => setField('due_time', e.target.value)}
+              className="bg-slate-800/50 border-white/10 text-white [color-scheme:dark]"
             />
           </div>
 
+          {/* Estimated Hours */}
           <div className="space-y-2">
-            <Label htmlFor="estimatedHours" className="text-gray-300">Estimated Hours</Label>
+            <Label htmlFor="estimated_hours" className="text-slate-300">Estimated Hours</Label>
             <Input
-              id="estimatedHours"
+              id="estimated_hours"
               type="number"
-              value={formData.estimatedHours}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, estimatedHours: e.target.value })}
-              className="bg-surface/50 border-white/10 text-white"
-              placeholder="Optional"
+              min="0"
+              step="0.5"
+              value={form.estimated_hours}
+              onChange={(e) => setField('estimated_hours', e.target.value)}
+              placeholder="e.g. 2.5"
+              className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
             />
           </div>
         </div>
 
+        {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="tags" className="text-gray-300">Tags (comma separated)</Label>
-          <Input
-            id="tags"
-            value={formData.tags}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, tags: e.target.value })}
-            className="bg-surface/50 border-white/10 text-white"
-            placeholder="e.g., urgent, frontend, backend"
+          <Label htmlFor="notes" className="text-slate-300">Notes</Label>
+          <textarea
+            id="notes"
+            value={form.notes}
+            onChange={(e) => setField('notes', e.target.value)}
+            rows={2}
+            placeholder="Internal notes (visible to assigned users)"
+            className="w-full rounded-xl bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-500 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
           />
         </div>
 
-        <div className="flex gap-4 pt-4">
+        <div className="flex justify-end pt-4 border-t border-white/10">
           <Button
             type="submit"
-            className="flex-1 bg-gradient-to-r from-electric-cyan to-purple"
-            disabled={loading || loadingUsers}
+            disabled={submitting}
+            className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
           >
-            {loading ? (
+            {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
+                Creating…
               </>
             ) : (
-              'Create Task'
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Create Task
+              </>
             )}
           </Button>
-          <Link href="/adminzenfix/tasks" className="flex-1">
-            <Button type="button" variant="outline" className="w-full border-white/10 text-white hover:bg-white/5">
-              Cancel
-            </Button>
-          </Link>
         </div>
       </form>
     </div>

@@ -1,22 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { User, Mail, Phone, Camera, Loader2 } from 'lucide-react';
+import { User, Mail, Phone, Loader2, Shield } from 'lucide-react';
+import { useAuth } from '@/lib/hooks';
+import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { changePassword } from '@/lib/actions/auth';
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { user, refetch } = useAuth();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    first_name: '',
+    last_name: '',
     phone: '',
   });
   const [passwordData, setPasswordData] = useState({
@@ -26,96 +26,118 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/adminzenfix');
-    }
-
-    if (status === 'authenticated') {
+    if (user) {
       setFormData({
-        name: (session?.user as any)?.name || '',
-        email: (session?.user as any)?.email || '',
-        phone: '',
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        phone: user.phone || '',
       });
     }
-  }, [status, session]);
+  }, [user]);
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+        </div>
+      </div>
+    );
+  }
+
+  const displayName = user.full_name || user.username || 'User';
 
   const handleProfileUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
-    try {
-      // Profile update logic would go here
+    const res = await api.patch(apiEndpoints.user(user.id), {
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      phone: formData.phone,
+    });
+
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+    } else {
       toast.success('Profile updated successfully');
-    } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setLoading(false);
+      refetch();
     }
+    setLoading(false);
   };
 
   const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setPasswordLoading(true);
 
-    try {
-      const formDataObj = new FormData();
-      formDataObj.append('currentPassword', passwordData.currentPassword);
-      formDataObj.append('newPassword', passwordData.newPassword);
-      formDataObj.append('confirmPassword', passwordData.confirmPassword);
+    const formDataObj = new FormData();
+    formDataObj.append('currentPassword', passwordData.currentPassword);
+    formDataObj.append('newPassword', passwordData.newPassword);
+    formDataObj.append('confirmPassword', passwordData.confirmPassword);
 
-      const result = await changePassword(formDataObj);
+    const result = await changePassword(formDataObj);
 
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success('Password changed successfully');
-        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-      }
-    } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setPasswordLoading(false);
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success('Password changed successfully');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     }
+    setPasswordLoading(false);
   };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Profile</h1>
+        <h1 className="text-3xl font-bold text-white">My Profile</h1>
         <p className="text-gray-400 mt-1">Manage your account settings</p>
       </div>
 
       {/* Profile Card */}
-      <div className="glass-card rounded-2xl p-8">
+      <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-8">
         <div className="flex items-center gap-6 mb-8">
-          <div className="relative">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-r from-electric-cyan to-purple flex items-center justify-center text-white text-3xl font-bold">
-              {(session?.user as any)?.name?.[0] || 'U'}
-            </div>
-            <button className="absolute bottom-0 right-0 p-2 bg-electric-cyan rounded-full text-white hover:bg-electric-cyan/80 transition-colors">
-              <Camera className="h-4 w-4" />
-            </button>
+          <div className="w-24 h-24 rounded-full bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center text-white text-3xl font-bold">
+            {displayName[0]}
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">{(session?.user as any)?.name}</h2>
-            <p className="text-gray-400 capitalize">{(session?.user as any)?.role}</p>
-            <p className="text-sm text-gray-500 mt-1">{(session?.user as any)?.email}</p>
+            <h2 className="text-2xl font-bold text-white">{displayName}</h2>
+            <p className="text-gray-400 capitalize flex items-center gap-1">
+              <Shield className="h-4 w-4" />
+              {user.role_name || user.role}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+            {user.department_name && (
+              <p className="text-sm text-gray-500 mt-1">Department: {user.department_name}</p>
+            )}
           </div>
         </div>
 
         <form onSubmit={handleProfileUpdate} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-300 flex items-center gap-2">
+              <Label htmlFor="firstName" className="text-gray-300 flex items-center gap-2">
                 <User className="h-4 w-4" />
-                Full Name
+                First Name
               </Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-surface/50 border-white/10 text-white"
+                id="firstName"
+                onChange={(e) => setFormData((f) => ({ ...f, first_name: e.target.value }))}
+                value={formData.first_name}
+                className="bg-slate-800/50 border-white/10 text-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName" className="text-gray-300 flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Last Name
+              </Label>
+              <Input
+                id="lastName"
+                onChange={(e) => setFormData((f) => ({ ...f, last_name: e.target.value }))}
+                value={formData.last_name}
+                className="bg-slate-800/50 border-white/10 text-white"
               />
             </div>
 
@@ -127,9 +149,9 @@ export default function ProfilePage() {
               <Input
                 id="email"
                 type="email"
-                value={formData.email}
+                value={user.email || ''}
                 disabled
-                className="bg-surface/50 border-white/10 text-white opacity-50"
+                className="bg-slate-800/50 border-white/10 text-white opacity-50"
               />
             </div>
 
@@ -140,9 +162,9 @@ export default function ProfilePage() {
               </Label>
               <Input
                 id="phone"
+                onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))}
                 value={formData.phone}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, phone: e.target.value })}
-                className="bg-surface/50 border-white/10 text-white"
+                className="bg-slate-800/50 border-white/10 text-white"
                 placeholder="+1234567890"
               />
             </div>
@@ -151,7 +173,7 @@ export default function ProfilePage() {
           <div className="flex justify-end pt-4">
             <Button
               type="submit"
-              className="bg-gradient-to-r from-electric-cyan to-purple"
+              className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
               disabled={loading}
             >
               {loading ? (
@@ -168,7 +190,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Password Change Card */}
-      <div className="glass-card rounded-2xl p-8">
+      <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-8">
         <h3 className="text-xl font-bold text-white mb-6">Change Password</h3>
 
         <form onSubmit={handlePasswordChange} className="space-y-6">
@@ -178,9 +200,9 @@ export default function ProfilePage() {
               id="currentPassword"
               type="password"
               value={passwordData.currentPassword}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+              onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
               required
-              className="bg-surface/50 border-white/10 text-white"
+              className="bg-slate-800/50 border-white/10 text-white"
             />
           </div>
 
@@ -190,9 +212,9 @@ export default function ProfilePage() {
               id="newPassword"
               type="password"
               value={passwordData.newPassword}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+              onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
               required
-              className="bg-surface/50 border-white/10 text-white"
+              className="bg-slate-800/50 border-white/10 text-white"
             />
           </div>
 
@@ -202,9 +224,9 @@ export default function ProfilePage() {
               id="confirmPassword"
               type="password"
               value={passwordData.confirmPassword}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+              onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
               required
-              className="bg-surface/50 border-white/10 text-white"
+              className="bg-slate-800/50 border-white/10 text-white"
             />
           </div>
 

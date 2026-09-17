@@ -30,8 +30,24 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — never commit secrets
+.env
+.env.local
+.env.*.local
+backend/.env
+!.env.example
+!backend/.env.example
+
+# Python / Django
+backend/venv/
+backend/__pycache__/
+**/__pycache__/
+*.py[cod]
+backend/staticfiles/
+backend/media/
+*.sqlite3
+db.sqlite3
+.pytest_cache/
 
 # vercel
 .vercel

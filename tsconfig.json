@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "next-auth/react": ["./lib/next-auth-compat.tsx"]
     }
   },
   "include": [

@@ -1,51 +1,46 @@
 # ZenFix Admin Portal
 
-A production-ready enterprise admin portal for the ZenFix Digital Marketing Agency.
+A production-ready enterprise admin portal for the ZenFix Digital Marketing Agency, built with a Next.js (App Router) frontend and a Django REST Framework backend.
 
 ## Features
 
 - **Role-Based Access Control (RBAC)**
-  - Worker: View assigned tasks, update status, add comments
-  - Manager: Create tasks, assign tasks, approve/reject completions, view reports
-  - Admin: Full system access, user management, settings, audit logs
+  - Owner: Full system access, user management, system overview, audit logs, analytics/reports
+  - Manager: Create and assign tasks, manage team, approve/reject completions, view reports
+  - Employee: View assigned tasks, update status, notifications, profile
 
 - **Task Management**
-  - Create, assign, and track tasks
-  - Priority levels (Low, Medium, High, Critical)
-  - Task status tracking (Pending, In Progress, Completed, Rejected, Overdue)
-  - Deadline management with automatic overdue detection
-  - Comments and activity timeline
-  - Checklist support
-  - File attachments
+  - Create, bulk-create, assign, and track tasks
+  - Priority levels (Low, Medium, High, Urgent)
+  - Status tracking (Pending, Assigned, In Progress, Completed, Overdue, Cancelled, Waiting Approval, Rejected)
+  - Carry-forward pending tasks to a new due date (single or all at once)
+  - Upcoming-deadline calendar and activity/status history
+  - Automatic overdue detection
 
 - **Authentication & Security**
-  - NextAuth.js with credentials provider
-  - JWT session management
-  - bcrypt password hashing
-  - Protected routes with middleware
-  - Role-based route protection
+  - Django session authentication with CSRF protection
+  - Login rate limiting and failed attempt lockout
+  - Request throttling on login and sensitive endpoints
+  - DRF permission classes for role-based access on every endpoint
 
-- **Dashboard**
+- **Dashboard / Analytics**
   - Role-specific dashboards
-  - Task statistics
-  - Recent activities
-  - Upcoming deadlines
-  - Performance metrics
+  - Task statistics, activity logs, notification center
+  - Analytics and trend charts, reports with CSV/print export
+  - Owner-only system overview (settings page)
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16 (App Router) + React 19
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **UI Components**: Shadcn UI, Radix UI
-- **Database**: MongoDB Atlas
-- **ORM**: Mongoose
-- **Authentication**: NextAuth.js v5 (Auth.js)
-- **Validation**: Zod
-- **Forms**: React Hook Form
+- **Charts**: Recharts
 - **Notifications**: Sonner
-- **Animations**: Framer Motion
 - **Icons**: Lucide React
+- **Backend**: Django 5.2 + Django REST Framework
+- **Auth**: Django session authentication + CSRF (NOT JWT)
+- **Database**: MongoDB Atlas via django-mongodb-backend (PRIMARY database - never SQLite)
 
 ## Installation
 
@@ -55,7 +50,7 @@ git clone <repository-url>
 cd zenfix
 ```
 
-2. Install dependencies
+2. Install frontend dependencies
 ```bash
 npm install
 ```
@@ -65,231 +60,188 @@ npm install
 Create a `.env.local` file in the root directory:
 
 ```env
-# MongoDB
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/zenfix?retryWrites=true&w=majority
-
-# NextAuth
-NEXTAUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=http://localhost:3000
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 ```
 
-4. Run the seed script to populate initial data
+The Django backend reads its configuration from `backend/.env`:
+
+```env
+MONGODB_URI=mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/
+MONGODB_DB=zenfix
+DJANGO_SECRET_KEY=<generate-a-strong-random-key>
+DJANGO_DEBUG=True
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+4. Set up the backend (Python 3.11+)
 
 ```bash
-npx tsx scripts/seed.ts
+cd backend
+python -m venv venv
+venv\Scripts\activate        # Windows
+python -m pip install -r requirements.txt
 ```
 
-This will create:
-- 1 Admin user
-- 2 Manager users
-- 5 Worker users
-- 6 Departments
-- 8 Sample tasks
+5. Run migrations and seed data
 
-**Default login credentials** (all users use the same password):
-- Email: `admin@zenfix.com` / Password: `Admin@123`
-- Email: `john.manager@zenfix.com` / Password: `Admin@123`
-- Email: `sarah.manager@zenfix.com` / Password: `Admin@123`
-- Email: `mike.worker@zenfix.com` / Password: `Admin@123`
-- Email: `emily.worker@zenfix.com` / Password: `Admin@123`
-- Email: `david.worker@zenfix.com` / Password: `Admin@123`
-- Email: `lisa.worker@zenfix.com` / Password: `Admin@123`
-- Email: `tom.worker@zenfix.com` / Password: `Admin@123`
+```bash
+python manage.py migrate
+python manage.py seed_users
+```
 
-5. Run the development server
+The seed command creates:
+- 1 Owner user
+- 1 Manager user
+- 1 Employee user
+- 8 Departments
+
+**Default login credentials**:
+- Owner: `admin` / `admin123`
+- Manager: `manager` / `manager123`
+- Employee: `employee` / `employee123`
+
+6. Run the servers
+
+Backend (port 8000):
+
+```bash
+cd backend
+python manage.py runserver
+```
+
+Frontend (port 3000):
 
 ```bash
 npm run dev
 ```
 
-6. Access the admin portal
+7. Access the admin portal
 
-Open your browser and navigate to:
 - Public website: `http://localhost:3000`
 - Admin portal: `http://localhost:3000/adminzenfix`
+- Django admin: `http://localhost:8000/admin/`
 
 ## Project Structure
 
 ```
 zenfix/
 ├── app/
-│   ├── adminzenfix/          # Admin portal routes
-│   │   ├── (auth)/          # Authentication pages
-│   │   ├── dashboard/       # Dashboard pages
-│   │   ├── tasks/           # Task management
-│   │   ├── users/           # User management (Admin only)
-│   │   ├── reports/         # Reports (Manager/Admin)
-│   │   ├── profile/         # User profile
-│   │   ├── settings/        # Settings (Admin only)
-│   │   ├── layout.tsx       # Admin layout with sidebar
-│   │   └── page.tsx         # Login page
-│   ├── api/                 # API routes
-│   │   ├── auth/            # NextAuth endpoints
-│   │   ├── tasks/           # Task API
-│   │   ├── users/           # User API
-│   │   └── dashboard/       # Dashboard stats
-│   └── page.tsx             # Public landing page
-├── components/
-│   ├── ui/                  # Shadcn UI components
-│   └── ...                  # Other components
+│   ├── (admin)/adminzenfix/   # Admin portal routes
+│   │   ├── (auth)/login/      # Login page
+│   │   ├── (dashboard)/       # Dashboard pages
+│   │   │   ├── dashboard/     # Role-based dashboard
+│   │   │   ├── tasks/         # Task list, create, [id], bulk, carry-forward
+│   │   │   ├── users/         # User management (Owner/Manager)
+│   │   │   │   ├── managers/  # Manager directory
+│   │   │   │   └── workers/   # Employee directory
+│   │   │   ├── activity-logs/ # Audit log viewer
+│   │   │   ├── notifications/ # Notification center
+│   │   │   ├── analytics/     # Trend/team analytics
+│   │   │   ├── reports/       # Reports + CSV/print export
+│   │   │   ├── calendar/      # Task calendar (month/week/day)
+│   │   │   ├── profile/       # Profile + password change
+│   │   │   └── settings/      # Owner system overview
+│   │   └── layout.tsx         # Admin layout with sidebar guard
+│   └── page.tsx               # Public landing page
+├── components/ui/             # Shadcn UI components
 ├── lib/
-│   ├── actions/             # Server actions
-│   ├── schemas/             # Zod validation schemas
-│   ├── auth.ts              # NextAuth configuration
-│   ├── mongodb.ts           # MongoDB connection
-│   └── utils.ts             # Utility functions
-├── models/                  # Mongoose models
-│   ├── User.ts
-│   ├── Task.ts
-│   ├── Comment.ts
-│   ├── Notification.ts
-│   ├── ActivityLog.ts
-│   └── Department.ts
-├── scripts/
-│   └── seed.ts              # Database seeding script
-├── middleware.ts            # Route protection middleware
-└── package.json
+│   ├── api.ts                 # API client (JWT + auto-refresh) and endpoints
+│   ├── hooks.ts               # useApi/useAuth/useTasks/useUsers/etc.
+│   ├── actions/auth.ts        # Server-less auth helpers (login/logout/change password)
+│   └── auth-context.tsx       # Auth provider
+└── backend/
+    ├── users/                 # User, department + auth endpoints
+    ├── clients/               # Clients + monthly targets
+    ├── videos/                # Video workflow + assets
+    ├── tasks/                 # Tasks + carry-forward/bulk actions
+    ├── approvals/             # Approvals + social posts
+    ├── activity_logs/         # Activity logs + notifications
+    ├── dashboard/             # Role dashboard + company overview
+    ├── services.py            # Business-logic services
+    └── zenfix_project/        # Settings, root URLs
 ```
 
-## Role Permissions
+## API Endpoints
 
-### Worker
-- ✅ View assigned tasks
-- ✅ Start tasks
-- ✅ Complete tasks
-- ✅ Mark tasks as not completed
-- ✅ Add comments
-- ✅ View profile
-- ❌ Create tasks
-- ❌ Assign tasks
-- ❌ View reports
-- ❌ Manage users
+Base URL: `http://127.0.0.1:8000/api`
 
-### Manager
-- ✅ Everything Worker can do
-- ✅ Create tasks
-- ✅ Assign tasks
-- ✅ Edit tasks
-- ✅ Approve completed tasks
-- ✅ Reject completed tasks
-- ✅ View team tasks
-- ✅ View reports
-- ❌ Delete users
-- ❌ Manage admin accounts
+### Auth
+- `GET /auth/csrf/` - Get CSRF token
+- `POST /auth/login/` - Login (username + password) -> `{user, access: "session", refresh: "session"}`
+- `POST /auth/logout/` - Logout (terminates session)
+- `GET /auth/me/` - Get current user
+- `POST /auth/password-change/` - Change password
+- `POST /auth/password-reset/` - Request password reset
+- `POST /auth/password-reset-confirm/` - Confirm password reset
 
-### Admin
-- ✅ Full system access
-- ✅ User management
-- ✅ Task management
-- ✅ Reports and analytics
-- ✅ System settings
-- ✅ Audit logs
-- ✅ Role management
-
-## API Routes
-
-### Authentication
-- `POST /api/auth/signin` - Sign in
-- `POST /api/auth/signout` - Sign out
+### Users (`IsAuthenticated`; mutations gated by role)
+- `GET/POST /users/`
+- `GET/PATCH/DELETE /users/{id}/`
+- `GET /users/me/` - Current profile
+- `GET /users/managers/` - Active managers
+- `GET /users/employees/` - Active employees
+- `POST /users/{id}/update_role/` - Change role (Owner)
+- `POST /users/change_password/` - Change password (requires `old_password`)
 
 ### Tasks
-- `GET /api/tasks` - Get all tasks (with filters)
-- `GET /api/tasks/[id]` - Get task by ID
-- `POST /api/tasks` - Create task (Manager/Admin)
-- `PUT /api/tasks/[id]` - Update task
-- `DELETE /api/tasks/[id]` - Delete task (Admin)
+- `GET/POST /tasks/` (filter/search/order via query params)
+- `GET/PATCH/DELETE /tasks/{id}/`
+- `POST /tasks/bulk_create/` - `{tasks: [...]}`
+- `POST /tasks/carry_forward_all_pending/` - `{new_due_date}`
+- `POST /tasks/{id}/carry_forward/` - `{new_due_date}`
+- `POST /tasks/{id}/start/`, `/complete/`, `/reject/`, `/assign/`
+- `GET /tasks/my_tasks/`, `pending/`, `overdue/`, `today/`, `upcoming/?days=N`, `pending_previous/`
+
+### Clients / Videos / Approvals
+- `GET/POST /clients/`, `/monthly-targets/`
+- `GET/POST /videos/`, `/video-assets/`
+- `GET/POST /approvals/`, `/social-posts/`
+
+### Activity Logs & Notifications
+- `GET /activity-logs/` (paginated; `search`, `action`, `page`)
+- `GET/POST /notifications/`
+- `POST /notifications/{id}/mark_read/`
+- `POST /notifications/mark_all_read/`
+- `GET /notifications/unread/`, `urgent/`, `count/`
 
 ### Dashboard
-- `GET /api/dashboard/stats` - Get dashboard statistics
-
-## Database Models
-
-### User
-- name, email, password, phone
-- role (worker/manager/admin)
-- department
-- avatar, status
-- lastLogin, timestamps
-
-### Task
-- title, description, priority
-- status (pending/in_progress/completed/rejected/not_completed/overdue/cancelled)
-- assignedBy, assignedTo
-- deadline, estimatedHours
-- completionNotes, notCompletedReason
-- attachments, checklist, tags
-- completedAt, timestamps
-
-### Comment
-- taskId, userId
-- message, attachments
-- timestamps
-
-### Notification
-- receiver, title, message
-- type, read status
-- link, timestamp
-
-### ActivityLog
-- user, action, entity
-- entityId, details
-- ipAddress, userAgent
-- timestamp
+- `GET /dashboard/` - Role-scoped dashboard data
+- `GET /dashboard/company-overview/` - Owner-only system overview
 
 ## Deployment
 
-### Vercel
+### Frontend (Vercel)
 
 1. Push your code to GitHub
 2. Import project in Vercel
-3. Add environment variables in Vercel dashboard
+3. Set `NEXT_PUBLIC_API_URL` to the deployed backend (e.g. `https://api.your-domain.com/api`)
 4. Deploy
 
-### Environment Variables for Production
+### Backend (any Django host, e.g. Heroku/Railway/a VPS)
+
+Set `backend/.env` with `DEBUG=False` in production:
 
 ```env
-MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/zenfix?retryWrites=true&w=majority
-NEXTAUTH_SECRET=<generate-a-strong-secret>
-NEXTAUTH_URL=https://your-domain.com
+MONGODB_URI=mongodb+srv://USERNAME:PASSWORD@CLUSTER.mongodb.net/
+MONGODB_DB=zenfix
+DJANGO_SECRET_KEY=<generate-a-strong-random-key>
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=your-domain.com
+CORS_ALLOWED_ORIGINS=https://your-domain.com
+CSRF_TRUSTED_ORIGINS=https://your-domain.com
+SESSION_COOKIE_SECURE=True
+CSRF_COOKIE_SECURE=True
 ```
 
 ## Security Considerations
 
-- All admin routes are protected by middleware
-- Passwords are hashed with bcrypt (12 rounds)
-- JWT sessions with secure cookies
-- Role-based access control on all operations
-- Input validation with Zod
-- SQL injection prevention (MongoDB)
-- XSS protection (React's built-in escaping)
-
-## Development
-
-### Adding New Features
-
-1. Create Mongoose model in `models/`
-2. Create Zod schema in `lib/schemas/`
-3. Create server action in `lib/actions/`
-4. Create API route in `app/api/`
-5. Create UI components in `components/`
-6. Create page in `app/adminzenfix/`
-
-### Running Tests
-
-```bash
-npm test
-```
-
-### Building for Production
-
-```bash
-npm run build
-```
-
-## Support
-
-For issues and questions, please contact the development team.
-
-## License
-
-Copyright © 2024 ZenFix Digital Marketing Agency. All rights reserved.
+- All admin routes are protected by an auth guard in the admin layout
+- Passwords hashed by Django's PBKDF2 (configurable via `PASSWORD_HASHERS`)
+- Session-based authentication with CSRF protection and secure cookies in production
+- DRF permission classes + per-endpoint role checks on every viewset
+- Request throttling: login (8/min), password reset (5/hour), user (1000/hour), anon (60/hour)
+- DRF renders JSON only in production; security headers + HSTS enabled when `DEBUG=False`
+- Validation errors are unwrapped client-side; backend responses never leak exception details
+- MongoDB credentials are environment variables only - never committed

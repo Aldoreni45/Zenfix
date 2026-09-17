@@ -4,8 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
-import { SessionProvider } from 'next-auth/react';
+import { useAuth, useUserRole } from '@/lib/auth-context';
 import { 
   LayoutDashboard, 
   CheckSquare, 
@@ -21,14 +20,18 @@ import {
   Bell,
   Search,
   User,
-  ChevronDown
+  ChevronDown,
+  Building2,
+  Video,
+  FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Role-based navigation
-const workerNavigation = [
+// Role-based navigation based on Django backend
+const employeeNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
   { name: 'My Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
+  { name: 'My Videos', href: '/adminzenfix/videos', icon: Video },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Notifications', href: '/adminzenfix/notifications', icon: Bell },
   { name: 'Profile', href: '/adminzenfix/profile', icon: User },
@@ -36,7 +39,9 @@ const workerNavigation = [
 
 const managerNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
+  { name: 'Clients', href: '/adminzenfix/clients', icon: Building2 },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
+  { name: 'Videos', href: '/adminzenfix/videos', icon: Video },
   { name: 'Create Task', href: '/adminzenfix/tasks/create', icon: KanbanSquare },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Reports', href: '/adminzenfix/reports', icon: BarChart3 },
@@ -44,12 +49,16 @@ const managerNavigation = [
   { name: 'Profile', href: '/adminzenfix/profile', icon: User },
 ];
 
-const adminNavigation = [
+const ownerNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
+  { name: 'Clients', href: '/adminzenfix/clients', icon: Building2 },
   { name: 'Users', href: '/adminzenfix/users', icon: Users },
   { name: 'Managers', href: '/adminzenfix/users/managers', icon: Users },
-  { name: 'Workers', href: '/adminzenfix/users/workers', icon: Users },
+  { name: 'Employees', href: '/adminzenfix/users/workers', icon: Users },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
+  { name: 'Videos', href: '/adminzenfix/videos', icon: Video },
+  { name: 'Approvals', href: '/adminzenfix/approvals', icon: FileText },
+  { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Reports', href: '/adminzenfix/reports', icon: BarChart3 },
   { name: 'Analytics', href: '/adminzenfix/analytics', icon: TrendingUp },
   { name: 'Activity Logs', href: '/adminzenfix/activity-logs', icon: Bell },
@@ -60,21 +69,32 @@ const adminNavigation = [
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { user, logout } = useAuth();
+  const userRole = useUserRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const userRole = (session?.user as any)?.role || 'worker';
-
-  const navigation = userRole === 'admin' 
-    ? adminNavigation 
+  const navigation = userRole === 'owner' 
+    ? ownerNavigation 
     : userRole === 'manager' 
     ? managerNavigation 
-    : workerNavigation;
+    : employeeNavigation;
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/adminzenfix/login' });
+    await logout();
+    window.location.href = '/adminzenfix/login';
   };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4" />
+          <p className="text-slate-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 overflow-hidden">
@@ -142,13 +162,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="p-4 border-t border-white/5">
             <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/5">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                {(session?.user as any)?.name?.[0] || 'U'}
+                {user?.first_name?.[0] || user?.username?.[0] || 'U'}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">
-                  {(session?.user as any)?.name || 'User'}
+                  {user?.first_name || user?.username || 'User'}
                 </p>
-                <p className="text-xs text-gray-400 capitalize">{userRole}</p>
+                <p className="text-xs text-gray-400 capitalize">{user?.role_name || userRole}</p>
               </div>
             </div>
             <button
@@ -180,7 +200,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <Search className="h-4 w-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search tasks, users, reports..."
+                  placeholder="Search tasks, clients, videos..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-transparent border-none outline-none text-sm text-white placeholder-gray-500 w-full"
@@ -190,18 +210,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
             <div className="flex items-center gap-3">
               {/* Notifications */}
-              <button className="relative p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+              <Link href="/adminzenfix/notifications" className="relative p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
                 <Bell className="h-5 w-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-slate-900" />
-              </button>
+              </Link>
 
               {/* Profile dropdown */}
-              <button className="flex items-center gap-2 p-2 hover:bg-white/5 rounded-xl transition-all duration-200">
+              <Link href="/adminzenfix/profile" className="flex items-center gap-2 p-2 hover:bg-white/5 rounded-xl transition-all duration-200">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
-                  {(session?.user as any)?.name?.[0] || 'U'}
+                  {user?.first_name?.[0] || user?.username?.[0] || 'U'}
                 </div>
                 <ChevronDown className="h-4 w-4 text-gray-400" />
-              </button>
+              </Link>
             </div>
           </div>
         </header>
@@ -214,9 +233,5 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
-    </SessionProvider>
-  );
+  return <DashboardLayoutContent>{children}</DashboardLayoutContent>;
 }

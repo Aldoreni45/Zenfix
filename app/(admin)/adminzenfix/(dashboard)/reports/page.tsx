@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart,
   Bar,
@@ -22,20 +20,19 @@ import {
 } from 'recharts';
 import {
   Download,
-  Calendar,
   TrendingUp,
   FileText,
   BarChart2,
-  PieChart as PieChartIcon,
   RefreshCw,
   CheckCircle2,
   Clock,
+  Loader2,
   AlertCircle,
-  Users,
   FileDown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 
 const COLORS = ['#06B6D4', '#7C3AED', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
 
@@ -43,57 +40,126 @@ const STATUS_COLORS: Record<string, string> = {
   completed: '#10B981',
   in_progress: '#3B82F6',
   pending: '#F59E0B',
-  not_completed: '#F97316',
   rejected: '#EF4444',
   overdue: '#DC2626',
 };
 
+const tooltipStyle = {
+  backgroundColor: 'rgba(15,23,42,0.95)',
+  border: '1px solid rgba(255,255,255,0.1)',
+  borderRadius: '8px',
+  color: '#fff',
+};
+
+const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 export default function ReportsPage() {
-  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [timeRange, setTimeRange] = useState('week');
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [activeChart, setActiveChart] = useState<'bar' | 'line' | 'area'>('bar');
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/adminzenfix');
-    }
-    if (status === 'authenticated') {
-      fetchAnalytics();
-    }
-  }, [status]);
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  const fetchAnalytics = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const response = await fetch('/api/analytics');
-      if (response.ok) {
-        const data = await response.json();
-        setAnalytics(data);
-      }
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+    const [tasksRes, employeesRes] = await Promise.all([
+      api.get<any>(apiEndpoints.tasks),
+      api.get<any>(apiEndpoints.employees),
+    ]);
+
+    if (tasksRes.error) {
+      setError(extractApiErrorMessage(tasksRes));
+    } else if (tasksRes.data) {
+      setTasks(tasksRes.data.results || tasksRes.data || []);
     }
-  };
+
+    if (employeesRes.error) {
+      setError(extractApiErrorMessage(employeesRes));
+    } else if (employeesRes.data) {
+      setEmployees(employeesRes.data.results || employeesRes.data || []);
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
+
+  // ── Derived data ──────────────────────────────────────────────────────────
+  const statusCounts = new Map<string, number>();
+  tasks.forEach((t: any) => {
+    const key = t.status || 'unknown';
+    statusCounts.set(key, (statusCounts.get(key) || 0) + 1);
+  });
+  const statusPieData = [...statusCounts.entries()].map(([status, count]) => ({
+    name: status.replace(/_/g, ' '),
+    value: count,
+    fill: STATUS_COLORS[status] || '#94A3B8',
+  }));
+
+  const byAssignee = new Map<string, { total: number; completed: number }>();
+  tasks.forEach((t: any) => {
+    const key = t.assigned_to_name || 'Unassigned';
+    const entry = byAssignee.get(key) || { total: 0, completed: 0 };
+    entry.total += 1;
+    if (t.status === 'completed') entry.completed += 1;
+    byAssignee.set(key, entry);
+  });
+  const efficiencyData = [...byAssignee.entries()].map(([name, v]) => ({
+    name,
+    total: v.total,
+    completed: v.completed,
+    efficiency: v.total > 0 ? Math.round((v.completed / v.total) * 100) : 0,
+  }));
+
+  const byDept = new Map<string, { assigned: number; completed: number }>();
+  employees.forEach((e: any) => {
+    const dept = e.department_name || 'Unassigned';
+    const entry = byDept.get(dept) || { assigned: 0, completed: 0 };
+    entry.assigned += e.assigned_tasks_count || 0;
+    entry.completed += e.completed_tasks_count || 0;
+    byDept.set(dept, entry);
+  });
+  const deptData = [...byDept.entries()].map(([name, v]) => ({
+    name,
+    total: v.assigned,
+    completed: v.completed,
+    efficiency: v.assigned > 0 ? Math.round((v.completed / v.assigned) * 100) : 0,
+  }));
+
+  const trendCounts = new Array(7).fill(0);
+  tasks
+    .filter((t: any) => t.status === 'completed' && t.completed_at)
+    .forEach((t: any) => {
+      trendCounts[new Date(t.completed_at).getDay()] += 1;
+    });
+  const trendData = DAY_NAMES.map((day, i) => ({ name: day, completed: trendCounts[i] }));
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
+  const pendingTasks = totalTasks - completedTasks;
+  const avgEfficiency = efficiencyData.length
+    ? Math.round(efficiencyData.reduce((s: number, i: any) => s + i.efficiency, 0) / efficiencyData.length)
+    : 0;
 
   // ── Export CSV ──────────────────────────────────────────────────────────────
   const handleExportCSV = () => {
     try {
-      if (!analytics) return;
       let csv = 'ZenFix Report\n';
       csv += `Generated:,${new Date().toLocaleString()}\n\n`;
-      csv += 'Department Performance\n';
-      csv += 'Department,Total Tasks,Completed,Pending,Efficiency\n';
-      (analytics.teamEfficiency || []).forEach((item: any) => {
-        const pending = item.total - item.completed;
-        csv += `"${item.department || 'N/A'}",${item.total},${item.completed},${pending},${Math.round(item.efficiency)}%\n`;
+      csv += 'Status Distribution\n';
+      csv += 'Status,Count\n';
+      statusPieData.forEach((item) => {
+        csv += `"${item.name}",${item.value}\n`;
+      });
+      csv += `\nTeam Performance\n`;
+      csv += 'Member,Total Tasks,Completed,Pending,Efficiency\n';
+      efficiencyData.forEach((item) => {
+        csv += `"${item.name}",${item.total},${item.completed},${item.total - item.completed},${item.efficiency}%\n`;
       });
       csv += `\nSummary\n`;
       csv += `Total Tasks,${totalTasks}\n`;
@@ -118,17 +184,15 @@ export default function ReportsPage() {
 
   // ── Export PDF (print window) ────────────────────────────────────────────────
   const handleExportPDF = () => {
-    if (!analytics) return;
-
-    const rows = (analytics.teamEfficiency || [])
+    const rows = efficiencyData
       .map(
-        (item: any) => `
+        (item) => `
       <tr>
-        <td>${item.department || 'N/A'}</td>
+        <td>${item.name}</td>
         <td>${item.total}</td>
         <td>${item.completed}</td>
         <td>${item.total - item.completed}</td>
-        <td>${Math.round(item.efficiency)}%</td>
+        <td>${item.efficiency}%</td>
       </tr>`
       )
       .join('');
@@ -156,8 +220,8 @@ export default function ReportsPage() {
         <div class="card"><div class="val">${pendingTasks}</div><div class="lbl">Pending</div></div>
         <div class="card"><div class="val">${avgEfficiency}%</div><div class="lbl">Avg Efficiency</div></div>
       </div>
-      <h2>Department Performance</h2>
-      <table><thead><tr><th>Department</th><th>Total</th><th>Completed</th><th>Pending</th><th>Efficiency</th></tr></thead>
+      <h2>Team Performance</h2>
+      <table><thead><tr><th>Member</th><th>Total</th><th>Completed</th><th>Pending</th><th>Efficiency</th></tr></thead>
       <tbody>${rows || '<tr><td colspan="5">No data</td></tr>'}</tbody></table>
       </body></html>`;
 
@@ -169,66 +233,24 @@ export default function ReportsPage() {
     setExportMenuOpen(false);
   };
 
-  // ── Derived chart data ───────────────────────────────────────────────────────
-  const dayOfWeekNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-  // Status distribution for pie
-  const statusPieData = (analytics?.tasksByStatus || []).map((item: any) => ({
-    name: item._id?.replace(/_/g, ' ') || 'Unknown',
-    value: item.count,
-    fill: STATUS_COLORS[item._id] || '#94A3B8',
-  }));
-
-  // Department tasks for bar chart
-  const deptData = (analytics?.tasksByDepartment || []).map((item: any) => ({
-    name: item._id || 'Unknown',
-    tasks: item.total || item.count || 0,
-    completed: item.completed || 0,
-    efficiency: Math.round(item.efficiency || 0),
-  }));
-
-  // Team efficiency for horizontal bar / line
-  const efficiencyData = (analytics?.teamEfficiency || []).map((item: any) => ({
-    name: item.name || item.department || 'Unknown',
-    efficiency: Math.round(item.efficiency),
-    completed: item.completed,
-    total: item.total,
-  }));
-
-  // Day of week completion trend
-  const trendData = dayOfWeekNames.map((day, i) => {
-    const found = (analytics?.dayOfWeekTrend || []).find((d: any) => d._id === i + 1);
-    return { name: day, completed: found?.count || 0 };
-  });
-
-  // Computed totals
-  const totalTasks =
-    (analytics?.teamEfficiency || []).reduce((s: number, i: any) => s + i.total, 0);
-  const completedTasks =
-    (analytics?.teamEfficiency || []).reduce((s: number, i: any) => s + i.completed, 0);
-  const pendingTasks = totalTasks - completedTasks;
-  const avgEfficiency =
-    analytics?.teamEfficiency?.length > 0
-      ? Math.round(
-          analytics.teamEfficiency.reduce((s: number, i: any) => s + i.efficiency, 0) /
-            analytics.teamEfficiency.length
-        )
-      : 0;
-
-  // Custom tooltip style
-  const tooltipStyle = {
-    backgroundColor: 'rgba(15,23,42,0.95)',
-    border: '1px solid rgba(255,255,255,0.1)',
-    borderRadius: '8px',
-    color: '#fff',
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4" />
-          <p className="text-slate-400">Loading analytics...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <p className="text-white font-medium mb-2">Unable to load reports</p>
+          <p className="text-slate-400 text-sm mb-4">{error}</p>
+          <Button onClick={fetchAnalytics} className="bg-cyan-500 hover:bg-cyan-600">
+            Retry
+          </Button>
         </div>
       </div>
     );
@@ -247,14 +269,12 @@ export default function ReportsPage() {
             variant="outline"
             size="sm"
             className="border-white/10 text-white hover:bg-white/5"
-            onClick={() => fetchAnalytics(true)}
-            disabled={refreshing}
+            onClick={fetchAnalytics}
           >
-            <RefreshCw className={cn('h-4 w-4 mr-2', refreshing && 'animate-spin')} />
+            <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
 
-          {/* Export dropdown */}
           <div className="relative">
             <Button
               className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
@@ -265,10 +285,7 @@ export default function ReportsPage() {
             </Button>
             {exportMenuOpen && (
               <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setExportMenuOpen(false)}
-                />
+                <div className="fixed inset-0 z-10" onClick={() => setExportMenuOpen(false)} />
                 <div className="absolute right-0 top-full mt-2 w-44 bg-slate-900 border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden">
                   <button
                     onClick={handleExportCSV}
@@ -344,7 +361,7 @@ export default function ReportsPage() {
         {/* Weekly Completion Trend */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-white">Weekly Completion Trend</h3>
+            <h3 className="text-lg font-semibold text-white">Completion Trend (by Day of Week)</h3>
             <div className="flex gap-1 bg-white/5 rounded-lg p-1">
               {(['bar', 'line', 'area'] as const).map((t) => (
                 <button
@@ -416,8 +433,8 @@ export default function ReportsPage() {
                   paddingAngle={3}
                   dataKey="value"
                 >
-                  {statusPieData.map((entry: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
+                  {statusPieData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={statusPieData[index].fill} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} />
@@ -450,8 +467,8 @@ export default function ReportsPage() {
                 <XAxis type="number" stroke="#64748b" tick={{ fontSize: 12 }} />
                 <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} width={80} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="tasks" radius={[0, 4, 4, 0]} name="Tasks">
-                  {deptData.map((_: any, i: number) => (
+                <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Tasks">
+                  {deptData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Bar>
@@ -494,7 +511,7 @@ export default function ReportsPage() {
       {/* ── Detailed Report Table ── */}
       <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white">Detailed Department Report</h3>
+          <h3 className="text-lg font-semibold text-white">Detailed Team Report</h3>
           <Button
             variant="outline"
             size="sm"
@@ -509,7 +526,7 @@ export default function ReportsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left pb-3 pl-2 text-slate-400 font-medium">Department / Member</th>
+                <th className="text-left pb-3 pl-2 text-slate-400 font-medium">Member</th>
                 <th className="text-right pb-3 px-4 text-slate-400 font-medium">Total</th>
                 <th className="text-right pb-3 px-4 text-slate-400 font-medium">Completed</th>
                 <th className="text-right pb-3 px-4 text-slate-400 font-medium">Pending</th>
@@ -518,15 +535,15 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {analytics?.teamEfficiency?.length === 0 || !analytics?.teamEfficiency ? (
+              {efficiencyData.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-10 text-slate-500">
                     No data available
                   </td>
                 </tr>
               ) : (
-                analytics.teamEfficiency.map((item: any, i: number) => {
-                  const eff = Math.round(item.efficiency);
+                efficiencyData.map((item, i) => {
+                  const eff = item.efficiency;
                   const effColor =
                     eff >= 80
                       ? 'text-green-400 bg-green-500/10 border-green-500/20'
@@ -537,12 +554,7 @@ export default function ReportsPage() {
                   return (
                     <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                       <td className="py-3 pl-2">
-                        <div>
-                          <p className="text-white font-medium">{item.name || 'Unknown'}</p>
-                          {item.department && (
-                            <p className="text-xs text-slate-500">{item.department}</p>
-                          )}
-                        </div>
+                        <p className="text-white font-medium">{item.name}</p>
                       </td>
                       <td className="py-3 px-4 text-right text-slate-300">{item.total}</td>
                       <td className="py-3 px-4 text-right text-green-400">{item.completed}</td>

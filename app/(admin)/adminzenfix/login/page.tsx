@@ -1,160 +1,162 @@
 'use client';
 
-import { useState } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { Loader2, Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
-import { useEffect } from 'react';
+import { Lock, User, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
+  const { login, isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [credentials, setCredentials] = useState({
+    username: '',
     password: '',
   });
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (in effect to avoid setState during render)
   useEffect(() => {
-    if (status === 'authenticated' && session?.user) {
-      router.replace('/adminzenfix/dashboard');
+    if (isAuthenticated) {
+      router.push('/adminzenfix/dashboard');
     }
-  }, [status, session, router]);
+  }, [isAuthenticated, router]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const result = await signIn('credentials', {
-        email: formData.email,
-        password: formData.password,
-        redirect: false,
-      });
-
-      if (result?.error) {
-        toast.error('Invalid credentials');
-      } else {
-        toast.success('Login successful');
-        router.refresh();
-      }
-    } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (status === 'loading') {
+  if (isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-500" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+            <span className="text-3xl font-bold text-white">Z</span>
+          </div>
+          <p className="text-slate-400">Redirecting to dashboard...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950" />
-      
-      {/* Gradient orbs */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-      
-      {/* Grid pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-      <div className="w-full max-w-md p-8 relative z-10">
-        {/* Login Card */}
+    const result = await login(credentials);
+
+    if (result.success) {
+      router.push('/adminzenfix/dashboard');
+    } else {
+      setError(result.error || 'Login failed. Please try again.');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="w-full max-w-md p-8">
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          {/* Logo */}
+          {/* Logo and Title */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-purple-600 mb-4 shadow-lg shadow-cyan-500/25 overflow-hidden">
-              <Image src="/z_logo.png" alt="ZenFix Logo" width={64} height={64} className="w-full h-full object-contain" />
+            <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl font-bold text-white">Z</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Welcome back</h1>
-            <p className="text-slate-400 text-sm">Sign in to your account to continue</p>
+            <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
+            <p className="text-slate-400">Sign in to your ZenFix account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <p className="text-red-400 text-sm text-center">{error}</p>
+              </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300 text-sm font-medium">Email</Label>
+              <Label htmlFor="username" className="text-slate-300">Username</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@company.com"
-                  value={formData.email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
+                  id="username"
+                  type="text"
+                  placeholder="Enter your username"
+                  value={credentials.username}
+                  onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                  className="pl-10 bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500"
                   required
-                  className="bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-500 pl-10 h-11 focus:border-cyan-500/50 focus:ring-cyan-500/20"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-300 text-sm font-medium">Password</Label>
+              <Label htmlFor="password" className="text-slate-300">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
                 <Input
                   id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, password: e.target.value })}
+                  type="password"
+                  placeholder="Enter your password"
+                  value={credentials.password}
+                  onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                  className="pl-10 bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500 focus:border-cyan-500"
                   required
-                  className="bg-slate-950/50 border-slate-800 text-white placeholder:text-slate-500 pl-10 pr-10 h-11 focus:border-cyan-500/50 focus:ring-cyan-500/20"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white h-11 font-medium shadow-lg shadow-cyan-500/25 transition-all duration-200"
-              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700 text-white font-medium"
+              disabled={loading}
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Signing in...
                 </>
               ) : (
-                <>
-                  Sign in
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </>
+                'Sign In'
               )}
             </Button>
           </form>
 
-          {/* Footer */}
-          <div className="mt-8 pt-6 border-t border-white/5">
-            <p className="text-center text-xs text-slate-500">
-              Protected by enterprise-grade security
+          {/* Help Links */}
+          <div className="mt-6 text-center">
+            <p className="text-slate-400 text-sm">
+              Forgot your password?{' '}
+              <a href="#" className="text-cyan-400 hover:text-cyan-300">
+                Reset here
+              </a>
             </p>
+          </div>
+
+          {/* Demo Credentials */}
+          <div className="mt-8 pt-6 border-t border-white/10">
+            <p className="text-slate-500 text-xs text-center mb-3">Demo Credentials</p>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between text-slate-400">
+                <span>Owner:</span>
+                <span className="text-slate-300">admin / awo40Rf2x4JDG5kd</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Manager:</span>
+                <span className="text-slate-300">manager / 8OMv01oyKY3gXaxh</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Employee:</span>
+                <span className="text-slate-300">employee / YW2hUC2O2YUfdTku</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Bottom text */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-slate-500">
-            ZenFix Admin Portal • Enterprise Edition
+        {/* Footer */}
+        <div className="text-center mt-8">
+          <p className="text-slate-500 text-sm">
+            © 2026 ZenFix. All rights reserved.
           </p>
         </div>
       </div>

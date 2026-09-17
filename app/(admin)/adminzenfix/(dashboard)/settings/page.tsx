@@ -1,292 +1,132 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useApi, useIsOwner } from '@/lib/hooks';
+import { apiEndpoints, type DashboardData } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { 
-  Settings, 
-  Bell, 
-  Shield, 
-  Database, 
-  Globe,
-  Loader2,
-  Save
+import {
+  Loader2, Settings, Globe, Shield, Database, Users, Building2, Video,
+  CheckCircle2, Clock, AlertTriangle, TrendingUp, Lock,
 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('general');
+  const isOwner = useIsOwner();
+  const { data: overview, loading, error, refetch } = useApi<any>(apiEndpoints.companyOverview, null);
+  const { data: dashboard } = useApi<any>(apiEndpoints.dashboard, null);
 
-  const [settings, setSettings] = useState({
-    siteName: 'ZenFix',
-    siteUrl: 'https://zenfix.com',
-    supportEmail: 'support@zenfix.com',
-    maxFileSize: '10',
-    sessionTimeout: '30',
-    enableNotifications: true,
-    enableEmailAlerts: true,
-    maintenanceMode: false,
-  });
+  if (!isOwner) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white">System Settings</h1>
+          <p className="text-gray-400 mt-1">Configure system settings and preferences</p>
+        </div>
+        <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-10 text-center">
+          <Lock className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Owner access required</h2>
+          <p className="text-gray-400 text-sm mb-6">
+            System settings are restricted to the workspace owner. Contact the owner to manage these settings.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      redirect('/adminzenfix');
-    }
-
-    if (status === 'authenticated' && (session?.user as any)?.role !== 'admin') {
-      redirect('/adminzenfix/dashboard');
-    }
-  }, [status, session]);
-
-  const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // Settings save logic would go here
-      toast.success('Settings saved successfully');
-    } catch (error) {
-      toast.error('An error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const tabs = [
-    { id: 'general', label: 'General', icon: Globe },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'database', label: 'Database', icon: Database },
+  const statCards = [
+    { label: 'Total Users', value: overview?.total_users ?? dashboard?.total_users ?? '—', icon: Users, color: 'text-cyan-400' },
+    { label: 'Owners', value: overview?.owner_count ?? '—', icon: Shield, color: 'text-purple-400' },
+    { label: 'Managers', value: overview?.manager_count ?? '—', icon: TrendingUp, color: 'text-blue-400' },
+    { label: 'Employees', value: overview?.employee_count ?? '—', icon: Building2, color: 'text-green-400' },
+    { label: 'Clients', value: overview?.total_clients ?? dashboard?.total_clients ?? '—', icon: Globe, color: 'text-yellow-400' },
+    { label: 'Videos Completed', value: overview?.completed_videos ?? '—', icon: Video, color: 'text-cyan-400' },
+    { label: 'Videos Posted', value: overview?.posted_videos ?? '—', icon: CheckCircle2, color: 'text-green-400' },
+    { label: 'Pending Tasks', value: overview?.pending_tasks ?? '—', icon: Clock, color: 'text-orange-400' },
+    { label: 'Overdue Tasks', value: overview?.overdue_tasks ?? '—', icon: AlertTriangle, color: 'text-red-400' },
   ];
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Settings</h1>
-        <p className="text-gray-400 mt-1">Configure system settings and preferences</p>
+        <h1 className="text-3xl font-bold text-white">System Settings</h1>
+        <p className="text-gray-400 mt-1">System overview and workspace information</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
-        <div className="glass-card rounded-2xl p-4">
-          <nav className="space-y-2">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
+      {/* Error state */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-center justify-between">
+          <p className="text-red-400 text-sm">Failed to load system overview.</p>
+          <Button variant="outline" size="sm" onClick={refetch} className="border-red-500/30 text-red-400">
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {statCards.map((card) => {
+              const Icon = card.icon;
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors',
-                    activeTab === tab.id
-                      ? 'bg-electric-cyan/10 text-electric-cyan'
-                      : 'text-gray-400 hover:text-white hover:bg-white/5'
-                  )}
+                <div
+                  key={card.label}
+                  className="bg-slate-900/50 border border-white/10 rounded-2xl p-6 flex items-center gap-4"
                 >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
+                  <div className={`w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center shrink-0 ${card.color}`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-white">{card.value}</p>
+                    <p className="text-sm text-gray-400 mt-0.5">{card.label}</p>
+                  </div>
+                </div>
               );
             })}
-          </nav>
-        </div>
+          </div>
 
-        {/* Content */}
-        <div className="lg:col-span-3">
-          <form onSubmit={handleSave} className="glass-card rounded-2xl p-8">
-            {activeTab === 'general' && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <Globe className="h-5 w-5 text-electric-cyan" />
-                  <h3 className="text-xl font-bold text-white">General Settings</h3>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="siteName" className="text-gray-300">Site Name</Label>
-                  <Input
-                    id="siteName"
-                    value={settings.siteName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, siteName: e.target.value })}
-                    className="bg-surface/50 border-white/10 text-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="siteUrl" className="text-gray-300">Site URL</Label>
-                  <Input
-                    id="siteUrl"
-                    type="url"
-                    value={settings.siteUrl}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, siteUrl: e.target.value })}
-                    className="bg-surface/50 border-white/10 text-white"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="supportEmail" className="text-gray-300">Support Email</Label>
-                  <Input
-                    id="supportEmail"
-                    type="email"
-                    value={settings.supportEmail}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, supportEmail: e.target.value })}
-                    className="bg-surface/50 border-white/10 text-white"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                  <div>
-                    <p className="text-white font-medium">Maintenance Mode</p>
-                    <p className="text-sm text-gray-400">Disable public access to the site</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, maintenanceMode: !settings.maintenanceMode })}
-                    className={cn(
-                      'w-12 h-6 rounded-full transition-colors relative',
-                      settings.maintenanceMode ? 'bg-electric-cyan' : 'bg-gray-600'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'absolute top-1 w-4 h-4 bg-white rounded-full transition-transform',
-                        settings.maintenanceMode ? 'translate-x-7' : 'translate-x-1'
-                      )}
-                    />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'notifications' && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <Bell className="h-5 w-5 text-electric-cyan" />
-                  <h3 className="text-xl font-bold text-white">Notification Settings</h3>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                  <div>
-                    <p className="text-white font-medium">Enable Notifications</p>
-                    <p className="text-sm text-gray-400">Allow in-app notifications</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, enableNotifications: !settings.enableNotifications })}
-                    className={cn(
-                      'w-12 h-6 rounded-full transition-colors relative',
-                      settings.enableNotifications ? 'bg-electric-cyan' : 'bg-gray-600'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'absolute top-1 w-4 h-4 bg-white rounded-full transition-transform',
-                        settings.enableNotifications ? 'translate-x-7' : 'translate-x-1'
-                      )}
-                    />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                  <div>
-                    <p className="text-white font-medium">Email Alerts</p>
-                    <p className="text-sm text-gray-400">Send email notifications for important events</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSettings({ ...settings, enableEmailAlerts: !settings.enableEmailAlerts })}
-                    className={cn(
-                      'w-12 h-6 rounded-full transition-colors relative',
-                      settings.enableEmailAlerts ? 'bg-electric-cyan' : 'bg-gray-600'
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'absolute top-1 w-4 h-4 bg-white rounded-full transition-transform',
-                        settings.enableEmailAlerts ? 'translate-x-7' : 'translate-x-1'
-                      )}
-                    />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'security' && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <Shield className="h-5 w-5 text-electric-cyan" />
-                  <h3 className="text-xl font-bold text-white">Security Settings</h3>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="sessionTimeout" className="text-gray-300">Session Timeout (minutes)</Label>
-                  <Input
-                    id="sessionTimeout"
-                    type="number"
-                    value={settings.sessionTimeout}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, sessionTimeout: e.target.value })}
-                    className="bg-surface/50 border-white/10 text-white"
-                  />
-                  <p className="text-sm text-gray-500">Auto-logout after inactivity</p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'database' && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <Database className="h-5 w-5 text-electric-cyan" />
-                  <h3 className="text-xl font-bold text-white">Database Settings</h3>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="maxFileSize" className="text-gray-300">Max File Size (MB)</Label>
-                  <Input
-                    id="maxFileSize"
-                    type="number"
-                    value={settings.maxFileSize}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSettings({ ...settings, maxFileSize: e.target.value })}
-                    className="bg-surface/50 border-white/10 text-white"
-                  />
-                  <p className="text-sm text-gray-500">Maximum file upload size</p>
-                </div>
-
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
-                  <p className="text-yellow-400 text-sm">
-                    ⚠️ Database operations require careful consideration. Changes may affect system performance.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end pt-6 border-t border-white/10">
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-electric-cyan to-purple"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-4 w-4 mr-2" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
+          {/* System Info */}
+          <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <Database className="h-5 w-5 text-cyan-400" />
+              <h3 className="text-xl font-bold text-white">System Information</h3>
             </div>
-          </form>
-        </div>
-      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="bg-white/5 rounded-xl p-4 flex justify-between">
+                <span className="text-gray-400">Application</span>
+                <span className="text-white font-medium">ZenFix</span>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 flex justify-between">
+                <span className="text-gray-400">API Base URL</span>
+                <span className="text-white font-medium break-all text-right">
+                  {process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}
+                </span>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 flex justify-between">
+                <span className="text-gray-400">Backend</span>
+                <span className="text-white font-medium">Django REST Framework</span>
+              </div>
+              <div className="bg-white/5 rounded-xl p-4 flex justify-between">
+                <span className="text-gray-400">Frontend</span>
+                <span className="text-white font-medium">Next.js</span>
+              </div>
+            </div>
+
+            <div className="mt-6 p-4 bg-white/5 rounded-xl flex items-start gap-3">
+              <Settings className="h-4 w-4 text-cyan-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-gray-400">
+                Security, notifications, and login session settings are managed through environment variables
+                on the server. No in-app configuration is required.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
