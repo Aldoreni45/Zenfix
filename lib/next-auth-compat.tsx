@@ -14,12 +14,12 @@ export function useSession() {
     data: user
       ? {
           user: {
+            ...user,
             id: user.id,
             name: user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username,
             email: user.email,
             role: user.role,
             username: user.username,
-            ...user,
           },
         }
       : null,

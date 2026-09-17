@@ -18,69 +18,79 @@ export interface ApiResponse<T> {
   status?: number;
 }
 
+// In-memory cache for short-lived access token
+let inMemoryAccessToken: string | null = null;
+const ACCESS_TOKEN_STORAGE_KEY = 'zenfix_access_token';
+
 /**
- * Get access token from HTTP-only cookie
+ * Get current access token from memory, falling back to sessionStorage/localStorage.
  */
 export function getStoredAccessToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const token = document.cookie
-      .split('; ')
-      .find(row => row.startsWith(`${ACCESS_TOKEN_KEY}=`))
-      ?.split('=')[1] || null;
-    console.log('getStoredAccessToken:', token ? `${token.substring(0, 20)}...` : 'null');
-    return token;
-  } catch {
-    return null;
+  if (inMemoryAccessToken) return inMemoryAccessToken;
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = window.sessionStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) ||
+                     window.localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
+      if (stored) {
+        inMemoryAccessToken = stored;
+        return stored;
+      }
+    } catch {
+      // Storage access restricted
+    }
+  }
+  return null;
+}
+
+/**
+ * Set the access token in memory and frontend storage cache.
+ */
+export function setAccessToken(token: string | null): void {
+  inMemoryAccessToken = token;
+  if (typeof window !== 'undefined') {
+    try {
+      if (token) {
+        window.sessionStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
+        window.localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
+      } else {
+        window.sessionStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+        window.localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+      }
+    } catch {
+      // Storage access restricted
+    }
   }
 }
 
 /**
- * Get refresh token from HTTP-only cookie
+ * Store access token in frontend memory and storage.
+ * Note: Refresh token is NEVER handled by JavaScript; it is stored strictly
+ * as an HttpOnly cookie managed by Django.
+ */
+export function storeTokens(access: string, _refresh?: string): void {
+  setAccessToken(access);
+}
+
+/**
+ * Refresh token is stored in an HttpOnly cookie and is NOT accessible to JavaScript.
+ * Kept only for API compatibility; always returns null.
  */
 export function getStoredRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const token = document.cookie
-      .split('; ')
-      .find(row => row.startsWith(`${REFRESH_TOKEN_KEY}=`))
-      ?.split('=')[1] || null;
-    console.log('getStoredRefreshToken:', token ? `${token.substring(0, 20)}...` : 'null');
-    return token;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 /**
- * Store JWT tokens in cookies with production-level security
- * - HttpOnly: Prevents JavaScript access (XSS protection)
- * - Secure: Only sent over HTTPS (production)
- * - SameSite: CSRF protection
- * 
- * Note: Since HttpOnly cookies cannot be set by JavaScript, the backend
- * handles setting these cookies in the login and refresh responses.
- * This function is kept for compatibility but does nothing.
- */
-export function storeTokens(access: string, refresh: string): void {
-  // Backend sets HttpOnly cookies, so we don't need to set them here
-  // The tokens are already set by the backend in the login/refresh response
-  console.log('Tokens stored by backend in HttpOnly cookies');
-}
-
-/**
- * Clear JWT tokens from cookies
+ * Clear JWT tokens from memory and frontend storage.
  */
 export function clearTokens(): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const secureFlag = isProduction ? '; Secure' : '';
-    const domainFlag = COOKIE_DOMAIN ? `; Domain=${COOKIE_DOMAIN}` : '';
-    
-    document.cookie = `${ACCESS_TOKEN_KEY}=; path=/; max-age=0${secureFlag}${domainFlag}`;
-    document.cookie = `${REFRESH_TOKEN_KEY}=; path=/; max-age=0${secureFlag}${domainFlag}`;
-  } catch (error) {
-    // Ignore errors when clearing cookies
+  setAccessToken(null);
+  if (typeof window !== 'undefined') {
+    try {
+      document.cookie = `${ACCESS_TOKEN_KEY}=; path=/; max-age=0`;
+      document.cookie = `${REFRESH_TOKEN_KEY}=; path=/; max-age=0`;
+    } catch {
+      // Ignore errors when clearing cookies
+    }
   }
 }
 
@@ -91,10 +101,6 @@ export function clearTokens(): void {
  */
 export function extractApiErrorMessage(response: ApiResponse<unknown>): string {
   if (!response.error) return 'Unexpected error';
-  if (response.status === 401) return 'Session expired. Please sign in again.';
-  if (response.status === 403) return 'You do not have permission to perform this action.';
-  if (response.status === 429) return 'Too many requests. Please try again later.';
-  if (response.status === 0 || response.status === undefined) return 'Network error. Please check your connection.';
 
   try {
     const parsed = JSON.parse(response.error);
@@ -112,8 +118,13 @@ export function extractApiErrorMessage(response: ApiResponse<unknown>): string {
       }
     }
   } catch {
-    // Body was not valid JSON — fall through to raw text.
+    // Body was not valid JSON — fall through to status checks or raw text.
   }
+
+  if (response.status === 401) return 'Invalid credentials or session expired.';
+  if (response.status === 403) return 'You do not have permission to perform this action.';
+  if (response.status === 429) return 'Too many requests. Please try again later.';
+  if (response.status === 0 || response.status === undefined) return 'Network error. Please check your connection.';
 
   const trimmed = response.error.trim();
   if (trimmed) return trimmed.length > 200 ? `${trimmed.slice(0, 200)}…` : trimmed;
@@ -159,7 +170,7 @@ function unwrapEnvelope<T>(payload: any): T {
 class ApiClient {
   private baseUrl: string;
   private csrfToken: string | null = null;
-  private refreshPromise: Promise<boolean> | null = null;
+  private refreshPromise: Promise<string | null> | null = null;
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
@@ -182,76 +193,126 @@ class ApiClient {
     return null;
   }
 
+  public async refreshToken(): Promise<string | null> {
+    // Shared refresh promise: if a refresh is already in progress, all concurrent requests await it
+    if (this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.refreshPromise = (async () => {
+      try {
+        // Browser automatically sends HttpOnly refresh cookie via credentials: 'include'
+        let response = await fetch(`${this.baseUrl}/auth/token/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          // Fallback to /auth/refresh if needed
+          response = await fetch(`${this.baseUrl}/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        }
+
+        if (!response.ok) {
+          clearTokens();
+          return null;
+        }
+
+        const data = await response.json();
+        const newAccessToken = data?.access || data?.data?.access;
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          return newAccessToken;
+        }
+        clearTokens();
+        return null;
+      } catch (error) {
+        console.error('Token refresh network error:', error);
+        clearTokens();
+        return null;
+      } finally {
+        this.refreshPromise = null;
+      }
+    })();
+
+    return this.refreshPromise;
+  }
+
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    isRetry = false
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
 
     try {
       const accessToken = getStoredAccessToken();
       const csrf = await this.ensureCsrf();
-      
-      const headers: HeadersInit = {
+
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...(csrf ? { 'X-CSRFToken': csrf } : {}),
-        ...options.headers,
+        ...((options.headers as Record<string, string>) || {}),
       };
-      
-      // Add JWT token to Authorization header
-      if (accessToken) {
-        (headers as any)['Authorization'] = `Bearer ${accessToken}`;
-        console.log(`Request to ${endpoint} with token: ${accessToken.substring(0, 20)}...`);
-      } else {
-        console.log(`Request to ${endpoint} without token`);
+
+      // Add JWT token to Authorization header if not already present in options
+      if (accessToken && !headers['Authorization']) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
       }
-      
+
       const response = await fetch(url, {
         ...options,
         credentials: 'include',
         headers,
       });
 
-      // Handle 401 Unauthorized - try to refresh token
-      if (response.status === 401) {
-        console.log(`401 on ${endpoint}, attempting token refresh`);
-        const refreshResult = await this.refreshToken();
-        if (refreshResult) {
-          // Retry request with new token
-          const newAccessToken = getStoredAccessToken();
-          if (newAccessToken) {
-            (headers as any)['Authorization'] = `Bearer ${newAccessToken}`;
-            console.log(`Retrying ${endpoint} with new token`);
-            const retryResponse = await fetch(url, {
-              ...options,
-              credentials: 'include',
-              headers,
-            });
-            
-            if (!retryResponse.ok) {
-              const errorText = await retryResponse.text();
-              return {
-                error: errorText || `Request failed with status ${retryResponse.status}`,
-                status: retryResponse.status,
-              };
-            }
-            
-            if (retryResponse.status === 204) {
-              return { data: undefined as T };
-            }
-            
-            const payload = await retryResponse.json();
-            return { data: unwrapEnvelope<T>(payload), status: retryResponse.status };
-          }
+      // Handle 401 Unauthorized - retry ONCE after token refresh
+      if (response.status === 401 && !isRetry) {
+        // If another concurrent request already refreshed the token, use the fresh one
+        const currentToken = getStoredAccessToken();
+        let activeToken = currentToken;
+
+        if (!currentToken || currentToken === accessToken) {
+          activeToken = await this.refreshToken();
         }
-        
-        // Refresh failed, clear tokens and return error
-        console.log(`Token refresh failed for ${endpoint}, clearing tokens`);
-        clearTokens();
+
+        if (activeToken) {
+          // Retry original request exactly ONCE with new access token
+          const retryHeaders = {
+            ...headers,
+            'Authorization': `Bearer ${activeToken}`,
+          };
+          return this.request<T>(
+            endpoint,
+            {
+              ...options,
+              headers: retryHeaders,
+            },
+            true
+          );
+        }
+
         const errorText = await response.text();
         return {
-          error: errorText || `Request failed with status ${response.status}`,
-          status: response.status,
+          error: errorText || `Request failed with status 401`,
+          status: 401,
+        };
+      }
+
+      // If retry itself returned 401, terminate without looping
+      if (response.status === 401 && isRetry) {
+        const errorText = await response.text();
+        return {
+          error: errorText || 'Unauthorized',
+          status: 401,
         };
       }
 
@@ -264,7 +325,7 @@ class ApiClient {
       }
 
       if (response.status === 204) {
-        return { data: undefined as T };
+        return { data: undefined as T, status: 204 };
       }
 
       const payload = await response.json();
@@ -274,55 +335,6 @@ class ApiClient {
         error: error instanceof Error ? error.message : 'Network error',
       };
     }
-  }
-
-  private async refreshToken(): Promise<boolean> {
-    // If a refresh is already in progress, wait for it
-    if (this.refreshPromise) {
-      return this.refreshPromise;
-    }
-
-    // Start a new refresh
-    this.refreshPromise = (async () => {
-      const refreshToken = getStoredRefreshToken();
-      if (!refreshToken) {
-        return false;
-      }
-      
-      try {
-        console.log('Attempting token refresh...');
-        const response = await fetch(`${this.baseUrl}/auth/refresh`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ refresh: refreshToken }),
-        });
-        
-        if (!response.ok) {
-          console.log('Token refresh failed:', response.status);
-          return false;
-        }
-        
-        const data = await response.json();
-        if (data.access && data.refresh) {
-          storeTokens(data.access, data.refresh);
-          console.log('Token refresh successful');
-          return true;
-        }
-        console.log('Token refresh response missing tokens');
-        return false;
-      } catch (error) {
-        console.log('Token refresh error:', error);
-        return false;
-      } finally {
-        // Clear the promise after completion
-        this.refreshPromise = null;
-      }
-    })();
-
-    return this.refreshPromise;
   }
 
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
@@ -363,7 +375,8 @@ export const apiEndpoints = {
   // Auth
   login: '/auth/login',
   logout: '/auth/logout',
-  refresh: '/auth/refresh',
+  refresh: '/auth/token/refresh',
+  tokenRefresh: '/auth/token/refresh',
   csrf: '/auth/csrf',
   meAuth: '/auth/me',
   

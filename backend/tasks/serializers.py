@@ -1,7 +1,10 @@
 from rest_framework import serializers
 
+from clients.models import Client
+from common.fields import NumericOrPkRelatedField
 from django_mongodb_backend.fields import ArrayField
 from tasks.models import Task, TaskComment
+from users.models import User
 
 
 class TaskCommentSerializer(serializers.ModelSerializer):
@@ -18,6 +21,9 @@ class TaskSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(source="numeric_id", read_only=True)
     status_name = serializers.CharField(read_only=True)
     priority_name = serializers.CharField(read_only=True)
+    client = NumericOrPkRelatedField(queryset=Client.objects.all(), required=False, allow_null=True)
+    assigned_to = NumericOrPkRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
+    assigned_manager = NumericOrPkRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
     assigned_to_name = serializers.CharField(source="assigned_to.full_name", read_only=True, default=None)
     assigned_manager_name = serializers.CharField(source="assigned_manager.full_name", read_only=True, default=None)
     created_by_name = serializers.CharField(source="created_by.full_name", read_only=True, default=None)

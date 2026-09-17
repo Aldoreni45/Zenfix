@@ -4,6 +4,8 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.conf import settings
+from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -46,45 +48,37 @@ class AuthViewSet(viewsets.ViewSet):
         response = Response({
             "user": data,
             "access": str(access),
-            "refresh": str(refresh),
         })
         
-        # Set cookies with HttpOnly, Secure, SameSite flags
-        # Access token: 60 minutes
-        response.set_cookie(
-            'zenfix_access_token',
-            str(access),
-            max_age=60 * 60,  # 1 hour
-            path='/',
-            secure=False,  # Set to True in production with HTTPS
-            httponly=True,
-            samesite='lax'
-        )
-        
-        # Refresh token: 7 days
+        # Set refresh token in secure HttpOnly cookie (JavaScript must NOT access it directly)
+        is_secure = not settings.DEBUG and request.is_secure()
         response.set_cookie(
             'zenfix_refresh_token',
             str(refresh),
             max_age=7 * 24 * 60 * 60,  # 7 days
             path='/',
-            secure=False,  # Set to True in production with HTTPS
+            secure=is_secure,
             httponly=True,
             samesite='lax'
         )
+        response.delete_cookie('zenfix_access_token', path='/')
         
         return response
 
-    @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
     def logout(self, request):
-        try:
-            refresh_token = request.data.get("refresh")
-            if refresh_token:
+        refresh_token = request.COOKIES.get("zenfix_refresh_token") or request.data.get("refresh")
+        if refresh_token:
+            try:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-        except Exception:
-            # Blacklisting disabled for MongoDB compatibility
-            pass
+            except Exception:
+                # Blacklisting disabled for MongoDB compatibility
+                pass
         
+        if request.user.is_authenticated:
+            AuthService.logout(request)
+
         response = Response({"success": True})
         
         # Clear cookies
@@ -93,45 +87,60 @@ class AuthViewSet(viewsets.ViewSet):
         
         return response
 
-    @action(detail=False, methods=["post"], permission_classes=[AllowAny])
-    def refresh(self, request):
-        refresh_token = request.data.get("refresh")
+    def _handle_refresh(self, request):
+        # Extract refresh token from HttpOnly cookie first, then fallback to request body
+        refresh_token = request.COOKIES.get("zenfix_refresh_token") or request.data.get("refresh")
         if not refresh_token:
-            raise ValidationError({"refresh": "This field is required."})
+            return Response(
+                {"detail": "Refresh token not provided in cookie or request body."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
         
         try:
             refresh = RefreshToken(refresh_token)
             access = refresh.access_token
             
+            # Refresh token rotation if enabled in settings
+            rotate = getattr(settings, "SIMPLE_JWT", {}).get("ROTATE_REFRESH_TOKENS", True)
+            if rotate:
+                refresh.set_jti()
+                refresh.set_exp()
+                refresh.set_iat()
+                new_refresh_str = str(refresh)
+            else:
+                new_refresh_str = refresh_token
+
             response = Response({
                 "access": str(access),
-                "refresh": str(refresh),  # Return rotated refresh token
             })
             
-            # Update cookies with new tokens
-            response.set_cookie(
-                'zenfix_access_token',
-                str(access),
-                max_age=60 * 60,  # 1 hour
-                path='/',
-                secure=False,  # Set to True in production with HTTPS
-                httponly=True,
-                samesite='lax'
-            )
-            
+            # Update HttpOnly refresh cookie with rotated token
+            is_secure = not settings.DEBUG and request.is_secure()
             response.set_cookie(
                 'zenfix_refresh_token',
-                str(refresh),
+                new_refresh_str,
                 max_age=7 * 24 * 60 * 60,  # 7 days
                 path='/',
-                secure=False,  # Set to True in production with HTTPS
+                secure=is_secure,
                 httponly=True,
                 samesite='lax'
             )
-            
             return response
-        except Exception as e:
-            raise ValidationError({"refresh": "Invalid or expired refresh token."})
+        except Exception:
+            response = Response(
+                {"detail": "Invalid or expired refresh token."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            response.delete_cookie('zenfix_refresh_token', path='/')
+            return response
+
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny], url_path="token/refresh")
+    def token_refresh(self, request):
+        return self._handle_refresh(request)
+
+    @action(detail=False, methods=["post"], permission_classes=[AllowAny], url_path="refresh")
+    def refresh(self, request):
+        return self._handle_refresh(request)
 
     @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated], url_path="password-change")
     def password_change(self, request):

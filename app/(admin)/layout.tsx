@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { AuthProvider } from "@/lib/auth-context";
 
 export const metadata: Metadata = {
   title: "ZenFix Admin Portal",
@@ -11,5 +10,5 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AuthProvider>{children}</AuthProvider>;
+  return <>{children}</>;
 }

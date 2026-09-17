@@ -1,6 +1,6 @@
 // Custom React hooks for API integration
-import { useState, useEffect, useCallback } from 'react';
-import { api, apiEndpoints, clearTokens, getStoredAccessToken, storeTokens } from './api';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { api, apiEndpoints, clearTokens, getStoredAccessToken, storeTokens, type ApiResponse } from './api';
 import { extractApiErrorMessage } from './api';
 
 // Generic data fetching hook
@@ -9,6 +9,7 @@ export function useApi<T>(
   initialData: T | null = null,
   dependencies: any[] = []
 ) {
+  const initialDataRef = useRef(initialData);
   const [data, setData] = useState<T | null>(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,15 +24,14 @@ export function useApi<T>(
       if (response.error) {
         setError(response.error);
       } else {
-        // Always set data even if it's null/undefined to prevent loading state from getting stuck
-        setData(response.data ?? initialData);
+        setData(response.data ?? initialDataRef.current);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }, [endpoint, initialData]);
+  }, [endpoint]);
 
   useEffect(() => {
     fetchData();
@@ -40,85 +40,6 @@ export function useApi<T>(
   return { data, loading, error, refetch: fetchData };
 }
 
-// Authentication hook
-export function useAuth() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const checkAuth = useCallback(async () => {
-    setLoading(true);
-    
-    try {
-      const response = await api.get<any>(apiEndpoints.me);
-      
-      if (response.data) {
-        setUser(response.data);
-        setIsAuthenticated(true);
-      } else {
-        clearTokens();
-        setUser(null);
-        setIsAuthenticated(false);
-      }
-    } catch (err) {
-      clearTokens();
-      setUser(null);
-      setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Check if we have a token, if so verify authentication
-    const token = getStoredAccessToken();
-    if (token) {
-      checkAuth();
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const login = async (credentials: { username: string; password: string }) => {
-    const response = await api.post<any>(apiEndpoints.login, credentials);
-
-    const payload = response.data as any;
-    const user = payload?.user || payload;
-    const access = payload?.access;
-    const refresh = payload?.refresh;
-    
-    if (!response.error && user && (user.username || user.id)) {
-      // Store JWT tokens in cookies
-      if (access && refresh) {
-        storeTokens(access, refresh);
-      }
-      
-      setUser(user);
-      setIsAuthenticated(true);
-      setLoading(false);
-      return { success: true };
-    }
-
-    return { success: false, error: extractApiErrorMessage(response) };
-  };
-
-  const logout = async () => {
-    const refreshToken = getStoredRefreshToken();
-    await api.post<any>(apiEndpoints.logout, { refresh: refreshToken });
-    clearTokens();
-    setUser(null);
-    setIsAuthenticated(false);
-  };
-
-  return {
-    user,
-    loading,
-    isAuthenticated,
-    login,
-    logout,
-    refetch: checkAuth,
-  };
-}
 
 // Dashboard hook
 export function useDashboard() {
@@ -363,6 +284,7 @@ export function useMarkAllNotificationsRead() {
 
 // Re-export role helpers from auth-context for backward compatibility
 export { 
+  useAuth,
   useUserRole, 
   useIsOwner, 
   useIsManager, 

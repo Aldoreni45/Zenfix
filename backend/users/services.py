@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -38,7 +38,7 @@ class AuthService:
         if user.status != User.Status.ACTIVE or not user.is_active:
             raise PermissionDenied("Account is inactive or suspended. Contact your administrator.")
         cache.delete(key)
-        login(request, user)
+        # NOTE: Removed login(request, user) - JWT authentication does not use Django sessions
         ActivityLogService.log(
             actor=user,
             action=ActivityLog.Action.LOGIN,
@@ -52,7 +52,7 @@ class AuthService:
     @classmethod
     def logout(cls, request) -> None:
         user = request.user if request.user.is_authenticated else None
-        logout(request)
+        # NOTE: Removed logout(request) - JWT authentication does not use Django sessions
         if user:
             ActivityLogService.log(
                 actor=user,
