@@ -13,7 +13,7 @@ import { changePassword } from '@/lib/actions/auth';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loading: authLoading, refetch } = useAuth();
+  const { user, loading: authLoading, initialized, isAuthenticated, refetch } = useAuth();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -28,10 +28,10 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (initialized && !isAuthenticated) {
       router.push('/adminzenfix/login');
     }
-  }, [authLoading, user, router]);
+  }, [initialized, isAuthenticated, router]);
 
   useEffect(() => {
     if (user) {
@@ -43,21 +43,17 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  if (authLoading || !user) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-        </div>
-      </div>
-    );
-  }
-
-  const displayName = user.full_name || user.username || 'User';
+  const displayName = user?.full_name || user?.username || 'User';
 
   const handleProfileUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
+
+    if (!user) {
+      toast.error('User data not loaded');
+      setLoading(false);
+      return;
+    }
 
     const res = await api.patch(apiEndpoints.user(user.id), {
       first_name: formData.first_name,
@@ -112,10 +108,10 @@ export default function ProfilePage() {
             <h2 className="text-2xl font-bold text-white">{displayName}</h2>
             <p className="text-gray-400 capitalize flex items-center gap-1">
               <Shield className="h-4 w-4" />
-              {user.role_name || user.role}
+              {user?.role_name || user?.role}
             </p>
-            <p className="text-sm text-gray-500 mt-1">{user.email}</p>
-            {user.department_name && (
+            <p className="text-sm text-gray-500 mt-1">{user?.email}</p>
+            {user?.department_name && (
               <p className="text-sm text-gray-500 mt-1">Department: {user.department_name}</p>
             )}
           </div>
@@ -157,7 +153,7 @@ export default function ProfilePage() {
               <Input
                 id="email"
                 type="email"
-                value={user.email || ''}
+                value={user?.email || ''}
                 disabled
                 className="bg-slate-800/50 border-white/10 text-white opacity-50"
               />

@@ -33,7 +33,7 @@ const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading, isAuthenticated } = useAuth();
+  const { user, loading: authLoading, initialized, isAuthenticated } = useAuth();
   const { data: dashboardData, loading: dashboardLoading, refetch: refetchDashboard } = useDashboard();
   const { data: todayTasks, loading: todayLoading } = useTodayTasks();
   const { data: pendingTasks, loading: pendingLoading } = usePendingTasks();
@@ -49,25 +49,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only redirect if auth check is complete and user is not authenticated
-    if (!authLoading && !isAuthenticated && !user) {
+    // Only redirect after auth initialization completes and user is not authenticated
+    if (initialized && !isAuthenticated) {
       router.push('/adminzenfix/login');
     }
-  }, [authLoading, isAuthenticated, user, router]);
-
-  // Show loading state while checking authentication
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="text-center space-y-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
-            <span className="text-3xl font-bold text-white">Z</span>
-          </div>
-          <p className="text-slate-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [initialized, isAuthenticated, router]);
 
   const userRole = user?.role || 'employee';
 

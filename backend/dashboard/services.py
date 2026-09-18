@@ -31,12 +31,12 @@ class DashboardService:
             videos = Video.objects.all()
             approvals = Approval.objects.all()
         elif user.role == User.Role.MANAGER:
-            clients = Client.objects.filter(Q(assigned_manager=user) | Q(assigned_team_ids__contains=user.numeric_id))
+            clients = Client.objects.filter(assigned_manager=user)
             users = User.objects.filter(Q(pk=user.pk) | Q(reports_to=user) | Q(role=User.Role.EMPLOYEE))
             videos = Video.objects.filter(Q(created_by=user) | Q(assigned_to__reports_to=user) | Q(assigned_to=user) | Q(client__assigned_manager=user))
             approvals = Approval.objects.filter(Q(reviewed_by=user) | Q(requested_by__reports_to=user) | Q(status=Approval.Status.PENDING))
         else:
-            clients = Client.objects.filter(Q(assigned_team_ids__contains=user.numeric_id) | Q(tasks__assigned_to=user)).distinct()
+            clients = Client.objects.filter(tasks__assigned_to=user).distinct()
             users = User.objects.filter(pk=user.pk)
             videos = Video.objects.filter(Q(assigned_to=user) | Q(shooter=user) | Q(editor=user) | Q(social_media_handler=user))
             approvals = Approval.objects.filter(requested_by=user)

@@ -50,18 +50,30 @@ class AuthViewSet(viewsets.ViewSet):
             "access": str(access),
         })
         
-        # Set refresh token in secure HttpOnly cookie (JavaScript must NOT access it directly)
+        # Set cookies for both tokens
         is_secure = not settings.DEBUG and request.is_secure()
+        
+        # Access token: 60 minutes, NOT HttpOnly so JavaScript can read it for Authorization header
+        response.set_cookie(
+            'zenfix_access_token',
+            str(access),
+            max_age=60 * 60,  # 1 hour
+            path='/',
+            secure=False,  # Always False for localhost development
+            httponly=False,  # JavaScript needs to read for Authorization header
+            samesite='lax'
+        )
+        
+        # Refresh token: 7 days, NOT HttpOnly so frontend can read it for refresh
         response.set_cookie(
             'zenfix_refresh_token',
             str(refresh),
             max_age=7 * 24 * 60 * 60,  # 7 days
             path='/',
-            secure=is_secure,
-            httponly=True,
+            secure=False,  # Always False for localhost development
+            httponly=False,  # Frontend needs to read for refresh endpoint
             samesite='lax'
         )
-        response.delete_cookie('zenfix_access_token', path='/')
         
         return response
 
@@ -114,15 +126,26 @@ class AuthViewSet(viewsets.ViewSet):
                 "access": str(access),
             })
             
-            # Update HttpOnly refresh cookie with rotated token
-            is_secure = not settings.DEBUG and request.is_secure()
+            # Update cookies with new tokens
+            # Access token: NOT HttpOnly so JavaScript can read it
+            response.set_cookie(
+                'zenfix_access_token',
+                str(access),
+                max_age=60 * 60,  # 1 hour
+                path='/',
+                secure=False,  # Always False for localhost development
+                httponly=False,  # JavaScript needs to read for Authorization header
+                samesite='lax'
+            )
+            
+            # Refresh token: NOT HttpOnly so frontend can read it
             response.set_cookie(
                 'zenfix_refresh_token',
                 new_refresh_str,
                 max_age=7 * 24 * 60 * 60,  # 7 days
                 path='/',
-                secure=is_secure,
-                httponly=True,
+                secure=False,  # Always False for localhost development
+                httponly=False,  # Frontend needs to read for refresh
                 samesite='lax'
             )
             return response

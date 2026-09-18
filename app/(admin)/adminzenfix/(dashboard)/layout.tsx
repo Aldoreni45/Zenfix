@@ -67,10 +67,15 @@ const ownerNavigation = [
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading: authLoading, logout } = useAuth();
+  const { user, loading: authLoading, initialized, isAuthenticated, logout } = useAuth();
   const userRole = useUserRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const navigation = userRole === 'owner'
     ? ownerNavigation
@@ -84,21 +89,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    if (!authLoading && !user) {
+    if (initialized && !isAuthenticated) {
       router.push('/adminzenfix/login');
     }
-  }, [authLoading, user, router]);
-
-  if (authLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4" />
-          <p className="text-slate-400">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [initialized, isAuthenticated, router]);
 
   return (
     <div className="min-h-screen bg-slate-950 overflow-hidden">
@@ -136,7 +130,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
+            {mounted && navigation.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
               return (
@@ -163,26 +157,28 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* User info */}
-          <div className="p-4 border-t border-white/5">
-            <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/5">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                {user?.first_name?.[0] || user?.username?.[0] || 'U'}
+          {mounted && (
+            <div className="p-4 border-t border-white/5">
+              <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/5">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                  {user?.first_name?.[0] || user?.username?.[0] || 'U'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user?.first_name || user?.username || 'User'}
+                  </p>
+                  <p className="text-xs text-gray-400 capitalize">{user?.role_name || userRole}</p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {user?.first_name || user?.username || 'User'}
-                </p>
-                <p className="text-xs text-gray-400 capitalize">{user?.role_name || userRole}</p>
-              </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 rounded-xl transition-all duration-200 border border-transparent"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 rounded-xl transition-all duration-200 border border-transparent"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </button>
-          </div>
+          )}
         </div>
       </aside>
 

@@ -43,6 +43,12 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
     if (['host', 'connection', 'content-length', 'transfer-encoding'].includes(lower)) return;
     headers.set(key, value);
   });
+  
+  // Explicitly forward cookies to Django backend
+  const cookieHeader = req.headers.get('cookie');
+  if (cookieHeader) {
+    headers.set('cookie', cookieHeader);
+  }
 
   const method = req.method.toUpperCase();
   const body = method === 'GET' || method === 'HEAD' ? undefined : await req.arrayBuffer();
@@ -91,36 +97,9 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
 
   const pathStr = joined.toLowerCase();
 
-  const isLoginOrRefresh =
-    pathStr === 'auth/login' ||
-    pathStr === 'auth/token/refresh' ||
-    pathStr === 'auth/refresh';
-
-  if (isLoginOrRefresh && upstream.ok) {
-    const accessToken = extractAccessToken(responsePayload);
-
-    if (accessToken) {
-      response.cookies.set(ACCESS_TOKEN_KEY, accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: ACCESS_COOKIE_MAX_AGE,
-      });
-    }
-
-    const refreshFromCookie = extractRefreshTokenFromCookies(setCookies);
-    if (refreshFromCookie) {
-      response.cookies.set(REFRESH_TOKEN_KEY, refreshFromCookie, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      });
-    }
-  }
-
+  // Pass through Django's cookies as-is - don't override them
+  // Django sets httponly=False so JavaScript can read the tokens
+  // Logout endpoint still needs to clear cookies
   if (pathStr === 'auth/logout') {
     response.cookies.delete(ACCESS_TOKEN_KEY);
     response.cookies.delete(REFRESH_TOKEN_KEY);

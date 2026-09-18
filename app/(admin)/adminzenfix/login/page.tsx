@@ -149,20 +149,35 @@ function LoginForm() {
           </div>
 
           <div className="mt-8 pt-6 border-t border-white/10">
-            <p className="text-slate-500 text-xs text-center mb-3">Demo Credentials</p>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between text-slate-400">
-                <span>Owner:</span>
-                <span className="text-slate-300">admin / awo40Rf2x4JDG5kd</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Manager:</span>
-                <span className="text-slate-300">manager / 8OMv01oyKY3gXaxh</span>
-              </div>
-              <div className="flex justify-between text-slate-400">
-                <span>Employee:</span>
-                <span className="text-slate-300">employee / YW2hUC2O2YUfdTku</span>
-              </div>
+            <p className="text-slate-500 text-xs text-center mb-3">Quick Login</p>
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCredentials({ username: 'admin', password: 'awo40Rf2x4JDG5kd' })}
+                className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
+              >
+                Owner
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCredentials({ username: 'manager', password: '8OMv01oyKY3gXaxh' })}
+                className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
+              >
+                Manager
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCredentials({ username: 'employee', password: 'YW2hUC2O2YUfdTku' })}
+                className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
+              >
+                Employee
+              </Button>
             </div>
           </div>
         </div>

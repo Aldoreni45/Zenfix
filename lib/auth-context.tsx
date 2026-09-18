@@ -1,7 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { api, apiEndpoints, clearTokens, extractApiErrorMessage, getStoredAccessToken, storeTokens, setAccessToken } from './api';
+import { api, apiEndpoints, clearTokens, hasAccessToken, hasRefreshToken } from './api';
+
+const USER_ROLE_KEY = 'zenfix_user_role';
 
 export interface User {
   id: number;
@@ -19,6 +21,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  initialized: boolean;
   isAuthenticated: boolean;
   login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -28,21 +31,43 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000; // refresh every 14 minutes (access token is 1 hour)
-const ACCESS_TOKEN_COOKIE_KEY = 'zenfix_access_token';
 
-function syncAccessTokenCookie(token: string | null) {
-  if (typeof document === 'undefined') return;
-  if (token) {
-    const maxAge = 60 * 60; // 1 hour
-    document.cookie = `${ACCESS_TOKEN_COOKIE_KEY}=${token}; path=/; max-age=${maxAge}; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
-  } else {
-    document.cookie = `${ACCESS_TOKEN_COOKIE_KEY}=; path=/; max-age=0`;
+// Helper functions for sessionStorage
+function saveUserRole(role: string) {
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(USER_ROLE_KEY, role);
+    } catch {
+      // Ignore errors
+    }
+  }
+}
+
+function getSavedUserRole(): string | null {
+  if (typeof window !== 'undefined') {
+    try {
+      return sessionStorage.getItem(USER_ROLE_KEY);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function clearSavedUserRole() {
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.removeItem(USER_ROLE_KEY);
+    } catch {
+      // Ignore errors
+    }
   }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
@@ -54,121 +79,157 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const logout = async () => {
+    console.log('[AUTH] logout:start');
+    try {
+      await api.post(apiEndpoints.logout, {});
+    } catch (error) {
+      console.error('[AUTH] logout:error', error);
+    } finally {
+      clearTokens();
+      clearSavedUserRole();
+      setUser(null);
+      setIsAuthenticated(false);
+      stopRefreshTimer();
+      console.log('[AUTH] logout:complete');
+    }
+  };
+
   const scheduleRefresh = useCallback(() => {
     stopRefreshTimer();
     refreshTimerRef.current = setInterval(async () => {
       try {
-        const newToken = await api.refreshToken();
-        if (newToken && mountedRef.current) {
-          syncAccessTokenCookie(newToken);
-        } else if (!newToken && mountedRef.current) {
-          setUser(null);
-          setIsAuthenticated(false);
-          syncAccessTokenCookie(null);
+        const refreshedToken = await api.refreshToken();
+        if (!refreshedToken) {
+          console.log('[AUTH] Background refresh failed, logging out');
+          await logout();
         }
-      } catch {
-        if (mountedRef.current) {
-          setUser(null);
-          setIsAuthenticated(false);
-          syncAccessTokenCookie(null);
-        }
+      } catch (error) {
+        console.log('[AUTH] Background refresh error, logging out');
+        await logout();
       }
     }, REFRESH_INTERVAL_MS);
-  }, [stopRefreshTimer]);
+  }, [stopRefreshTimer, logout]);
 
-  const checkAuth = useCallback(async () => {
+  const initializeAuth = useCallback(async () => {
+    console.log('[AUTH] initialization:start');
     setLoading(true);
-    try {
-      let response = await api.get<User>(apiEndpoints.me);
+    setInitialized(false);
 
-      if (!response.data) {
+    // Optimistic: if tokens exist, assume authenticated while we fetch user data
+    const hasAccess = hasAccessToken();
+    const hasRefresh = hasRefreshToken();
+    const tokensExist = hasAccess || hasRefresh;
+    
+    if (tokensExist) {
+      console.log('[AUTH] tokens-found, setting authenticated=true optimistically');
+      setIsAuthenticated(true);
+    }
+
+    try {
+      // Step 1: Try to get current user
+      let response = await api.get<User>(apiEndpoints.me);
+      console.log('[AUTH] current-user:status', response.status);
+
+      // Step 2: If 401, try to refresh token and retry
+      if (response.status === 401 && hasRefresh) {
+        console.log('[AUTH] access-token-expired, attempting refresh');
         const refreshedToken = await api.refreshToken();
+        
         if (refreshedToken) {
-          syncAccessTokenCookie(refreshedToken);
+          console.log('[AUTH] refresh-success, retrying /me');
           response = await api.get<User>(apiEndpoints.me);
+          console.log('[AUTH] current-user:retry-status', response.status);
+        } else {
+          console.log('[AUTH] refresh-failed');
         }
       }
 
+      // Step 3: Set auth state based on final response
       if (response.data && (response.data.id || response.data.username)) {
+        console.log('[AUTH] user-restored', { userId: response.data.id, role: response.data.role });
         setUser(response.data);
+        saveUserRole(response.data.role);
         setIsAuthenticated(true);
-        const currentToken = getStoredAccessToken();
-        if (currentToken) syncAccessTokenCookie(currentToken);
         scheduleRefresh();
       } else {
-        clearTokens();
-        syncAccessTokenCookie(null);
+        console.log('[AUTH] no-user-restored', { status: response.status, hasError: !!response.error });
+        // Only clear auth if no tokens exist
+        if (!tokensExist) {
+          setUser(null);
+          setIsAuthenticated(false);
+          clearSavedUserRole();
+          stopRefreshTimer();
+        } else {
+          // Tokens exist but user fetch failed - keep isAuthenticated=true
+          console.log('[AUTH] tokens-exist-but-user-fetch-failed, keeping-authenticated=true');
+        }
+      }
+    } catch (error) {
+      console.log('[AUTH] initialization:error', error);
+      // Only clear auth if no tokens exist
+      if (!tokensExist) {
         setUser(null);
         setIsAuthenticated(false);
+        clearSavedUserRole();
         stopRefreshTimer();
+      } else {
+        // Tokens exist but error occurred - keep isAuthenticated=true
+        console.log('[AUTH] tokens-exist-but-error-occurred, keeping-authenticated=true');
       }
-    } catch {
-      clearTokens();
-      syncAccessTokenCookie(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      stopRefreshTimer();
     } finally {
-      if (mountedRef.current) setLoading(false);
+      console.log('[AUTH] initialization:complete', { isAuthenticated, hasUser: !!user });
+      setLoading(false);
+      setInitialized(true);
     }
   }, [scheduleRefresh, stopRefreshTimer]);
 
   useEffect(() => {
     mountedRef.current = true;
-    checkAuth();
+    initializeAuth();
     return () => {
       mountedRef.current = false;
       stopRefreshTimer();
     };
-  }, [checkAuth, stopRefreshTimer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = async (credentials: { username: string; password: string }) => {
     setLoading(true);
     try {
+      console.log('[AUTH] login:start');
       const response = await api.post<any>(apiEndpoints.login, credentials);
       const payload = response.data as any;
       const userData = payload?.user || payload;
       const access = payload?.access;
 
       if (!response.error && userData && access) {
-        storeTokens(access);
-        syncAccessTokenCookie(access);
+        console.log('[AUTH] login:success', { userId: userData.id, role: userData.role });
         setUser(userData);
+        saveUserRole(userData.role);
         setIsAuthenticated(true);
-        setLoading(false);
         scheduleRefresh();
         return { success: true };
       }
 
-      setLoading(false);
-      return { success: false, error: extractApiErrorMessage(response) };
-    } catch (err) {
-      setLoading(false);
-      return { success: false, error: err instanceof Error ? err.message : 'Login failed' };
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await api.post<any>(apiEndpoints.logout, {});
-    } catch {
-      // Ignore network errors on logout
+      console.log('[AUTH] login:failed', response.error);
+      return { success: false, error: response.error || 'Login failed' };
+    } catch (error) {
+      console.log('[AUTH] login:error', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Login failed' };
     } finally {
-      clearTokens();
-      syncAccessTokenCookie(null);
-      setUser(null);
-      setIsAuthenticated(false);
-      stopRefreshTimer();
+      setLoading(false);
     }
   };
 
   const value: AuthContextType = {
     user,
     loading,
+    initialized,
     isAuthenticated,
     login,
     logout,
-    refetch: checkAuth,
+    refetch: initializeAuth,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -184,7 +245,10 @@ export function useAuth() {
 
 export function useUserRole() {
   const { user } = useAuth();
-  return user?.role || 'employee';
+  // Fallback to sessionStorage if user is null (during initial load)
+  if (user?.role) return user.role;
+  const savedRole = getSavedUserRole();
+  return (savedRole as 'owner' | 'manager' | 'employee') || 'employee';
 }
 
 export function useIsOwner() {
@@ -203,9 +267,11 @@ export function useIsEmployee() {
 }
 
 export function useCanManageUsers() {
-  return useIsOwner();
+  const role = useUserRole();
+  return role === 'owner' || role === 'manager';
 }
 
 export function useCanApproveVideos() {
-  return useIsOwner();
+  const role = useUserRole();
+  return role === 'owner' || role === 'manager';
 }

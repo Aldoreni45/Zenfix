@@ -95,6 +95,32 @@ export function clearTokens(): void {
 }
 
 /**
+ * Check if access token exists in cookies
+ */
+export function hasAccessToken(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const cookies = document.cookie.split('; ');
+    return cookies.some(row => row.startsWith(`${ACCESS_TOKEN_KEY}=`));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if refresh token exists in cookies
+ */
+export function hasRefreshToken(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const cookies = document.cookie.split('; ');
+    return cookies.some(row => row.startsWith(`${REFRESH_TOKEN_KEY}=`));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Turn a raw ApiResponse into a human-friendly message.
  * The MongoDB backend returns errors as `{ detail: string }` (or field maps),
  * so we unwrap the first message.

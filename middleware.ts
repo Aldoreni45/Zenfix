@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ACCESS_TOKEN_KEY = 'zenfix_access_token';
-
-function hasAccessToken(request: NextRequest): boolean {
-  const cookie = request.cookies.get(ACCESS_TOKEN_KEY);
-  return !!(cookie && cookie.value && cookie.value.length > 10);
-}
-
 function isPublicPath(pathname: string): boolean {
   return (
     pathname === '/' ||
@@ -32,34 +25,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const authenticated = hasAccessToken(request);
-
-  if (pathname === '/adminzenfix' || pathname === '/adminzenfix/') {
-    if (authenticated) {
-      return NextResponse.redirect(
-        new URL('/adminzenfix/dashboard', request.url)
-      );
-    }
-    return NextResponse.redirect(
-      new URL('/adminzenfix/login', request.url)
-    );
-  }
-
-  if (pathname.startsWith('/adminzenfix/login')) {
-    if (authenticated) {
-      return NextResponse.redirect(
-        new URL('/adminzenfix/dashboard', request.url)
-      );
-    }
-    return NextResponse.next();
-  }
-
-  if (!authenticated) {
-    const loginUrl = new URL('/adminzenfix/login', request.url);
-    loginUrl.searchParams.set('from', pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
+  // NOTE: Authentication is now handled client-side by the AuthProvider
+  // Middleware only handles basic route protection
+  // The AuthProvider will verify tokens with the backend and redirect if needed
+  
+  // Allow all admin routes to pass through - client-side auth will handle protection
   return NextResponse.next();
 }
 
