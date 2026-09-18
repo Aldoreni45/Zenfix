@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { Bell, Check, CheckCheck, Trash2, FileText, AlertCircle, Clock, Loader2 } from 'lucide-react';
+import { Bell, Check, CheckCheck, FileText, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -80,13 +80,15 @@ export default function NotificationsPage() {
     }
   };
 
-  const deleteNotification = async (id: number) => {
+  const dismissNotification = async (id: number) => {
     setBusyId(id);
-    const res = await api.delete(apiEndpoints.notification(id));
+    const res = await api.post(apiEndpoints.markRead(id), {});
     if (res.error) {
       toast.error(extractApiErrorMessage(res));
     } else {
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
     }
     setBusyId(null);
   };
@@ -220,12 +222,12 @@ export default function NotificationsPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => deleteNotification(n.id)}
-                          disabled={busyId === n.id}
-                          className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                          title="Delete"
+                          onClick={() => dismissNotification(n.id)}
+                          disabled={busyId === n.id || n.read}
+                          className="p-2 hover:bg-green-500/10 rounded-lg transition-colors disabled:opacity-50"
+                          title="Mark as read"
                         >
-                          <Trash2 className="h-4 w-4 text-slate-400 hover:text-red-400" />
+                          <CheckCheck className="h-4 w-4 text-slate-400 hover:text-green-400" />
                         </button>
                       </div>
                     </div>

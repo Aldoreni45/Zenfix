@@ -4,6 +4,33 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 const DJANGO_BACKEND_URL = process.env.DJANGO_BACKEND_URL || 'http://127.0.0.1:8000';
+const ACCESS_TOKEN_KEY = 'zenfix_access_token';
+const REFRESH_TOKEN_KEY = 'zenfix_refresh_token';
+
+const ACCESS_COOKIE_MAX_AGE = 60 * 60; // 1 hour
+
+function extractAccessToken(body: ArrayBuffer): string | null {
+  try {
+    const text = new TextDecoder().decode(body);
+    const json = JSON.parse(text);
+    // Handle both { access: "..." } and { data: { access: "..." } } and { data: { user: {...}, access: "..." } }
+    const access = json?.access || json?.data?.access;
+    return typeof access === 'string' ? access : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractRefreshTokenFromCookies(setCookies: string[]): string | null {
+  for (const raw of setCookies) {
+    const lower = raw.toLowerCase();
+    if (lower.startsWith(`${REFRESH_TOKEN_KEY.toLowerCase()}=`) || lower.includes(`${REFRESH_TOKEN_KEY.toLowerCase()}=`)) {
+      const valuePart = raw.split(';')[0]?.split('=').slice(1).join('=');
+      return valuePart || null;
+    }
+  }
+  return null;
+}
 
 async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
   const incoming = new URL(req.url);
@@ -44,21 +71,61 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
 
   const responseHeaders = new Headers();
   upstream.headers.forEach((value, key) => {
-    if (key.toLowerCase() === 'set-cookie') return;
+    const lower = key.toLowerCase();
+    if (lower === 'set-cookie') return;
+    if (lower === 'location') return;
     responseHeaders.set(key, value);
-  });
-
-  const payload = await upstream.arrayBuffer();
-  const response = new NextResponse(payload, {
-    status: upstream.status,
-    headers: responseHeaders,
   });
 
   const setCookies =
     typeof upstream.headers.getSetCookie === 'function' ? upstream.headers.getSetCookie() : [];
   for (const cookie of setCookies) {
-    response.headers.append('set-cookie', cookie);
+    responseHeaders.append('set-cookie', cookie);
   }
+
+  const responsePayload = await upstream.arrayBuffer();
+  const response = new NextResponse(responsePayload, {
+    status: upstream.status,
+    headers: responseHeaders,
+  });
+
+  const pathStr = joined.toLowerCase();
+
+  const isLoginOrRefresh =
+    pathStr === 'auth/login' ||
+    pathStr === 'auth/token/refresh' ||
+    pathStr === 'auth/refresh';
+
+  if (isLoginOrRefresh && upstream.ok) {
+    const accessToken = extractAccessToken(responsePayload);
+
+    if (accessToken) {
+      response.cookies.set(ACCESS_TOKEN_KEY, accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: ACCESS_COOKIE_MAX_AGE,
+      });
+    }
+
+    const refreshFromCookie = extractRefreshTokenFromCookies(setCookies);
+    if (refreshFromCookie) {
+      response.cookies.set(REFRESH_TOKEN_KEY, refreshFromCookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24 * 7, // 7 days
+      });
+    }
+  }
+
+  if (pathStr === 'auth/logout') {
+    response.cookies.delete(ACCESS_TOKEN_KEY);
+    response.cookies.delete(REFRESH_TOKEN_KEY);
+  }
+
   return response;
 }
 

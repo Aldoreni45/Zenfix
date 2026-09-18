@@ -55,7 +55,6 @@ const ownerNavigation = [
   { name: 'Users', href: '/adminzenfix/users', icon: Users },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
   { name: 'Videos', href: '/adminzenfix/videos', icon: Video },
-  { name: 'Approvals', href: '/adminzenfix/approvals', icon: FileText },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Reports', href: '/adminzenfix/reports', icon: BarChart3 },
   { name: 'Analytics', href: '/adminzenfix/analytics', icon: TrendingUp },

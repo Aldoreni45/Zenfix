@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter, MoreHorizontal, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useIsOwner, useIsManager } from '@/lib/hooks';

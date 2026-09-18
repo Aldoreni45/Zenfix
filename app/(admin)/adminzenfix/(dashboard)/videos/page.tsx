@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter, MoreHorizontal, Video, Play, Clock, CheckCircle, AlertCircle, Calendar, ArrowUpRight } from 'lucide-react';
+import { Search, Video, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useVideos, useMyVideos, useIsOwner, useIsManager } from '@/lib/hooks';
+import { useVideos, useIsOwner, useIsManager } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 export default function VideosPage() {
@@ -105,14 +105,6 @@ export default function VideosPage() {
           <h1 className="text-2xl font-bold text-white">Videos</h1>
           <p className="text-slate-400 mt-1">Manage video production workflow and approvals</p>
         </div>
-        {canManage && (
-          <Link href="/adminzenfix/videos/create">
-            <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Video
-            </Button>
-          </Link>
-        )}
       </div>
 
       {/* Workflow Stats */}
@@ -267,30 +259,6 @@ export default function VideosPage() {
         )}
       </div>
 
-      {/* Quick Actions */}
-      {canManage && (
-        <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
-          <h3 className="text-white font-semibold mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link href="/adminzenfix/videos/create" className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-all">
-              <Plus className="h-5 w-5 text-cyan-400" />
-              <span className="text-white text-sm">Create Video</span>
-            </Link>
-            <Link href="/adminzenfix/approvals" className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-all">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <span className="text-white text-sm">Pending Approvals</span>
-            </Link>
-            <Link href="/adminzenfix/social-posts" className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-all">
-              <Play className="h-5 w-5 text-purple-400" />
-              <span className="text-white text-sm">Social Posts</span>
-            </Link>
-            <Link href="/adminzenfix/calendar" className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-all">
-              <Calendar className="h-5 w-5 text-amber-400" />
-              <span className="text-white text-sm">Calendar View</span>
-            </Link>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

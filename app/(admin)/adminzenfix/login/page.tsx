@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Lock, User, Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const { login, isAuthenticated } = useAuth();
+  const searchParams = useSearchParams();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [credentials, setCredentials] = useState({
@@ -18,12 +19,28 @@ export default function LoginPage() {
     password: '',
   });
 
-  // Redirect if already authenticated (in effect to avoid setState during render)
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/adminzenfix/dashboard');
+    if (!authLoading && isAuthenticated) {
+      const from = searchParams.get('from');
+      router.replace(from || '/adminzenfix/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, authLoading, router, searchParams]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+            <span className="text-3xl font-bold text-white">Z</span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-400">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Checking session...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isAuthenticated) {
     return (
@@ -46,7 +63,8 @@ export default function LoginPage() {
     const result = await login(credentials);
 
     if (result.success) {
-      router.push('/adminzenfix/dashboard');
+      const from = searchParams.get('from');
+      router.replace(from || '/adminzenfix/dashboard');
     } else {
       setError(result.error || 'Login failed. Please try again.');
     }
@@ -58,7 +76,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       <div className="w-full max-w-md p-8">
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          {/* Logo and Title */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <span className="text-3xl font-bold text-white">Z</span>
@@ -67,7 +84,6 @@ export default function LoginPage() {
             <p className="text-slate-400">Sign in to your ZenFix account</p>
           </div>
 
-          {/* Login Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
@@ -123,7 +139,6 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Help Links */}
           <div className="mt-6 text-center">
             <p className="text-slate-400 text-sm">
               Forgot your password?{' '}
@@ -133,7 +148,6 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Demo Credentials */}
           <div className="mt-8 pt-6 border-t border-white/10">
             <p className="text-slate-500 text-xs text-center mb-3">Demo Credentials</p>
             <div className="space-y-2 text-xs">
@@ -153,7 +167,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-slate-500 text-sm">
             © 2026 ZenFix. All rights reserved.
@@ -161,5 +174,29 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function LoginFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="text-center space-y-4">
+        <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+          <span className="text-3xl font-bold text-white">Z</span>
+        </div>
+        <div className="flex items-center gap-2 text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginFallback />}>
+      <LoginForm />
+    </Suspense>
   );
 }

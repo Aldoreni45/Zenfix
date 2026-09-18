@@ -89,7 +89,7 @@ export async function rejectTask(taskId: string | number): Promise<{ error?: str
 export async function addComment(taskId: string | number, message: string): Promise<{ error?: string; success?: boolean }> {
   try {
     const id = Number(taskId);
-    const res = await api.post(`${apiEndpoints.task(id)}comments/`, { message });
+    const res = await api.post(`${apiEndpoints.task(id)}/comments/`, { message });
     if (res.error) return { error: res.error };
     return { success: true };
   } catch (err: any) {

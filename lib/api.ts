@@ -386,6 +386,7 @@ export const apiEndpoints = {
   managers: '/users/managers',
   employees: '/users/employees',
   me: '/users/me',
+  changePassword: '/users/change_password',
   
   // Clients
   clients: '/clients',

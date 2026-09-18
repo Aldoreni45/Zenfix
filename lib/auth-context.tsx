@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api, apiEndpoints, clearTokens, extractApiErrorMessage, getStoredAccessToken, storeTokens } from './api';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { api, apiEndpoints, clearTokens, extractApiErrorMessage, getStoredAccessToken, storeTokens, setAccessToken } from './api';
 
 export interface User {
   id: number;
@@ -27,21 +27,64 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const REFRESH_INTERVAL_MS = 14 * 60 * 1000; // refresh every 14 minutes (access token is 1 hour)
+const ACCESS_TOKEN_COOKIE_KEY = 'zenfix_access_token';
+
+function syncAccessTokenCookie(token: string | null) {
+  if (typeof document === 'undefined') return;
+  if (token) {
+    const maxAge = 60 * 60; // 1 hour
+    document.cookie = `${ACCESS_TOKEN_COOKIE_KEY}=${token}; path=/; max-age=${maxAge}; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`;
+  } else {
+    document.cookie = `${ACCESS_TOKEN_COOKIE_KEY}=; path=/; max-age=0`;
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
+
+  const stopRefreshTimer = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleRefresh = useCallback(() => {
+    stopRefreshTimer();
+    refreshTimerRef.current = setInterval(async () => {
+      try {
+        const newToken = await api.refreshToken();
+        if (newToken && mountedRef.current) {
+          syncAccessTokenCookie(newToken);
+        } else if (!newToken && mountedRef.current) {
+          setUser(null);
+          setIsAuthenticated(false);
+          syncAccessTokenCookie(null);
+        }
+      } catch {
+        if (mountedRef.current) {
+          setUser(null);
+          setIsAuthenticated(false);
+          syncAccessTokenCookie(null);
+        }
+      }
+    }, REFRESH_INTERVAL_MS);
+  }, [stopRefreshTimer]);
 
   const checkAuth = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Attempt to fetch current user with existing access token
       let response = await api.get<User>(apiEndpoints.me);
 
-      // 2. If unauthorized or missing, attempt refresh using HttpOnly cookie
       if (!response.data) {
         const refreshedToken = await api.refreshToken();
         if (refreshedToken) {
+          syncAccessTokenCookie(refreshedToken);
           response = await api.get<User>(apiEndpoints.me);
         }
       }
@@ -49,23 +92,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.data && (response.data.id || response.data.username)) {
         setUser(response.data);
         setIsAuthenticated(true);
+        const currentToken = getStoredAccessToken();
+        if (currentToken) syncAccessTokenCookie(currentToken);
+        scheduleRefresh();
       } else {
         clearTokens();
+        syncAccessTokenCookie(null);
         setUser(null);
         setIsAuthenticated(false);
+        stopRefreshTimer();
       }
     } catch {
       clearTokens();
+      syncAccessTokenCookie(null);
       setUser(null);
       setIsAuthenticated(false);
+      stopRefreshTimer();
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [scheduleRefresh, stopRefreshTimer]);
 
   useEffect(() => {
+    mountedRef.current = true;
     checkAuth();
-  }, [checkAuth]);
+    return () => {
+      mountedRef.current = false;
+      stopRefreshTimer();
+    };
+  }, [checkAuth, stopRefreshTimer]);
 
   const login = async (credentials: { username: string; password: string }) => {
     setLoading(true);
@@ -77,9 +132,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.error && userData && access) {
         storeTokens(access);
+        syncAccessTokenCookie(access);
         setUser(userData);
         setIsAuthenticated(true);
         setLoading(false);
+        scheduleRefresh();
         return { success: true };
       }
 
@@ -98,8 +155,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignore network errors on logout
     } finally {
       clearTokens();
+      syncAccessTokenCookie(null);
       setUser(null);
       setIsAuthenticated(false);
+      stopRefreshTimer();
     }
   };
 
@@ -123,7 +182,6 @@ export function useAuth() {
   return context;
 }
 
-// Role-based helpers
 export function useUserRole() {
   const { user } = useAuth();
   return user?.role || 'employee';

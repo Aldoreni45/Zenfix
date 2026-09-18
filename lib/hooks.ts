@@ -90,7 +90,7 @@ export function useClients(filters?: string) {
 
 // Active clients hook
 export function useActiveClients() {
-  return useApi<any[]>(`${apiEndpoints.clients}active/`, []);
+  return useApi<any[]>(`${apiEndpoints.clients}/active/`, []);
 }
 
 // Client progress hook
@@ -201,6 +201,7 @@ export function useMutation<T>(
   const mutate = useCallback(async (body?: any) => {
     setLoading(true);
     setError(null);
+    setData(null);
     
     let response: ApiResponse<T>;
     

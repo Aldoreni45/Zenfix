@@ -3,15 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Plus,
   Search,
   UserPlus,
-  Shield,
   Users,
   Crown,
-  HardHat,
   Loader2,
-  MoreVertical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -53,8 +49,6 @@ export default function UsersPage() {
   const counts = {
     total: (allUsers || []).length,
     owner: (allUsers || []).filter((u: any) => u.role === 'owner').length,
-    manager: (allUsers || []).filter((u: any) => u.role === 'manager').length,
-    employee: (allUsers || []).filter((u: any) => u.role === 'employee').length,
   };
 
   if (loading) {
@@ -84,7 +78,7 @@ export default function UsersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <div className="bg-slate-900/50 border border-white/10 rounded-xl p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-purple-500/10 border border-purple-500/20">
@@ -93,28 +87,6 @@ export default function UsersPage() {
             <div>
               <p className="text-2xl font-bold text-white">{counts.owner}</p>
               <p className="text-sm text-gray-400">Owners</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-900/50 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-              <Users className="h-5 w-5 text-cyan-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{counts.manager}</p>
-              <p className="text-sm text-gray-400">Managers</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-slate-900/50 border border-white/10 rounded-xl p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/20">
-              <HardHat className="h-5 w-5 text-green-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">{counts.employee}</p>
-              <p className="text-sm text-gray-400">Employees</p>
             </div>
           </div>
         </div>
@@ -156,8 +128,6 @@ export default function UsersPage() {
           {[
             { id: 'all', label: 'All' },
             { id: 'owner', label: 'Owners' },
-            { id: 'manager', label: 'Managers' },
-            { id: 'employee', label: 'Employees' },
           ].map((r) => (
             <button
               key={r.id}

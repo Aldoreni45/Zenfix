@@ -1,4 +1,4 @@
-import { api, extractApiErrorMessage } from '@/lib/api';
+import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 
 export async function changePassword(formData: FormData): Promise<{ error?: string; success?: boolean }> {
   const currentPassword = formData.get('currentPassword') as string;
@@ -17,7 +17,7 @@ export async function changePassword(formData: FormData): Promise<{ error?: stri
     return { error: 'New password must be at least 8 characters long.' };
   }
 
-  const res = await api.post('/users/change_password/', {
+  const res = await api.post(apiEndpoints.changePassword, {
     old_password: currentPassword,
     new_password: newPassword,
   });

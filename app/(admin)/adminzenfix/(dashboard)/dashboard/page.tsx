@@ -103,9 +103,8 @@ export default function DashboardPage() {
   };
 
   // Chart data
-  const trendData = DOW.map((day, i) => {
-    // This would come from analytics endpoint - simplified for now
-    return { day, completed: Math.floor(Math.random() * 10) };
+  const trendData = DOW.map((day) => {
+    return { day, completed: 0 };
   });
 
   const statusPieData = [
@@ -178,15 +177,6 @@ export default function DashboardPage() {
   const calendarDays = getDaysInMonth(currentDate);
   const today = new Date();
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-  if (authLoading) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4" />
-        <p className="text-slate-400">Loading dashboard…</p>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -262,8 +252,8 @@ export default function DashboardPage() {
         {[
           { label: 'Total Clients', value: stats.total_clients, icon: UsersIcon, color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20', sub: 'Active clients' },
           { label: 'Videos Completed', value: stats.videos_completed, icon: Video, color: 'text-green-400 bg-green-500/10 border-green-500/20', sub: `${completionRate}% rate` },
-          { label: 'Pending Tasks', value: stats.pending_tasks + (pendingTasks?.length || 0), icon: Clock, color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', sub: 'In progress / waiting' },
-          { label: 'Overdue Tasks', value: stats.overdue_tasks + (overdueTasks?.length || 0), icon: AlertCircle, color: 'text-red-400 bg-red-500/10 border-red-500/20', sub: 'Past deadline' },
+          { label: 'Pending Tasks', value: pendingTasks?.length || stats.pending_tasks || 0, icon: Clock, color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', sub: 'In progress / waiting' },
+          { label: 'Overdue Tasks', value: overdueTasks?.length || stats.overdue_tasks || 0, icon: AlertCircle, color: 'text-red-400 bg-red-500/10 border-red-500/20', sub: 'Past deadline' },
         ].map((card) => (
           <div key={card.label} className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:border-white/20 transition-all">
             <div className="flex items-center justify-between mb-4">
