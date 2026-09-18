@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, useUserRole } from '@/lib/auth-context';
 import { 
   LayoutDashboard, 
@@ -66,15 +66,16 @@ const ownerNavigation = [
 
 function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { user, loading: authLoading, logout } = useAuth();
   const userRole = useUserRole();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const navigation = userRole === 'owner' 
-    ? ownerNavigation 
-    : userRole === 'manager' 
-    ? managerNavigation 
+  const navigation = userRole === 'owner'
+    ? ownerNavigation
+    : userRole === 'manager'
+    ? managerNavigation
     : employeeNavigation;
 
   const handleLogout = async () => {
@@ -82,7 +83,13 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     window.location.href = '/adminzenfix/login';
   };
 
-  if (!user) {
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/adminzenfix/login');
+    }
+  }, [authLoading, user, router]);
+
+  if (authLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="text-center">

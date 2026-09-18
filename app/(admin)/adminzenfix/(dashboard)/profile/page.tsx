@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,7 +12,8 @@ import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { changePassword } from '@/lib/actions/auth';
 
 export default function ProfilePage() {
-  const { user, refetch } = useAuth();
+  const router = useRouter();
+  const { user, loading: authLoading, refetch } = useAuth();
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -26,6 +28,12 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/adminzenfix/login');
+    }
+  }, [authLoading, user, router]);
+
+  useEffect(() => {
     if (user) {
       setFormData({
         first_name: user.first_name || '',
@@ -35,7 +43,7 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  if (!user) {
+  if (authLoading || !user) {
     return (
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex items-center justify-center h-64">
