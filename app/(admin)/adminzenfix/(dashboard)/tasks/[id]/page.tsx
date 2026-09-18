@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, Clock, User, Calendar,
-  Play, CheckCircle2, XCircle, Loader2, AlertTriangle,
+  ArrowLeft, Clock, User, Calendar, Link2, FileText, RefreshCw,
+  Play, CheckCircle2, XCircle, Loader2, AlertTriangle, AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -20,11 +22,25 @@ function getStatusColor(status: string, isOverdue: boolean) {
     in_progress: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     pending: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
     assigned: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
-    waiting_approval: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    submitted: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
     rejected: 'bg-red-500/10 text-red-400 border-red-500/20',
     cancelled: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    overdue: 'bg-red-500/10 text-red-400 border-red-500/20',
   };
   return colors[status] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+}
+
+function getDaysUntilDue(dueDate: string | null): string | null {
+  if (!dueDate) return null;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const due = new Date(dueDate + 'T00:00:00');
+  const diffMs = due.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return `${Math.abs(diffDays)} day(s) overdue`;
+  if (diffDays === 0) return 'Due today';
+  if (diffDays === 1) return 'Due tomorrow';
+  return `Due in ${diffDays} day(s)`;
 }
 
 export default function TaskDetailPage() {
@@ -38,6 +54,12 @@ export default function TaskDetailPage() {
   const [acting, setActing] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [completing, setCompleting] = useState(false);
+  const [driveLink, setDriveLink] = useState('');
+  const [completionNotes, setCompletionNotes] = useState('');
+  const [carryingForward, setCarryingForward] = useState(false);
+  const [carryForwardDate, setCarryForwardDate] = useState('');
+  const [carryForwarding, setCarryForwarding] = useState(false);
 
   const fetchTask = useCallback(async () => {
     setLoading(true);
@@ -70,8 +92,27 @@ export default function TaskDetailPage() {
   const handleStart = () =>
     runAction(() => api.post(apiEndpoints.startTask(Number(taskId)), {}), 'Task started');
 
-  const handleComplete = () =>
-    runAction(() => api.post(apiEndpoints.completeTask(Number(taskId)), { notes: 'Task completed' }), 'Task completed');
+  const handleComplete = async () => {
+    if (!driveLink.trim()) {
+      toast.error('Drive link is required to complete a task');
+      return;
+    }
+    setActing(true);
+    const res = await api.post(apiEndpoints.completeTask(Number(taskId)), {
+      drive_link: driveLink.trim(),
+      completion_notes: completionNotes.trim(),
+    });
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+    } else {
+      toast.success('Task completed');
+      setCompleting(false);
+      setDriveLink('');
+      setCompletionNotes('');
+      await fetchTask();
+    }
+    setActing(false);
+  };
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
@@ -89,6 +130,26 @@ export default function TaskDetailPage() {
       await fetchTask();
     }
     setActing(false);
+  };
+
+  const handleCarryForward = async () => {
+    if (!carryForwardDate) {
+      toast.error('Please select a new due date');
+      return;
+    }
+    setCarryForwarding(true);
+    const res = await api.post(apiEndpoints.carryForwardTask(Number(taskId)), {
+      new_due_date: carryForwardDate,
+    });
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+    } else {
+      toast.success('Task carried forward successfully');
+      setCarryingForward(false);
+      setCarryForwardDate('');
+      await fetchTask();
+    }
+    setCarryForwarding(false);
   };
 
   if (loading) {
@@ -120,7 +181,33 @@ export default function TaskDetailPage() {
   }
 
   const canManage = user?.role === 'owner' || user?.role === 'manager';
-  const isAssignee = !canManage && task.assigned_to !== undefined && task.assigned_to === user?.id;
+  const isAssignee = Boolean(
+    (
+      task?.assigned_to != null &&
+      user?.id != null &&
+      (
+        task.assigned_to === user.id ||
+        String(task.assigned_to) === String(user.id) ||
+        (typeof task.assigned_to === 'object' && (task.assigned_to.id === user.id || String(task.assigned_to.id) === String(user.id)))
+      )
+    ) ||
+    (
+      user?.role === 'employee' &&
+      task?.assigned_to_name &&
+      (
+        user.full_name?.trim().toLowerCase() === task.assigned_to_name?.trim().toLowerCase() ||
+        user.username?.trim().toLowerCase() === task.assigned_to_name?.trim().toLowerCase()
+      )
+    )
+  );
+  const isOverdue = task.is_overdue;
+  const isOpen = ['pending', 'assigned', 'in_progress', 'blocked', 'submitted', 'rejected'].includes(task.status);
+  // ONLY the assigned employee can start and complete tasks
+  const canStart = isAssignee && isOpen && ['pending', 'assigned', 'rejected'].includes(task.status);
+  const canComplete = isAssignee && isOpen && ['pending', 'assigned', 'in_progress', 'submitted', 'rejected'].includes(task.status);
+  const canCarryForward = canManage && isOpen;
+  const canReject = canManage && ['in_progress', 'completed', 'waiting_approval', 'submitted'].includes(task.status);
+  const dueDateInfo = getDaysUntilDue(task.due_date);
 
   return (
     <div className="space-y-6">
@@ -145,14 +232,25 @@ export default function TaskDetailPage() {
                   {task.task_type_name}
                 </span>
               )}
+              {isOverdue && (
+                <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  OVERDUE
+                </span>
+              )}
+              {task.carry_forward_count > 0 && (
+                <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                  Carried forward {task.carry_forward_count}x
+                </span>
+              )}
             </div>
             <h1 className="text-2xl font-bold text-white mb-2 break-words">{task.title}</h1>
             {task.description && (
               <p className="text-slate-400 whitespace-pre-wrap">{task.description}</p>
             )}
           </div>
-          <span className={cn('px-3 py-1 rounded-full text-sm font-medium capitalize border shrink-0', getStatusColor(task.status, task.is_overdue))}>
-            {task.status.replace(/_/g, ' ')}
+          <span className={cn('px-3 py-1 rounded-full text-sm font-medium capitalize border shrink-0', getStatusColor(task.status, isOverdue))}>
+            {isOverdue && task.status !== 'completed' && task.status !== 'cancelled' ? 'Overdue' : task.status.replace(/_/g, ' ')}
           </span>
         </div>
 
@@ -168,9 +266,14 @@ export default function TaskDetailPage() {
             <Calendar className="h-5 w-5 text-slate-400 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs text-slate-500">Due Date</p>
-              <p className="text-white text-sm">
-                {task.due_date ? new Date(task.due_date).toLocaleDateString() : '—'}
+              <p className={cn('text-sm', isOverdue ? 'text-red-400 font-medium' : 'text-white')}>
+                {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString() : '—'}
               </p>
+              {dueDateInfo && (
+                <p className={cn('text-xs', isOverdue ? 'text-red-400' : 'text-slate-500')}>
+                  {dueDateInfo}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -190,52 +293,142 @@ export default function TaskDetailPage() {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-wrap gap-3">
-          {(isAssignee || canManage) && task.status === 'pending' && (
+        <div className="flex flex-wrap gap-3 items-center">
+          {canStart && (
             <Button onClick={handleStart} disabled={acting} className="bg-cyan-500 hover:bg-cyan-600">
               <Play className="h-4 w-4 mr-2" />
               Start Task
             </Button>
           )}
-          {(isAssignee || canManage) && ['assigned', 'in_progress'].includes(task.status) && (
-            <Button onClick={handleComplete} disabled={acting} className="bg-green-500 hover:bg-green-600">
+          {canComplete && !completing && (
+            <Button onClick={() => setCompleting(true)} disabled={acting} className="bg-green-500 hover:bg-green-600">
               <CheckCircle2 className="h-4 w-4 mr-2" />
               Complete Task
             </Button>
           )}
-          {(isAssignee || canManage) && ['in_progress', 'completed', 'waiting_approval'].includes(task.status) && !rejecting && (
-            <Button onClick={() => setRejecting(true)} disabled={acting} variant="outline" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
-              <XCircle className="h-4 w-4 mr-2" />
-              Mark Not Complete
+          {canManage && canCarryForward && !carryingForward && (
+            <Button onClick={() => setCarryingForward(true)} disabled={acting} variant="outline" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Carry Forward
             </Button>
           )}
-          {canManage && (task.status === 'completed' || task.status === 'waiting_approval') && (
+          {canReject && !rejecting && (
             <Button onClick={() => setRejecting(true)} disabled={acting} variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10">
               <XCircle className="h-4 w-4 mr-2" />
               Reject
             </Button>
           )}
+          {canManage && !isAssignee && task.assigned_to && ['pending', 'assigned', 'in_progress'].includes(task.status) && (
+            <span className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg px-3 py-2 flex items-center gap-1.5">
+              <User className="h-3.5 w-3.5 text-cyan-400" />
+              Assigned to {task.assigned_to_name || 'employee'} (only assignee can start & complete)
+            </span>
+          )}
+          {canManage && !task.assigned_to && (
+            <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 flex items-center gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5" />
+              Unassigned — Assign to an employee so they can start work
+            </span>
+          )}
         </div>
+
+        {/* Complete form with drive link requirement */}
+        {completing && (
+          <div className="mt-4 p-4 bg-green-500/5 border border-green-500/20 rounded-xl space-y-3">
+            <p className="text-sm text-slate-300 font-medium">Complete Task</p>
+            <div className="space-y-2">
+              <label htmlFor="drive-link" className="text-xs text-slate-400 flex items-center gap-1.5">
+                <Link2 className="h-3 w-3" /> Google Drive Link <span className="text-red-400">*</span>
+              </label>
+              <input
+                id="drive-link"
+                value={driveLink}
+                onChange={(e) => setDriveLink(e.target.value)}
+                placeholder="https://drive.google.com/file/d/..."
+                className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="completion-notes" className="text-xs text-slate-400 flex items-center gap-1.5">
+                <FileText className="h-3 w-3" /> Completion Notes
+              </label>
+              <textarea
+                id="completion-notes"
+                value={completionNotes}
+                onChange={(e) => setCompletionNotes(e.target.value)}
+                placeholder="Optional notes about the completed work..."
+                rows={2}
+                className="w-full rounded-xl bg-slate-800/50 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500/50"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleComplete} disabled={acting || !driveLink.trim()} className="bg-green-500 hover:bg-green-600">
+                {acting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                Confirm Complete
+              </Button>
+              <Button variant="ghost" onClick={() => { setCompleting(false); setDriveLink(''); setCompletionNotes(''); }} className="text-slate-400">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Carry Forward form */}
+        {carryingForward && (
+          <div className="mt-4 p-4 bg-orange-500/5 border border-orange-500/20 rounded-xl space-y-3">
+            <p className="text-sm text-slate-300 font-medium flex items-center gap-2">
+              <RefreshCw className="h-4 w-4 text-orange-400" />
+              Carry Forward Task
+            </p>
+            <p className="text-xs text-slate-500">
+              Move this task to a new due date. Current due: {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString() : 'None'}
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="carry-forward-date" className="text-slate-400 text-xs">New Due Date <span className="text-red-400">*</span></Label>
+              <Input
+                id="carry-forward-date"
+                type="date"
+                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                value={carryForwardDate}
+                onChange={(e) => setCarryForwardDate(e.target.value)}
+                className="bg-slate-800/50 border-white/10 text-white"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleCarryForward} disabled={carryForwarding || !carryForwardDate} className="bg-orange-500 hover:bg-orange-600">
+                {carryForwarding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Confirm Carry Forward
+              </Button>
+              <Button variant="ghost" onClick={() => { setCarryingForward(false); setCarryForwardDate(''); }} className="text-slate-400">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Reject form */}
         {rejecting && (
-          <div className="mt-4 p-4 bg-orange-500/5 border border-orange-500/20 rounded-xl">
-            <label htmlFor="reject-reason" className="block text-sm text-slate-300 mb-2">
-              Reason for rejection
-            </label>
-            <div className="flex gap-3">
-              <input
+          <div className="mt-4 p-4 bg-red-500/5 border border-red-500/20 rounded-xl space-y-3">
+            <p className="text-sm text-slate-300 font-medium">Reject Task</p>
+            <div className="space-y-2">
+              <label htmlFor="reject-reason" className="text-xs text-slate-400">
+                Reason for rejection <span className="text-red-400">*</span>
+              </label>
+              <textarea
                 id="reject-reason"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                placeholder="Required — explain what needs to change"
-                className="flex-1 h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                placeholder="Explain what needs to change..."
+                rows={2}
+                className="w-full rounded-xl bg-slate-800/50 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
               />
-              <Button onClick={handleReject} disabled={acting} className="bg-orange-500 hover:bg-orange-600">
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleReject} disabled={acting || !rejectReason.trim()} className="bg-red-500 hover:bg-red-600">
                 <XCircle className="h-4 w-4 mr-2" />
-                Confirm
+                Confirm Reject
               </Button>
-              <Button variant="ghost" onClick={() => setRejecting(false)} className="text-slate-400">
+              <Button variant="ghost" onClick={() => { setRejecting(false); setRejectReason(''); }} className="text-slate-400">
                 Cancel
               </Button>
             </div>
@@ -245,8 +438,12 @@ export default function TaskDetailPage() {
 
       {task.rejection_reason && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-5">
-          <h3 className="text-white font-semibold mb-1">Rejection Reason</h3>
+          <h3 className="text-white font-semibold mb-1 flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-red-400" />
+            Rejection Reason
+          </h3>
           <p className="text-slate-300 text-sm">{task.rejection_reason}</p>
+          <p className="text-slate-500 text-xs mt-2">Rejected {task.rejection_count} time(s)</p>
         </div>
       )}
 
@@ -256,6 +453,51 @@ export default function TaskDetailPage() {
           <p className="text-slate-300 text-sm whitespace-pre-wrap">{task.notes}</p>
         </div>
       )}
+
+      {task.drive_link && (
+        <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-5">
+          <h3 className="text-white font-semibold mb-1 flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-green-400" />
+            Drive Link
+          </h3>
+          <a href={task.drive_link} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline text-sm break-all">
+            {task.drive_link}
+          </a>
+        </div>
+      )}
+
+      {task.completion_notes && (
+        <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-5">
+          <h3 className="text-white font-semibold mb-1 flex items-center gap-2">
+            <FileText className="h-4 w-4 text-cyan-400" />
+            Completion Notes
+          </h3>
+          <p className="text-slate-300 text-sm whitespace-pre-wrap">{task.completion_notes}</p>
+        </div>
+      )}
+
+      {/* Task metadata */}
+      <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-5">
+        <h3 className="text-white font-semibold mb-3">Task Details</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <p className="text-slate-500 text-xs">Created By</p>
+            <p className="text-white">{task.created_by_name || '—'}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs">Manager</p>
+            <p className="text-white">{task.assigned_manager_name || '—'}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs">Estimated Hours</p>
+            <p className="text-white">{task.estimated_hours || '—'}</p>
+          </div>
+          <div>
+            <p className="text-slate-500 text-xs">Actual Hours</p>
+            <p className="text-white">{task.actual_hours || '—'}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

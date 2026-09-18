@@ -37,6 +37,7 @@ class Client(NumericIdModel):
     assigned_team_ids = ArrayField(models.IntegerField(), blank=True, default=list)
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+    monthly_video_target = models.PositiveIntegerField(default=5, help_text="Number of videos to post per month")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

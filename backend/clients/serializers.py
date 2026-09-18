@@ -39,6 +39,7 @@ class ClientSerializer(serializers.ModelSerializer):
             "assigned_team",
             "start_date",
             "end_date",
+            "monthly_video_target",
             "created_by",
             "created_at",
             "updated_at",

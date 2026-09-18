@@ -1,4 +1,5 @@
-from django.db.models import Q
+from django.db.models import Q, Count
+from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
@@ -14,6 +15,7 @@ from notifications.services import NotificationService
 from targets.models import MonthlyTarget
 from targets.serializers import MonthlyTargetSerializer
 from users.models import User
+from videos.models import Video
 
 
 class ClientViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
@@ -83,3 +85,49 @@ class ClientViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
         client = self.get_object()
         target = client.monthly_targets.order_by("-year", "-month").first()
         return Response(MonthlyTargetSerializer(target).data if target else {})
+
+    @action(detail=True, methods=["get"])
+    def monthly_protocol(self, request, pk=None):
+        client = self.get_object()
+        now = timezone.localdate()
+        month = now.month
+        year = now.year
+
+        posted_videos = Video.objects.filter(
+            client=client,
+            stage="posted",
+            posted_date__month=month,
+            posted_date__year=year,
+        ).count()
+
+        total_required = client.monthly_video_target or 5
+        completed_months = 0
+        for m in range(1, month + 1):
+            count = Video.objects.filter(
+                client=client,
+                stage="posted",
+                posted_date__month=m,
+                posted_date__year=year,
+            ).count()
+            if count >= total_required:
+                completed_months += 1
+
+        target_obj = client.monthly_targets.filter(month=month, year=year).first()
+        if target_obj:
+            target_obj.posted_videos = posted_videos
+            target_obj.achieved_value = posted_videos
+            if posted_videos >= total_required:
+                target_obj.status = "completed"
+            target_obj.save(update_fields=["posted_videos", "achieved_value"])
+
+        return Response({
+            "client_id": client.numeric_id,
+            "client_name": client.name,
+            "month": month,
+            "year": year,
+            "posted_videos": posted_videos,
+            "total_required": total_required,
+            "is_month_complete": posted_videos >= total_required,
+            "completed_months": completed_months,
+            "remaining": max(0, total_required - posted_videos),
+        })

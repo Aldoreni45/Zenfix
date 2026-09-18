@@ -62,11 +62,19 @@ class Task(NumericIdModel):
     rejection_reason = models.TextField(blank=True)
     rejection_count = models.PositiveIntegerField(default=0)
     task_type = models.CharField(max_length=80, blank=True, default="general")
+    drive_link = models.URLField(max_length=500, blank=True)
+    completion_notes = models.TextField(blank=True)
 
     class Meta:
         db_table = "zf_tasks"
         indexes = [
             models.Index(fields=["status", "due_date"]),
+            models.Index(fields=["assigned_to"]),
+            models.Index(fields=["client"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["priority"]),
+            models.Index(fields=["due_date"]),
+            models.Index(fields=["created_at"]),
         ]
         ordering = ["-created_at"]
 

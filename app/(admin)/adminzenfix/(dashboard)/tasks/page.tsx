@@ -2,22 +2,26 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useIsOwner, useIsManager } from '@/lib/hooks';
+import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useCanManage } from '@/lib/hooks';
+import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export default function TasksPage() {
   const { data: todayTasks, loading: todayLoading } = useTodayTasks();
   const { data: pendingTasks, loading: pendingLoading } = usePendingTasks();
   const { data: overdueTasks, loading: overdueLoading } = useOverdueTasks();
-  const { data: pendingPreviousTasks, loading: previousLoading } = usePendingPreviousTasks();
+  const { data: pendingPreviousTasks, loading: previousLoading, refetch: refetchPrevious } = usePendingPreviousTasks();
   
-  const canManage = useIsOwner() || useIsManager();
+  const canManage = useCanManage();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('today');
+  const [carryForwardingAll, setCarryForwardingAll] = useState(false);
+  const [carryForwardDate, setCarryForwardDate] = useState('');
 
   const getTaskTypeColor = (taskType: string) => {
     const colors: Record<string, string> = {
@@ -47,8 +51,10 @@ export default function TasksPage() {
       completed: 'bg-green-500/10 text-green-400',
       in_progress: 'bg-blue-500/10 text-blue-400',
       pending: 'bg-yellow-500/10 text-yellow-400',
-      waiting_approval: 'bg-purple-500/10 text-purple-400',
+      assigned: 'bg-cyan-500/10 text-cyan-400',
+      submitted: 'bg-purple-500/10 text-purple-400',
       rejected: 'bg-red-500/10 text-red-400',
+      overdue: 'bg-red-500/10 text-red-400',
     };
     return colors[status] || colors.pending;
   };
@@ -57,8 +63,9 @@ export default function TasksPage() {
     switch (activeTab) {
       case 'today': return todayTasks || [];
       case 'pending': return pendingTasks || [];
-      case 'overdue': return overdueTasks || [];
-      case 'previous': return pendingPreviousTasks || [];
+      case 'overdue': 
+      case 'previous':
+        return (overdueTasks && overdueTasks.length > 0) ? overdueTasks : (pendingPreviousTasks || []);
       default: return [];
     }
   };
@@ -69,10 +76,32 @@ export default function TasksPage() {
       (task.client_name && task.client_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       task.task_id.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
+    const matchesStatus = 
+      statusFilter === 'all' || 
+      task.status === statusFilter || 
+      (statusFilter === 'overdue' && task.is_overdue);
     
     return matchesSearch && matchesStatus;
   });
+
+  const handleBulkCarryForward = async () => {
+    if (!carryForwardDate) {
+      toast.error('Please select a new due date');
+      return;
+    }
+    setCarryForwardingAll(true);
+    const res = await api.post<{ carried_count: number }>(apiEndpoints.carryForwardAllPending, {
+      new_due_date: carryForwardDate,
+    });
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+    } else if (res.data) {
+      toast.success(`${res.data.carried_count} task(s) carried forward to ${new Date(carryForwardDate + 'T00:00:00').toLocaleDateString()}`);
+      setCarryForwardDate('');
+      refetchPrevious();
+    }
+    setCarryForwardingAll(false);
+  };
 
   const loading = todayLoading || pendingLoading || overdueLoading || previousLoading;
 
@@ -86,6 +115,10 @@ export default function TasksPage() {
       </div>
     );
   }
+
+  const overdueCount = (overdueTasks && overdueTasks.length > 0) 
+    ? overdueTasks.length 
+    : (pendingPreviousTasks?.length || 0);
 
   return (
     <div className="space-y-6">
@@ -106,41 +139,64 @@ export default function TasksPage() {
       </div>
 
       {/* Pending from Previous Days Alert */}
-      {pendingPreviousTasks && pendingPreviousTasks.length > 0 && (
+      {overdueCount > 0 && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-red-400" />
               <div>
-                <p className="text-white font-medium">Pending from Previous Days</p>
-                <p className="text-slate-400 text-sm">{pendingPreviousTasks.length} tasks need attention</p>
+                <p className="text-white font-medium">Overdue Tasks</p>
+                <p className="text-slate-400 text-sm">{overdueCount} task(s) past their due date need attention</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10"
-              onClick={() => setActiveTab('previous')}
-            >
-              View Tasks
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              {canManage && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    value={carryForwardDate}
+                    onChange={(e) => setCarryForwardDate(e.target.value)}
+                    className="bg-slate-800/50 border-white/10 text-white text-sm w-40"
+                    placeholder="New date"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-orange-500/30 text-orange-400 hover:bg-orange-500/10"
+                    onClick={handleBulkCarryForward}
+                    disabled={carryForwardingAll || !carryForwardDate}
+                  >
+                    {carryForwardingAll ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
+                    Carry Forward All
+                  </Button>
+                </div>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                onClick={() => setActiveTab('overdue')}
+              >
+                View Overdue Tasks
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10">
+      <div className="flex items-center gap-2 border-b border-white/10 overflow-x-auto">
         {[
           { id: 'today', label: "Today's Tasks", count: todayTasks?.length || 0 },
           { id: 'pending', label: 'Pending', count: pendingTasks?.length || 0 },
-          { id: 'overdue', label: 'Overdue', count: overdueTasks?.length || 0 },
-          { id: 'previous', label: 'Previous Days', count: pendingPreviousTasks?.length || 0 },
+          { id: 'overdue', label: 'Overdue', count: overdueCount, alert: overdueCount > 0 },
         ].map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors relative',
+              'px-4 py-2 text-sm font-medium transition-colors relative whitespace-nowrap',
               activeTab === tab.id ? 'text-white' : 'text-slate-400 hover:text-white'
             )}
           >
@@ -148,6 +204,7 @@ export default function TasksPage() {
             {tab.count > 0 && (
               <span className={cn(
                 'ml-2 px-2 py-0.5 rounded-full text-xs',
+                tab.alert ? 'bg-red-500 text-white' :
                 activeTab === tab.id ? 'bg-cyan-500 text-white' : 'bg-slate-700 text-slate-300'
               )}>
                 {tab.count}
@@ -178,9 +235,11 @@ export default function TasksPage() {
         >
           <option value="all">All Status</option>
           <option value="pending">Pending</option>
+          <option value="assigned">Assigned</option>
           <option value="in_progress">In Progress</option>
           <option value="completed">Completed</option>
-          <option value="waiting_approval">Waiting Approval</option>
+          <option value="submitted">Submitted</option>
+          <option value="rejected">Rejected</option>
         </select>
       </div>
 
@@ -188,7 +247,12 @@ export default function TasksPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTasks.length === 0 ? (
           <div className="col-span-full text-center py-12">
-            <p className="text-slate-500">No tasks found</p>
+            <p className="text-slate-500">
+              {activeTab === 'overdue' ? 'No overdue tasks - great job!' :
+               activeTab === 'pending' ? 'No pending tasks' :
+               activeTab === 'today' ? 'No tasks for today' :
+               'No tasks found'}
+            </p>
           </div>
         ) : (
           filteredTasks.map((task: any) => (
@@ -199,13 +263,19 @@ export default function TasksPage() {
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
                     <span className={cn('px-2 py-0.5 rounded text-xs font-medium capitalize', getTaskTypeColor(task.task_type))}>
                       {task.task_type_name}
                     </span>
                     {task.is_overdue && (
-                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-400">
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/10 text-red-400 flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
                         Overdue
+                      </span>
+                    )}
+                    {task.carry_forward_count > 0 && (
+                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-500/10 text-orange-400">
+                        CF×{task.carry_forward_count}
                       </span>
                     )}
                   </div>
@@ -220,18 +290,26 @@ export default function TasksPage() {
               </div>
 
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-slate-400">
-                  <Calendar className="h-4 w-4" />
-                  <span>{new Date(task.due_date).toLocaleDateString()}</span>
+                <div className="flex items-center gap-2">
+                  <Calendar className={cn('h-4 w-4', task.is_overdue ? 'text-red-400' : 'text-slate-400')} />
+                  <span className={task.is_overdue ? 'text-red-400 font-medium' : 'text-slate-400'}>
+                    {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString() : 'No due date'}
+                  </span>
                 </div>
                 <span className={cn('px-2 py-1 rounded-full text-xs font-medium capitalize', getStatusColor(task.status, task.is_overdue))}>
-                  {task.status.replace(/_/g, ' ')}
+                  {task.is_overdue && task.status !== 'completed' && task.status !== 'cancelled' ? 'overdue' : task.status.replace(/_/g, ' ')}
                 </span>
               </div>
 
               {task.client_name && (
                 <div className="mt-3 pt-3 border-t border-white/5">
                   <p className="text-slate-500 text-xs">Client: {task.client_name}</p>
+                </div>
+              )}
+
+              {task.assigned_to_name && (
+                <div className="mt-1">
+                  <p className="text-slate-500 text-xs">Assigned: {task.assigned_to_name}</p>
                 </div>
               )}
             </Link>

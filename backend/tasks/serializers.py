@@ -72,6 +72,8 @@ class TaskSerializer(serializers.ModelSerializer):
             "rejection_count",
             "task_type",
             "task_type_name",
+            "drive_link",
+            "completion_notes",
             "is_overdue",
             "comments",
             "created_at",

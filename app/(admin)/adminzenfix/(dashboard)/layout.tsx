@@ -40,6 +40,7 @@ const employeeNavigation = [
 const managerNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
   { name: 'Clients', href: '/adminzenfix/clients', icon: Building2 },
+  { name: 'Video Protocol', href: '/adminzenfix/video-protocol', icon: Video },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
   { name: 'Videos', href: '/adminzenfix/videos', icon: Video },
   { name: 'Create Task', href: '/adminzenfix/tasks/create', icon: KanbanSquare },
@@ -52,6 +53,7 @@ const managerNavigation = [
 const ownerNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
   { name: 'Clients', href: '/adminzenfix/clients', icon: Building2 },
+  { name: 'Video Protocol', href: '/adminzenfix/video-protocol', icon: Video },
   { name: 'Users', href: '/adminzenfix/users', icon: Users },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
   { name: 'Videos', href: '/adminzenfix/videos', icon: Video },
@@ -77,7 +79,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     setMounted(true);
   }, []);
 
-  const navigation = userRole === 'owner'
+  const navigation = !mounted
+    ? employeeNavigation
+    : userRole === 'owner'
     ? ownerNavigation
     : userRole === 'manager'
     ? managerNavigation
@@ -130,7 +134,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {mounted && navigation.map((item) => {
+            {navigation.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
               return (
@@ -157,28 +161,26 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </nav>
 
           {/* User info */}
-          {mounted && (
-            <div className="p-4 border-t border-white/5">
-              <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/5">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                  {user?.first_name?.[0] || user?.username?.[0] || 'U'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
-                    {user?.first_name || user?.username || 'User'}
-                  </p>
-                  <p className="text-xs text-gray-400 capitalize">{user?.role_name || userRole}</p>
-                </div>
+          <div className="p-4 border-t border-white/5">
+            <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-white/5 border border-white/5">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                {user?.first_name?.[0] || user?.username?.[0] || 'U'}
               </div>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 rounded-xl transition-all duration-200 border border-transparent"
-              >
-                <LogOut className="h-4 w-4" />
-                Logout
-              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {mounted ? (user?.first_name || user?.username || 'User') : '\u00A0'}
+                </p>
+                <p className="text-xs text-gray-400 capitalize">{mounted ? (user?.role_name || userRole) : '\u00A0'}</p>
+              </div>
             </div>
-          )}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 rounded-xl transition-all duration-200 border border-transparent"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
         </div>
       </aside>
 

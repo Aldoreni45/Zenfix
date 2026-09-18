@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { Plus, Search, Filter, MoreHorizontal, Users, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useClients, useIsOwner, useIsManager } from '@/lib/hooks';
+import { useClients, useCanManage } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 export default function ClientsPage() {
   const { data: clients, loading, error, refetch } = useClients();
-  const canManage = useIsOwner() || useIsManager();
+  const canManage = useCanManage();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 

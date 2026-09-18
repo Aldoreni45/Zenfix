@@ -9,6 +9,7 @@ from activity_logs.models import ActivityLog
 from activity_logs.services import ActivityLogService
 from notifications.services import NotificationService
 from tasks.models import Task
+from users.models import User
 
 
 class TaskCarryForwardService:
@@ -25,11 +26,19 @@ class TaskCarryForwardService:
     }
 
     @classmethod
-    def unfinished_queryset(cls, *, as_of: date | None = None):
+    def unfinished_queryset(cls, *, as_of: date | None = None, user=None):
         as_of = as_of or timezone.localdate()
-        return Task.objects.filter(status__in=cls.OPEN_STATUSES).filter(
+        qs = Task.objects.filter(status__in=cls.OPEN_STATUSES).filter(
             Q(due_date__lt=as_of) | Q(due_date__isnull=True, status=Task.Status.OVERDUE)
         )
+        if user:
+            if user.role == User.Role.MANAGER:
+                qs = qs.filter(
+                    Q(assigned_manager=user) | Q(assigned_by=user) | Q(created_by=user) | Q(assigned_to__reports_to=user)
+                )
+            elif user.role == User.Role.EMPLOYEE:
+                qs = qs.filter(assigned_to=user)
+        return qs
 
     @classmethod
     def carry_forward_task(cls, task: Task, *, new_due_date: date, actor=None, request=None) -> Task:
@@ -65,8 +74,9 @@ class TaskCarryForwardService:
 
     @classmethod
     def carry_forward_all_pending(cls, *, new_due_date: date, actor=None, request=None) -> dict:
+        user = actor
         count = 0
-        for task in cls.unfinished_queryset():
+        for task in cls.unfinished_queryset(user=user):
             cls.carry_forward_task(task, new_due_date=new_due_date, actor=actor, request=request)
             count += 1
         return {"carried_count": count, "new_due_date": new_due_date.isoformat()}

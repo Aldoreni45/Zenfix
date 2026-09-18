@@ -8,13 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
-import { usePendingPreviousTasks, useIsOwner, useIsManager } from '@/lib/hooks';
+import { usePendingPreviousTasks, useCanManage } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 
 export default function CarryForwardPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const canManage = useIsOwner() || useIsManager();
+  const canManage = useCanManage();
   const { data: pendingTasks, loading: pendingLoading, refetch } = usePendingPreviousTasks();
 
   const [newDueDate, setNewDueDate] = useState('');

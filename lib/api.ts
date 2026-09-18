@@ -419,6 +419,7 @@ export const apiEndpoints = {
   client: (id: number) => `/clients/${id}`,
   clientProgress: (id: number) => `/clients/${id}/progress`,
   clientMonthlyTarget: (id: number) => `/clients/${id}/monthly_target`,
+  clientMonthlyProtocol: (id: number) => `/clients/${id}/monthly_protocol`,
   allClientProgress: '/clients/all_progress',
   
   // Monthly Targets
@@ -492,6 +493,22 @@ export const apiEndpoints = {
   dashboard: '/dashboard',
   taskSummary: '/dashboard/task-summary',
   companyOverview: '/dashboard/company-overview',
+
+  // Video Protocol (new workflow system)
+  protocols: '/video-protocol/protocols',
+  protocol: (id: number) => `/video-protocol/protocols/${id}`,
+  protocolDashboard: (id: number) => `/video-protocol/protocols/${id}/dashboard`,
+  protocolUpdateTarget: (id: number) => `/video-protocol/protocols/${id}/update-target`,
+  protocolReports: (id: number) => `/video-protocol/protocols/${id}/reports`,
+  videoRecords: '/video-protocol/video-records',
+  videoRecord: (id: number) => `/video-protocol/video-records/${id}`,
+  videoStages: '/video-protocol/video-stages',
+  videoStage: (id: number) => `/video-protocol/video-stages/${id}`,
+  stageStart: (id: number) => `/video-protocol/video-stages/${id}/start`,
+  stageComplete: (id: number) => `/video-protocol/video-stages/${id}/complete`,
+  stageReject: (id: number) => `/video-protocol/video-stages/${id}/reject`,
+  stageAssign: (id: number) => `/video-protocol/video-stages/${id}/assign`,
+  myVideoTasks: '/video-protocol/video-stages/my_tasks',
 };
 
 // Type definitions based on Django models
@@ -531,6 +548,7 @@ export interface Client {
   manager_name?: string;
   manager_email?: string;
   notes?: string;
+  monthly_video_target: number;
   current_month_target?: any;
   current_progress?: any;
   created_at: string;
@@ -631,6 +649,8 @@ export interface Task {
   actual_hours?: number;
   rejection_reason?: string;
   rejection_count: number;
+  drive_link?: string;
+  completion_notes?: string;
   is_overdue: boolean;
   comments?: any[];
   created_at: string;
@@ -737,4 +757,118 @@ export interface DashboardData {
   pending_today?: number;
   pending_previous?: number;
   workload?: any;
+}
+
+// Video Protocol types
+export interface VideoStage {
+  id: number;
+  numeric_id: number;
+  video: number;
+  stage_type: 'shoot' | 'edit' | 'review' | 'client_approval' | 'instagram_post';
+  stage_display: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'blocked' | 'rejected';
+  status_display: string;
+  assigned_to: number | null;
+  assigned_to_detail?: {
+    id: number;
+    numeric_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    role: string;
+  };
+  started_at: string | null;
+  completed_at: string | null;
+  due_date: string | null;
+  notes: string;
+  rejection_reason: string;
+  instagram_url: string;
+  caption: string;
+  is_locked: boolean;
+  is_overdue: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VideoRecord {
+  id: number;
+  numeric_id: number;
+  protocol: number;
+  video_number: number;
+  title: string;
+  stages: VideoStage[];
+  current_status: string;
+  current_stage_name: string;
+  completion_percentage: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VideoProtocol {
+  id: number;
+  numeric_id: number;
+  client: number;
+  client_name: string;
+  month: number;
+  year: number;
+  target_videos: number;
+  status: string;
+  videos: VideoRecord[];
+  workflow_progress: number;
+  completed_stages: number;
+  total_stages: number;
+  fully_completed_videos: number;
+  stage_counts: Record<string, { completed: number; total: number }>;
+  video_status_counts: { not_started: number; in_progress: number; posted: number };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VideoProtocolDashboard {
+  protocol: VideoProtocol;
+  video_summaries: VideoRecord[];
+  stage_stats: Record<string, { completed: number; in_progress: number; total: number }>;
+  employee_workload: {
+    id: number;
+    numeric_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    assigned_count: number;
+    completed_count: number;
+    in_progress_count: number;
+  }[];
+  counts: {
+    target: number;
+    posted: number;
+    in_progress: number;
+    not_started: number;
+    remaining: number;
+  };
+}
+
+export interface VideoProtocolReport {
+  summary: {
+    target: number;
+    posted: number;
+    in_progress: number;
+    not_started: number;
+    workflow_progress: number;
+    fully_completed: number;
+    total_stages: number;
+    completed_stages: number;
+    blocked_stages: number;
+    overdue_stages: number;
+  };
+  stage_breakdown: Record<string, { completed: number; total: number }>;
+  employee_productivity: {
+    id: number;
+    numeric_id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    total_assigned: number;
+    completed: number;
+    in_progress: number;
+  }[];
 }

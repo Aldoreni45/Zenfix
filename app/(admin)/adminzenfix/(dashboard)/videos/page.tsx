@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { Search, Video, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useVideos, useIsOwner, useIsManager } from '@/lib/hooks';
+import { useVideos, useCanManage } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 export default function VideosPage() {
   const { data: videos, loading, error, refetch } = useVideos();
-  const canManage = useIsOwner() || useIsManager();
+  const canManage = useCanManage();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('all');

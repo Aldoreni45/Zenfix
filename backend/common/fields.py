@@ -9,6 +9,9 @@ class NumericOrPkRelatedField(serializers.PrimaryKeyRelatedField):
     standard pk (ObjectId in MongoDB) or their integer numeric_id.
     """
 
+    def use_pk_only_optimization(self):
+        return False
+
     def to_internal_value(self, data):
         if self.pk_field is not None:
             data = self.pk_field.to_internal_value(data)
@@ -21,4 +24,12 @@ class NumericOrPkRelatedField(serializers.PrimaryKeyRelatedField):
                 self.fail("does_not_exist", pk_value=data)
 
     def to_representation(self, value):
-        return getattr(value, "numeric_id", value.pk)
+        if hasattr(value, "numeric_id") and value.numeric_id:
+            return value.numeric_id
+        if hasattr(value, "pk"):
+            return getattr(value, "numeric_id", str(value.pk))
+        try:
+            obj = self.get_queryset().get(pk=value)
+            return getattr(obj, "numeric_id", str(value))
+        except Exception:
+            return str(value)

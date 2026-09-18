@@ -37,5 +37,6 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="api-docs"),
     path("api/health/", HealthView.as_view(), name="health"),
     path("api/health/ready/", ReadyView.as_view(), name="health-ready"),
+    path("api/video-protocol/", include("video_protocol.urls")),
     path("api/", include(router.urls)),
 ]

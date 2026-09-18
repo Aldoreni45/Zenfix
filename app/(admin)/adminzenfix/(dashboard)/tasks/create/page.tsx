@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
-import { useClients, useUsers, useManagers, useIsOwner, useIsManager } from '@/lib/hooks';
+import { useClients, useUsers, useManagers, useCanManage } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 
 const TASK_TYPES = [
@@ -30,7 +30,7 @@ const PRIORITIES = [
 export default function CreateTaskPage() {
   const router = useRouter();
   const { user, initialized, isAuthenticated } = useAuth();
-  const canManage = useIsOwner() || useIsManager();
+  const canManage = useCanManage();
 
   const { data: clients, loading: clientsLoading } = useClients();
   const { data: allUsers, loading: usersLoading } = useUsers();

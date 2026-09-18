@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
-import { useClients, useUsers, useIsOwner, useIsManager } from '@/lib/hooks';
+import { useClients, useUsers, useCanManage } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 
 const TASK_TYPES = [
@@ -30,7 +30,7 @@ const PRIORITIES = [
 export default function BulkCreateTasksPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const canManage = useIsOwner() || useIsManager();
+  const canManage = useCanManage();
 
   const { data: clients } = useClients();
   const { data: allUsers } = useUsers();

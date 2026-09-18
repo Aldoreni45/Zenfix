@@ -19,6 +19,7 @@ import {
   Briefcase,
   FileText,
   Sparkles,
+  Video,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,6 +74,7 @@ export default function CreateClientPage() {
     assigned_manager: '',
     start_date: '',
     end_date: '',
+    monthly_video_target: '5',
     notes: '',
   });
 
@@ -147,6 +149,7 @@ export default function CreateClientPage() {
       instagram_username: form.instagram_username.trim().replace(/^@+/, ''),
       status: form.status,
       notes: form.notes.trim(),
+      monthly_video_target: Number(form.monthly_video_target) || 5,
       assigned_team: [], // Required by serializer, send empty array if no team assigned
     };
 
@@ -555,6 +558,24 @@ export default function CreateClientPage() {
                 onChange={(e) => setField('end_date', e.target.value)}
                 className="bg-slate-800/50 border-white/10 text-white"
               />
+            </div>
+
+            {/* Monthly Video Target */}
+            <div className="space-y-2">
+              <Label htmlFor="monthly_video_target" className="text-slate-200 flex items-center gap-1.5">
+                <Video className="h-3.5 w-3.5 text-slate-400" />
+                Monthly Video Target
+              </Label>
+              <Input
+                id="monthly_video_target"
+                type="number"
+                min={1}
+                max={100}
+                value={form.monthly_video_target}
+                onChange={(e) => setField('monthly_video_target', e.target.value)}
+                className="bg-slate-800/50 border-white/10 text-white"
+              />
+              <p className="text-xs text-slate-500">Videos to post per month for this client</p>
             </div>
 
             {/* Internal Notes */}

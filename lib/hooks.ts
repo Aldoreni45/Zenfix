@@ -57,6 +57,15 @@ export function useMyTasks() {
   return useApi<any[]>(apiEndpoints.myTasks, []);
 }
 
+function getLocalTodayDateString(): string {
+  if (typeof window === 'undefined') return '';
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Pending tasks hook
 export function usePendingTasks() {
   return useApi<any[]>(apiEndpoints.pendingTasks, []);
@@ -64,22 +73,32 @@ export function usePendingTasks() {
 
 // Overdue tasks hook
 export function useOverdueTasks() {
-  return useApi<any[]>(apiEndpoints.overdueTasks, []);
+  const localDate = getLocalTodayDateString();
+  const endpoint = localDate ? `${apiEndpoints.overdueTasks}?date=${localDate}` : apiEndpoints.overdueTasks;
+  return useApi<any[]>(endpoint, []);
 }
 
 // Today's tasks hook
 export function useTodayTasks() {
-  return useApi<any[]>(apiEndpoints.todayTasks, []);
+  const localDate = getLocalTodayDateString();
+  const endpoint = localDate ? `${apiEndpoints.todayTasks}?date=${localDate}` : apiEndpoints.todayTasks;
+  return useApi<any[]>(endpoint, []);
 }
 
 // Upcoming tasks hook
 export function useUpcomingTasks(days: number = 7) {
-  return useApi<any[]>(`${apiEndpoints.upcomingTasks}?days=${days}`, []);
+  const localDate = getLocalTodayDateString();
+  const endpoint = localDate 
+    ? `${apiEndpoints.upcomingTasks}?days=${days}&date=${localDate}` 
+    : `${apiEndpoints.upcomingTasks}?days=${days}`;
+  return useApi<any[]>(endpoint, [days]);
 }
 
 // Pending from previous days hook
 export function usePendingPreviousTasks() {
-  return useApi<any[]>(apiEndpoints.pendingPreviousTasks, []);
+  const localDate = getLocalTodayDateString();
+  const endpoint = localDate ? `${apiEndpoints.pendingPreviousTasks}?date=${localDate}` : apiEndpoints.pendingPreviousTasks;
+  return useApi<any[]>(endpoint, []);
 }
 
 // Clients hook
@@ -290,6 +309,7 @@ export {
   useIsOwner, 
   useIsManager, 
   useIsEmployee, 
+  useCanManage,
   useCanManageUsers, 
   useCanApproveVideos 
 } from './auth-context';

@@ -266,6 +266,11 @@ export function useIsEmployee() {
   return role === 'employee';
 }
 
+export function useCanManage() {
+  const role = useUserRole();
+  return role === 'owner' || role === 'manager';
+}
+
 export function useCanManageUsers() {
   const role = useUserRole();
   return role === 'owner' || role === 'manager';
