@@ -50,7 +50,7 @@ const COMMON_INDUSTRIES = [
 
 export default function CreateClientPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, initialized, isAuthenticated } = useAuth();
   const isOwner = useIsOwner();
   const isManager = useIsManager();
   const canManage = isOwner || isManager;
@@ -79,14 +79,14 @@ export default function CreateClientPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
-  // Redirect unauthorized users
+  // Redirect unauthorized users after initialization
   useEffect(() => {
-    if (!authLoading && (!user || !canManage)) {
+    if (initialized && (!isAuthenticated || !canManage)) {
       router.replace('/adminzenfix/clients');
     }
-  }, [authLoading, user, canManage, router]);
+  }, [initialized, isAuthenticated, canManage, router]);
 
-  if (authLoading || !user || !canManage) {
+  if (!initialized || !isAuthenticated || !canManage) {
     return null;
   }
 
@@ -105,6 +105,15 @@ export default function CreateClientPage() {
     if (!trimmed) return '';
     if (/^https?:\/\//i.test(trimmed)) return trimmed;
     return `https://${trimmed}`;
+  };
+
+  const isValidUrl = (url: string) => {
+    try {
+      const parsed = new URL(url);
+      return parsed.hostname && parsed.hostname.includes('.');
+    } catch {
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -138,28 +147,42 @@ export default function CreateClientPage() {
       instagram_username: form.instagram_username.trim().replace(/^@+/, ''),
       status: form.status,
       notes: form.notes.trim(),
+      assigned_team: [], // Required by serializer, send empty array if no team assigned
     };
 
     if (form.website.trim()) {
-      payload.website = normalizeUrl(form.website);
+      const normalizedWebsite = normalizeUrl(form.website);
+      if (isValidUrl(normalizedWebsite)) {
+        payload.website = normalizedWebsite;
+      }
     }
     if (form.instagram_url.trim()) {
-      payload.instagram_url = normalizeUrl(form.instagram_url);
+      const normalizedInstagramUrl = normalizeUrl(form.instagram_url);
+      if (isValidUrl(normalizedInstagramUrl)) {
+        payload.instagram_url = normalizedInstagramUrl;
+      }
     } else if (form.instagram_username.trim()) {
       const cleanHandle = form.instagram_username.trim().replace(/^@+/, '');
-      payload.instagram_url = `https://instagram.com/${cleanHandle}`;
+      const instagramUrl = `https://instagram.com/${cleanHandle}`;
+      if (isValidUrl(instagramUrl)) {
+        payload.instagram_url = instagramUrl;
+      }
     }
 
     if (form.assigned_manager) {
       payload.assigned_manager = Number(form.assigned_manager);
-    } else if (user.role === 'manager') {
-      payload.assigned_manager = user.id;
+    } else if (user?.role === 'manager') {
+      payload.assigned_manager = user?.id;
     }
 
     if (form.start_date) payload.start_date = form.start_date;
     if (form.end_date) payload.end_date = form.end_date;
 
+    console.log('[CREATE CLIENT] Sending payload:', JSON.stringify(payload, null, 2));
     const res = await api.post(apiEndpoints.clients, payload);
+    console.log('[CREATE CLIENT] Response status:', res.status);
+    console.log('[CREATE CLIENT] Response error:', res.error);
+    console.log('[CREATE CLIENT] Response data:', res.data);
 
     if (res.error) {
       const status = res.status;

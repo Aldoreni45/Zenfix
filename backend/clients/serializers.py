@@ -11,6 +11,7 @@ class ClientSerializer(serializers.ModelSerializer):
     assigned_manager = NumericOrPkRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
     manager_name = serializers.CharField(source="assigned_manager.full_name", read_only=True, default=None)
     manager_email = serializers.EmailField(source="assigned_manager.email", read_only=True, default=None)
+    manager_id = serializers.IntegerField(source="assigned_manager.numeric_id", read_only=True, default=None)
     assigned_team = serializers.ListField(source="assigned_team_ids", child=serializers.IntegerField(), required=False)
 
     class Meta:
@@ -34,6 +35,7 @@ class ClientSerializer(serializers.ModelSerializer):
             "assigned_manager",
             "manager_name",
             "manager_email",
+            "manager_id",
             "assigned_team",
             "start_date",
             "end_date",

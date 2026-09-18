@@ -1,9 +1,19 @@
 import json
 
+from bson import ObjectId
 from rest_framework.renderers import JSONRenderer
 
 
+class _MongoJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)
+        return super().default(obj)
+
+
 class EnvelopeJSONRenderer(JSONRenderer):
+    encoder_class = _MongoJSONEncoder
+
     def render(self, data, accepted_media_type=None, renderer_context=None):
         renderer_context = renderer_context or {}
         response = renderer_context.get("response")

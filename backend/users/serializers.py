@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from departments.models import Department
 from users.models import User
 
 
@@ -9,7 +10,9 @@ class UserSerializer(serializers.ModelSerializer):
     role_name = serializers.CharField(read_only=True)
     status_name = serializers.CharField(read_only=True)
     department_name = serializers.CharField(read_only=True)
+    department = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     password = serializers.CharField(write_only=True, required=False, min_length=8)
+    confirm_password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
@@ -33,13 +36,32 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "password",
+            "confirm_password",
             "reports_to",
         )
         extra_kwargs = {"password": {"write_only": True}}
         read_only_fields = ("last_login", "is_active", "created_at", "updated_at")
 
+    def validate_department(self, value):
+        if value in (None, ""):
+            return None
+        dept = Department.objects.filter(name__iexact=str(value).strip()).first()
+        if dept is None:
+            raise serializers.ValidationError(f"Department '{value}' not found.")
+        return dept
+
+    def validate(self, attrs):
+        password = attrs.get("password")
+        confirm = attrs.pop("confirm_password", None)
+        if password and confirm is None:
+            raise serializers.ValidationError({"confirm_password": "This field is required when setting a password."})
+        if password and confirm != password:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        return attrs
+
     def create(self, validated_data):
         password = validated_data.pop("password", None)
+        validated_data.pop("confirm_password", None)
         user = User(**validated_data)
         if password:
             user.set_password(password)
@@ -50,6 +72,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
+        validated_data.pop("confirm_password", None)
         for key, value in validated_data.items():
             setattr(instance, key, value)
         if password:

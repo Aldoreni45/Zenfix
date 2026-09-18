@@ -153,7 +153,13 @@ export default function DashboardPage() {
     
     const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
     const allTasks = [...(todayTasks || []), ...(pendingTasks || []), ...(overdueTasks || [])];
-    return allTasks.filter((task) => {
+    const seen = new Set<string | number>();
+    const uniqueTasks = allTasks.filter((task) => {
+      if (seen.has(task.id)) return false;
+      seen.add(task.id);
+      return true;
+    });
+    return uniqueTasks.filter((task) => {
       if (!task.due_date) return false;
       const taskDate = new Date(task.due_date);
       return taskDate.toDateString() === date.toDateString();

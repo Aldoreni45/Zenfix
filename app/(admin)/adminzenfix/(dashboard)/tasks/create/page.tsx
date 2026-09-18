@@ -29,7 +29,7 @@ const PRIORITIES = [
 
 export default function CreateTaskPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, initialized, isAuthenticated } = useAuth();
   const canManage = useIsOwner() || useIsManager();
 
   const { data: clients, loading: clientsLoading } = useClients();
@@ -54,12 +54,12 @@ export default function CreateTaskPage() {
 
   // Redirect in an effect so we never call the router during render.
   useEffect(() => {
-    if (!authLoading && (!user || !canManage)) {
+    if (initialized && (!isAuthenticated || !canManage)) {
       router.replace('/adminzenfix/dashboard');
     }
-  }, [authLoading, user, canManage, router]);
+  }, [initialized, isAuthenticated, canManage, router]);
 
-  if (authLoading || !user || !canManage) {
+  if (!initialized || !isAuthenticated || !canManage) {
     return null;
   }
 
@@ -101,8 +101,8 @@ export default function CreateTaskPage() {
       notes: form.notes.trim(),
       assigned_manager: form.assigned_manager
         ? Number(form.assigned_manager)
-        : user.role === 'manager'
-        ? user.id
+        : user?.role === 'manager'
+        ? user?.id
         : undefined,
     };
 
@@ -269,7 +269,7 @@ export default function CreateTaskPage() {
           </div>
 
           {/* Assigned Manager */}
-          {user.role === 'owner' && (
+          {user?.role === 'owner' && (
             <div className="space-y-2">
               <Label htmlFor="assigned_manager" className="text-slate-300">Assigned Manager</Label>
               <select

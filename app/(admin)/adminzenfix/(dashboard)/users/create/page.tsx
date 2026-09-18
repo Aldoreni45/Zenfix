@@ -21,7 +21,7 @@ const ROLES = [
 
 export default function CreateUserPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, initialized, isAuthenticated } = useAuth();
   const isOwner = useIsOwner();
 
   const [form, setForm] = useState({
@@ -40,12 +40,12 @@ export default function CreateUserPage() {
 
   // Redirect in an effect so we never call the router during render.
   useEffect(() => {
-    if (!loading && (!user || !isOwner)) {
+    if (initialized && (!isAuthenticated || !isOwner)) {
       router.replace('/adminzenfix/dashboard');
     }
-  }, [loading, user, isOwner, router]);
+  }, [initialized, isAuthenticated, isOwner, router]);
 
-  if (loading || !user || !isOwner) {
+  if (!initialized || !isAuthenticated || !isOwner) {
     return null;
   }
 
