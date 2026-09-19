@@ -4,7 +4,7 @@ from .models import MonthlyVideoProtocol, VideoRecord, VideoStage
 
 
 class UserSummarySerializer(serializers.Serializer):
-    id = serializers.IntegerField()
+    id = serializers.IntegerField(source="numeric_id")
     numeric_id = serializers.IntegerField()
     first_name = serializers.CharField()
     last_name = serializers.CharField()
@@ -13,11 +13,21 @@ class UserSummarySerializer(serializers.Serializer):
 
 
 class VideoStageSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="numeric_id", read_only=True)
+    assigned_to = serializers.IntegerField(source="assigned_to.numeric_id", read_only=True, default=None)
     assigned_to_detail = UserSummarySerializer(source="assigned_to", read_only=True)
     stage_display = serializers.CharField(source="get_stage_type_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     is_locked = serializers.BooleanField(read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
+    # Submission context: who completed this stage (= assigned_to) and when (= completed_at)
+    submitted_by_name = serializers.SerializerMethodField()
+
+    def get_submitted_by_name(self, obj):
+        if obj.assigned_to:
+            full = f"{obj.assigned_to.first_name} {obj.assigned_to.last_name}".strip()
+            return full or obj.assigned_to.email
+        return None
 
     class Meta:
         model = VideoStage
@@ -25,13 +35,16 @@ class VideoStageSerializer(serializers.ModelSerializer):
             "id", "numeric_id", "video", "stage_type", "stage_display",
             "status", "status_display", "assigned_to", "assigned_to_detail",
             "started_at", "completed_at", "due_date", "notes",
-            "rejection_reason", "instagram_url", "caption",
+            "rejection_reason", "drive_link", "completion_notes",
+            "instagram_url", "caption",
+            "submitted_by_name",
             "is_locked", "is_overdue", "created_at", "updated_at",
         ]
         read_only_fields = ["started_at", "completed_at", "rejection_reason"]
 
 
 class VideoRecordSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="numeric_id", read_only=True)
     stages = VideoStageSerializer(many=True, read_only=True)
     current_status = serializers.SerializerMethodField()
     current_stage_name = serializers.SerializerMethodField()
@@ -57,6 +70,7 @@ class VideoRecordSerializer(serializers.ModelSerializer):
 
 
 class MonthlyVideoProtocolSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="numeric_id", read_only=True)
     videos = VideoRecordSerializer(many=True, read_only=True)
     client_name = serializers.CharField(source="client.name", read_only=True)
     workflow_progress = serializers.FloatField(read_only=True)
@@ -77,6 +91,7 @@ class MonthlyVideoProtocolSerializer(serializers.ModelSerializer):
 
 
 class MonthlyVideoProtocolListSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="numeric_id", read_only=True)
     client_name = serializers.CharField(source="client.name", read_only=True)
     workflow_progress = serializers.FloatField(read_only=True)
     fully_completed_videos = serializers.IntegerField(read_only=True)
@@ -100,6 +115,8 @@ class StageActionSerializer(serializers.Serializer):
     assigned_to = serializers.IntegerField(required=False, allow_null=True)
     notes = serializers.CharField(required=False, allow_blank=True)
     due_date = serializers.DateField(required=False, allow_null=True)
+    drive_link = serializers.URLField(required=False, allow_blank=True, max_length=500)
+    completion_notes = serializers.CharField(required=False, allow_blank=True)
     instagram_url = serializers.URLField(required=False, allow_blank=True, max_length=500)
     caption = serializers.CharField(required=False, allow_blank=True)
 

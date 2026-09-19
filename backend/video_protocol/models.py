@@ -216,6 +216,8 @@ class VideoStage(NumericIdModel):
     due_date = models.DateField(null=True, blank=True)
     notes = models.TextField(blank=True)
     rejection_reason = models.TextField(blank=True)
+    drive_link = models.URLField(max_length=500, blank=True)
+    completion_notes = models.TextField(blank=True)
     instagram_url = models.URLField(max_length=500, blank=True)
     caption = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

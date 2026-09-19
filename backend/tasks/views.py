@@ -48,18 +48,34 @@ class TaskViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
         NotificationService.notify(recipient=instance.assigned_to, title="Task assigned", message=f'You were assigned "{instance.title}".', notification_type="task_assigned", related_object_type="task", related_object_id=str(instance.numeric_id))
 
     def _is_task_assignee(self, task, user):
+        import logging
+        logger = logging.getLogger(__name__)
         if not task.assigned_to:
+            logger.warning("[ASSIGNEE CHECK] task.assigned_to is None/empty")
             return False
+        logger.warning(
+            "[ASSIGNEE CHECK] task.assigned_to=%r (type=%s), task.assigned_to_id=%r (type=%s), "
+            "user=%r, user.pk=%r (type=%s), user.numeric_id=%r",
+            task.assigned_to, type(task.assigned_to).__name__,
+            task.assigned_to_id, type(task.assigned_to_id).__name__,
+            user, user.pk, type(user.pk).__name__,
+            getattr(user, "numeric_id", "N/A"),
+        )
         if task.assigned_to == user or task.assigned_to_id == user.pk:
+            logger.warning("[ASSIGNEE CHECK] MATCH via direct comparison")
             return True
         if str(task.assigned_to_id) == str(user.pk):
+            logger.warning("[ASSIGNEE CHECK] MATCH via str comparison")
             return True
         task_num_id = getattr(task.assigned_to, "numeric_id", None)
         user_num_id = getattr(user, "numeric_id", None)
         if task_num_id is not None and user_num_id is not None and task_num_id == user_num_id:
+            logger.warning("[ASSIGNEE CHECK] MATCH via numeric_id comparison")
             return True
         if str(task.assigned_to_id) == str(user_num_id):
+            logger.warning("[ASSIGNEE CHECK] MATCH via assigned_to_id vs user numeric_id")
             return True
+        logger.warning("[ASSIGNEE CHECK] NO MATCH - returning False")
         return False
 
     def perform_update(self, serializer):

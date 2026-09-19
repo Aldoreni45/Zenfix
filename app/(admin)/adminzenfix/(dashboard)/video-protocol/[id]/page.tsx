@@ -7,11 +7,10 @@ import {
   ArrowLeft, Loader2, Target, CheckCircle2, Clock, AlertTriangle, Video,
   Camera, Edit3, Eye, ThumbsUp, Send, Lock, Unlock, Play, User,
   Calendar, BarChart3, TrendingUp, AlertCircle, ChevronDown, ChevronUp,
-  Settings, Users, RefreshCw,
+  Users, RefreshCw, Link2, FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage, VideoProtocolDashboard, VideoRecord, VideoStage } from '@/lib/api';
 import { useIsOwner, useIsManager } from '@/lib/hooks';
@@ -45,17 +44,19 @@ const STAGE_STATUS_CONFIG: Record<string, { color: string; icon: any }> = {
   rejected: { color: 'text-orange-400', icon: AlertTriangle },
 };
 
-function StageBar({ stage, video, onAction }: { stage: VideoStage; video: VideoRecord; onAction: (action: string, stageId: number) => void }) {
+function StageBar({ stage, onAction, canManage, onShowDetails }: { stage: VideoStage; onAction: (action: string, stageId: number, data?: any) => void; canManage: boolean; onShowDetails?: (stageId: number) => void }) {
   const config = STAGE_STATUS_CONFIG[stage.status] || STAGE_STATUS_CONFIG.not_started;
   const Icon = config.icon;
   const StageIcon = STAGE_ICONS[stage.stage_type] || Camera;
   const isLocked = stage.is_locked;
+  const isCompleted = stage.status === 'completed';
+  const isInProgress = stage.status === 'in_progress';
 
   return (
     <div className={cn(
       "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all",
-      stage.status === 'completed' ? "bg-green-500/5 border-green-500/20" :
-      stage.status === 'in_progress' ? "bg-cyan-500/5 border-cyan-500/20" :
+      isCompleted ? "bg-green-500/5 border-green-500/20" :
+      isInProgress ? "bg-cyan-500/5 border-cyan-500/20" :
       stage.status === 'rejected' ? "bg-orange-500/5 border-orange-500/20" :
       isLocked ? "bg-slate-800/30 border-slate-700/30 opacity-50" :
       "bg-slate-800/30 border-white/5"
@@ -65,58 +66,91 @@ function StageBar({ stage, video, onAction }: { stage: VideoStage; video: VideoR
         <p className={cn("text-xs font-medium truncate", config.color)}>
           {stage.stage_display}
         </p>
-        {stage.assigned_to_detail && (
+        {stage.assigned_to_detail ? (
           <p className="text-[10px] text-slate-500 truncate">
             {stage.assigned_to_detail.first_name} {stage.assigned_to_detail.last_name}
+            {stage.due_date && (
+              <span className="ml-1 text-slate-600">due {stage.due_date}</span>
+            )}
           </p>
-        )}
+        ) : stage.due_date ? (
+          <p className="text-[10px] text-slate-600 truncate">due {stage.due_date}</p>
+        ) : null}
       </div>
-      {stage.status === 'not_started' && !isLocked && (
+      {isCompleted && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          <CheckCircle2 className="h-4 w-4 text-green-400" />
+          <button
+            className="text-[10px] text-green-400 font-medium hover:text-green-300 transition-colors"
+            onClick={() => onShowDetails?.(stage.id)}
+          >
+            Done
+          </button>
+        </div>
+      )}
+      {!isCompleted && !isInProgress && stage.status === 'not_started' && !isLocked && canManage && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-6 px-2 text-[10px] text-cyan-400 hover:bg-cyan-500/10"
+          onClick={() => onAction('assign', stage.id)}
+        >
+          <User className="h-3 w-3 mr-0.5" /> Assign
+        </Button>
+      )}
+      {!isCompleted && !isInProgress && stage.status === 'not_started' && stage.assigned_to && !isLocked && (
         <Button
           size="sm"
           variant="ghost"
           className="h-6 px-2 text-[10px] text-cyan-400 hover:bg-cyan-500/10"
           onClick={() => onAction('start', stage.id)}
         >
-          Start
+          <Play className="h-3 w-3 mr-0.5" /> Start
         </Button>
       )}
-      {stage.status === 'in_progress' && (
+      {isInProgress && (
         <Button
           size="sm"
           variant="ghost"
           className="h-6 px-2 text-[10px] text-green-400 hover:bg-green-500/10"
           onClick={() => onAction('complete', stage.id)}
         >
-          Done
+          <CheckCircle2 className="h-3 w-3 mr-0.5" /> Done
         </Button>
       )}
-      {stage.status === 'completed' && (
-        <CheckCircle2 className="h-3.5 w-3.5 text-green-400 shrink-0" />
-      )}
-      {isLocked && stage.status === 'not_started' && (
+      {isLocked && !isCompleted && (
         <Lock className="h-3 w-3 text-slate-600 shrink-0" />
       )}
     </div>
   );
 }
 
-function VideoCard({ video, users, onAction }: { video: VideoRecord; users: any[]; onAction: (action: string, stageId: number, data?: any) => void }) {
+function VideoCard({ video, users, onAction, canManage }: { video: VideoRecord; users: any[]; onAction: (action: string, stageId: number, data?: any) => void; canManage: boolean }) {
   const [expanded, setExpanded] = useState(video.current_status !== 'posted');
   const [showAssign, setShowAssign] = useState<number | null>(null);
   const [selectedUser, setSelectedUser] = useState('');
+  const [assignDueDate, setAssignDueDate] = useState('');
+  const [assigning, setAssigning] = useState(false);
   const [showReject, setShowReject] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showComplete, setShowComplete] = useState<number | null>(null);
-  const [notes, setNotes] = useState('');
+  const [completeNotes, setCompleteNotes] = useState('');
+  const [completeDriveLink, setCompleteDriveLink] = useState('');
+  const [showStageDetails, setShowStageDetails] = useState<number | null>(null);
 
   const statusCfg = STATUS_CONFIG[video.current_status] || STATUS_CONFIG.not_started;
+  const completedCount = video.stages.filter((s) => s.status === 'completed').length;
 
   const handleAssign = async (stageId: number) => {
-    if (!selectedUser) return;
-    await onAction('assign', stageId, { assigned_to: Number(selectedUser) });
+    if (!selectedUser) { toast.error('Select an employee'); return; }
+    setAssigning(true);
+    const payload: any = { assigned_to: Number(selectedUser) };
+    if (assignDueDate) payload.due_date = assignDueDate;
+    await onAction('assign', stageId, payload);
+    setAssigning(false);
     setShowAssign(null);
     setSelectedUser('');
+    setAssignDueDate('');
   };
 
   const handleReject = async (stageId: number) => {
@@ -128,15 +162,17 @@ function VideoCard({ video, users, onAction }: { video: VideoRecord; users: any[
 
   const handleComplete = async (stageId: number) => {
     const payload: any = {};
-    if (notes) payload.notes = notes;
+    if (completeDriveLink.trim()) payload.drive_link = completeDriveLink.trim();
+    if (completeNotes.trim()) payload.completion_notes = completeNotes.trim();
+    if (completeNotes.trim()) payload.notes = completeNotes.trim();
     await onAction('complete', stageId, payload);
     setShowComplete(null);
-    setNotes('');
+    setCompleteNotes('');
+    setCompleteDriveLink('');
   };
 
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
-      {/* Header */}
       <div
         className="flex items-center justify-between p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
         onClick={() => setExpanded(!expanded)}
@@ -148,7 +184,11 @@ function VideoCard({ video, users, onAction }: { video: VideoRecord; users: any[
             video.current_status === 'not_started' ? "bg-slate-500/20 text-slate-400" :
             "bg-cyan-500/20 text-cyan-400"
           )}>
-            {String(video.video_number).padStart(2, '0')}
+            {video.current_status === 'posted' ? (
+              <CheckCircle2 className="h-5 w-5" />
+            ) : (
+              String(video.video_number).padStart(2, '0')
+            )}
           </div>
           <div>
             <h3 className="text-white font-semibold text-sm">Video {String(video.video_number).padStart(2, '0')}</h3>
@@ -158,12 +198,11 @@ function VideoCard({ video, users, onAction }: { video: VideoRecord; users: any[
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-500">{video.completion_percentage}%</span>
+          <span className="text-xs text-slate-500">{completedCount}/{video.stages.length}</span>
           {expanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="px-4 pb-3">
         <div className="w-full bg-slate-700 rounded-full h-1.5">
           <div
@@ -173,82 +212,192 @@ function VideoCard({ video, users, onAction }: { video: VideoRecord; users: any[
         </div>
       </div>
 
-      {/* Stages */}
       {expanded && (
         <div className="px-4 pb-4 space-y-2">
           {video.stages.map((stage) => (
             <div key={stage.id}>
-              <StageBar
-                stage={stage}
-                video={video}
-                onAction={(action, stageId) => {
-                  if (action === 'start') onAction('start', stageId);
-                  if (action === 'complete') setShowComplete(stageId);
-                }}
-              />
-              {stage.status === 'in_progress' && (
-                <div className="flex gap-1 mt-1 ml-8">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-5 px-1.5 text-[9px] text-slate-400 hover:text-blue-400"
-                    onClick={() => setShowAssign(showAssign === stage.id ? null : stage.id)}
-                  >
-                    <User className="h-2.5 w-2.5 mr-0.5" /> Assign
-                  </Button>
-                  {stage.stage_type === 'client_approval' && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-5 px-1.5 text-[9px] text-slate-400 hover:text-orange-400"
-                      onClick={() => setShowReject(showReject === stage.id ? null : stage.id)}
-                    >
-                      Reject
-                    </Button>
-                  )}
-                </div>
-              )}
-              {/* Assign Dropdown */}
+              <StageBar stage={stage} canManage={canManage} onAction={(action, stageId) => {
+                if (action === 'start') onAction('start', stageId);
+                if (action === 'complete') setShowComplete(stageId);
+                if (action === 'assign') setShowAssign(showAssign === stageId ? null : stageId);
+              }} onShowDetails={(stageId) => setShowStageDetails(showStageDetails === stageId ? null : stageId)} />
+
               {showAssign === stage.id && (
-                <div className="flex gap-2 mt-1 ml-8">
+                <div className="mt-1 ml-8 space-y-1 p-2 bg-slate-800/50 rounded-lg border border-white/5">
                   <select
                     value={selectedUser}
                     onChange={(e) => setSelectedUser(e.target.value)}
-                    className="flex-1 rounded border border-white/10 bg-slate-800 px-2 py-1 text-xs text-white"
+                    className="w-full rounded border border-white/10 bg-slate-800 px-2 py-1.5 text-xs text-white"
                   >
-                    <option value="">Select...</option>
+                    <option value="" className="bg-slate-900">Select employee...</option>
                     {users.map((u: any) => (
-                      <option key={u.id} value={u.id} className="bg-slate-900">{u.first_name} {u.last_name}</option>
+                      <option key={u.id} value={u.id} className="bg-slate-900">
+                        {u.first_name} {u.last_name} ({u.role})
+                      </option>
                     ))}
                   </select>
-                  <Button size="sm" className="h-5 px-2 text-[9px] bg-cyan-500" onClick={() => handleAssign(stage.id)}>OK</Button>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-3 w-3 text-slate-500 shrink-0" />
+                    <input
+                      type="date"
+                      value={assignDueDate}
+                      onChange={(e) => setAssignDueDate(e.target.value)}
+                      className="flex-1 rounded border border-white/10 bg-slate-800 px-2 py-1.5 text-[10px] text-white"
+                      min={new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div className="flex gap-1 justify-end">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 px-2 text-[9px] text-slate-400"
+                      onClick={() => { setShowAssign(null); setSelectedUser(''); setAssignDueDate(''); }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-5 px-2 text-[9px] bg-cyan-500 hover:bg-cyan-600"
+                      onClick={() => handleAssign(stage.id)}
+                      disabled={assigning || !selectedUser}
+                    >
+                      {assigning ? <Loader2 className="h-3 w-3 animate-spin" /> : <User className="h-3 w-3 mr-0.5" />}
+                      Assign & Start
+                    </Button>
+                  </div>
                 </div>
               )}
-              {/* Reject Dropdown */}
+
               {showReject === stage.id && (
-                <div className="mt-1 ml-8 space-y-1">
+                <div className="mt-1 ml-8 space-y-1 p-2 bg-slate-800/50 rounded-lg border border-white/5">
                   <Input
                     placeholder="Rejection reason..."
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    className="h-5 text-[10px] bg-slate-800 border-white/10 text-white"
+                    className="h-6 text-[10px] bg-slate-800 border-white/10 text-white"
                   />
-                  <Button size="sm" className="h-5 px-2 text-[9px] bg-orange-500" onClick={() => handleReject(stage.id)}>Reject</Button>
+                  <div className="flex gap-1 justify-end">
+                    <Button size="sm" variant="ghost" className="h-5 px-2 text-[9px] text-slate-400" onClick={() => { setShowReject(null); setRejectReason(''); }}>Cancel</Button>
+                    <Button size="sm" className="h-5 px-2 text-[9px] bg-orange-500 hover:bg-orange-600" onClick={() => handleReject(stage.id)}>Reject</Button>
+                  </div>
                 </div>
               )}
-              {/* Complete Notes */}
+
               {showComplete === stage.id && (
-                <div className="mt-1 ml-8 space-y-1">
+                <div className="mt-1 ml-8 space-y-1 p-2 bg-slate-800/50 rounded-lg border border-white/5">
                   <Input
-                    placeholder="Notes (optional)..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="h-5 text-[10px] bg-slate-800 border-white/10 text-white"
+                    placeholder="Google Drive Link (required)..."
+                    value={completeDriveLink}
+                    onChange={(e) => setCompleteDriveLink(e.target.value)}
+                    className="h-6 text-[10px] bg-slate-800 border-white/10 text-white"
                   />
-                  <div className="flex gap-1">
-                    <Button size="sm" className="h-5 px-2 text-[9px] bg-green-500" onClick={() => handleComplete(stage.id)}>Confirm Done</Button>
-                    <Button size="sm" variant="ghost" className="h-5 px-2 text-[9px] text-slate-400" onClick={() => setShowComplete(null)}>Cancel</Button>
+                  <Input
+                    placeholder="Completion notes (optional)..."
+                    value={completeNotes}
+                    onChange={(e) => setCompleteNotes(e.target.value)}
+                    className="h-6 text-[10px] bg-slate-800 border-white/10 text-white"
+                  />
+                  <div className="flex gap-1 justify-end">
+                    <Button size="sm" variant="ghost" className="h-5 px-2 text-[9px] text-slate-400" onClick={() => { setShowComplete(null); setCompleteNotes(''); setCompleteDriveLink(''); }}>Cancel</Button>
+                    <Button size="sm" className="h-5 px-2 text-[9px] bg-green-500 hover:bg-green-600" onClick={() => handleComplete(stage.id)} disabled={!completeDriveLink.trim()}>
+                      <CheckCircle2 className="h-3 w-3 mr-0.5" /> Confirm Done
+                    </Button>
                   </div>
+                </div>
+              )}
+
+              {showStageDetails === stage.id && stage.status === 'completed' && (
+                <div className="mt-2 ml-2 mr-0 p-4 bg-green-500/5 rounded-xl border border-green-500/20 space-y-3">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-400" />
+                      <p className="text-sm font-semibold text-white">Submission Details</p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/15 text-green-400 border border-green-500/25">
+                      Stage Completed
+                    </span>
+                  </div>
+
+                  {/* Submitted by + date */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-start gap-1.5">
+                      <User className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] text-slate-500">Submitted by</p>
+                        <p className="text-xs text-white font-medium">
+                          {stage.submitted_by_name ||
+                            (stage.assigned_to_detail
+                              ? `${stage.assigned_to_detail.first_name} ${stage.assigned_to_detail.last_name}`.trim()
+                              : '—')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-[10px] text-slate-500">Submitted on</p>
+                        <p className="text-xs text-white font-medium">
+                          {stage.completed_at
+                            ? new Date(stage.completed_at).toLocaleString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: true,
+                              })
+                            : '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Drive Link */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1">
+                      <Link2 className="h-3 w-3 text-slate-400" />
+                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Drive Link</p>
+                    </div>
+                    {stage.drive_link ? (
+                      <a
+                        href={stage.drive_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-500/10 border border-green-500/25 text-green-400 hover:bg-green-500/15 hover:text-green-300 transition-all text-xs font-medium group"
+                      >
+                        <Link2 className="h-3 w-3 shrink-0" />
+                        <span>Open Google Drive</span>
+                        <span className="opacity-70 group-hover:opacity-100 transition-opacity">↗</span>
+                      </a>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic">No Drive Link</p>
+                    )}
+                  </div>
+
+                  {/* Comments */}
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-1">
+                      <FileText className="h-3 w-3 text-slate-400" />
+                      <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Comments</p>
+                    </div>
+                    {(stage.completion_notes || stage.notes) ? (
+                      <div className="px-2.5 py-2 rounded-lg bg-slate-800/60 border border-white/5">
+                        <p className="text-xs text-slate-200 whitespace-pre-wrap leading-relaxed">
+                          &ldquo;{stage.completion_notes || stage.notes}&rdquo;
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic">No Comments</p>
+                    )}
+                  </div>
+
+                  <button
+                    className="text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                    onClick={() => setShowStageDetails(null)}
+                  >
+                    Close
+                  </button>
                 </div>
               )}
             </div>
@@ -273,8 +422,8 @@ export default function ProtocolDashboardPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
 
-  const fetchDashboard = useCallback(async () => {
-    setLoading(true);
+  const fetchDashboard = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     const [dashRes, usersRes] = await Promise.all([
       api.get<VideoProtocolDashboard>(apiEndpoints.protocolDashboard(protocolId)),
       api.get<any[]>(apiEndpoints.users),
@@ -290,7 +439,7 @@ export default function ProtocolDashboardPage() {
 
   useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
 
-  const handleStageAction = async (action: string, stageId: number, payload?: any) => {
+  const handleStageAction = useCallback(async (action: string, stageId: number, payload?: any) => {
     setActionLoading(true);
     let res;
     if (action === 'start') {
@@ -303,13 +452,15 @@ export default function ProtocolDashboardPage() {
       res = await api.post(apiEndpoints.stageAssign(stageId), payload || {});
     }
     setActionLoading(false);
+
     if (res?.error) {
       toast.error(extractApiErrorMessage(res));
-    } else {
-      toast.success(`${action} successful`);
-      fetchDashboard();
+      return;
     }
-  };
+
+    toast.success(`${action} successful`);
+    fetchDashboard(true);
+  }, [fetchDashboard]);
 
   if (loading) {
     return (
@@ -345,7 +496,6 @@ export default function ProtocolDashboardPage() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Link href="/adminzenfix/video-protocol">
           <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
@@ -368,7 +518,6 @@ export default function ProtocolDashboardPage() {
         </Button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-slate-900/50 border border-white/10 rounded-xl p-4 text-center">
           <p className="text-3xl font-bold text-white">{counts.target}</p>
@@ -392,7 +541,6 @@ export default function ProtocolDashboardPage() {
         </div>
       </div>
 
-      {/* Overall Workflow Progress */}
       <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -415,7 +563,6 @@ export default function ProtocolDashboardPage() {
         </p>
       </div>
 
-      {/* Stage Progress Grid */}
       <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-cyan-400" />
@@ -446,7 +593,6 @@ export default function ProtocolDashboardPage() {
         </div>
       </div>
 
-      {/* Video Cards */}
       <div>
         <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Video className="h-5 w-5 text-cyan-400" />
@@ -459,12 +605,12 @@ export default function ProtocolDashboardPage() {
               video={v}
               users={users}
               onAction={handleStageAction}
+              canManage={canManage}
             />
           ))}
         </div>
       </div>
 
-      {/* Employee Workload */}
       {employee_workload.length > 0 && (
         <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-6">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">

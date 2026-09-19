@@ -651,6 +651,8 @@ export interface Task {
   rejection_count: number;
   drive_link?: string;
   completion_notes?: string;
+  submitted_by_name?: string;
+  submitted_at?: string;
   is_overdue: boolean;
   comments?: any[];
   created_at: string;
@@ -782,8 +784,11 @@ export interface VideoStage {
   due_date: string | null;
   notes: string;
   rejection_reason: string;
+  drive_link: string;
+  completion_notes: string;
   instagram_url: string;
   caption: string;
+  submitted_by_name?: string;
   is_locked: boolean;
   is_overdue: boolean;
   created_at: string;

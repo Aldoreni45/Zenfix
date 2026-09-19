@@ -28,6 +28,9 @@ class Task(NumericIdModel):
     description = models.TextField(blank=True)
     client = models.ForeignKey("clients.Client", null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks")
     video = models.ForeignKey("videos.Video", null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks")
+    video_stage = models.ForeignKey(
+        "video_protocol.VideoStage", null=True, blank=True, on_delete=models.SET_NULL, related_name="tasks"
+    )
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="assigned_tasks"
     )

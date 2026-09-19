@@ -192,7 +192,7 @@ export default function TaskDetailPage() {
       )
     ) ||
     (
-      user?.role === 'employee' &&
+      user != null &&
       task?.assigned_to_name &&
       (
         user.full_name?.trim().toLowerCase() === task.assigned_to_name?.trim().toLowerCase() ||
@@ -208,6 +208,15 @@ export default function TaskDetailPage() {
   const canCarryForward = canManage && isOpen;
   const canReject = canManage && ['in_progress', 'completed', 'waiting_approval', 'submitted'].includes(task.status);
   const dueDateInfo = getDaysUntilDue(task.due_date);
+
+  // Debug logging
+  console.log('[TASK DETAIL DEBUG]', {
+    'user.id': user?.id, 'user.role': user?.role, 'user.full_name': user?.full_name,
+    'task.assigned_to': task?.assigned_to, 'task.assigned_to_name': task?.assigned_to_name,
+    'task.status': task?.status,
+    isAssignee, isOpen, canStart, canComplete, canManage,
+    'type_assigned_to': typeof task?.assigned_to, 'type_user_id': typeof user?.id,
+  });
 
   return (
     <div className="space-y-6">
@@ -454,25 +463,90 @@ export default function TaskDetailPage() {
         </div>
       )}
 
-      {task.drive_link && (
-        <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-5">
-          <h3 className="text-white font-semibold mb-1 flex items-center gap-2">
-            <Link2 className="h-4 w-4 text-green-400" />
-            Drive Link
-          </h3>
-          <a href={task.drive_link} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline text-sm break-all">
-            {task.drive_link}
-          </a>
-        </div>
-      )}
+      {task.status === 'completed' && (
+        <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-5 space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-green-500/20 flex items-center justify-center">
+                <CheckCircle2 className="h-4 w-4 text-green-400" />
+              </div>
+              <h3 className="text-white font-semibold text-sm">Submission Details</h3>
+            </div>
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/15 text-green-400 border border-green-500/25">
+              Completed
+            </span>
+          </div>
 
-      {task.completion_notes && (
-        <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-5">
-          <h3 className="text-white font-semibold mb-1 flex items-center gap-2">
-            <FileText className="h-4 w-4 text-cyan-400" />
-            Completion Notes
-          </h3>
-          <p className="text-slate-300 text-sm whitespace-pre-wrap">{task.completion_notes}</p>
+          {/* Meta: submitted by + submitted on */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="flex items-start gap-2.5">
+              <User className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-slate-500 mb-0.5">Submitted by</p>
+                <p className="text-white text-sm font-medium">
+                  {task.submitted_by_name || task.assigned_to_name || '—'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <Calendar className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-slate-500 mb-0.5">Submitted on</p>
+                <p className="text-white text-sm font-medium">
+                  {(task.submitted_at || task.completed_at)
+                    ? new Date(task.submitted_at || task.completed_at).toLocaleString('en-IN', {
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true,
+                      })
+                    : '—'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Drive Link */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <Link2 className="h-3.5 w-3.5 text-slate-400" />
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Drive Link</p>
+            </div>
+            {task.drive_link ? (
+              <a
+                href={task.drive_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-green-500/10 border border-green-500/25 text-green-400 hover:bg-green-500/15 hover:text-green-300 transition-all text-sm font-medium group max-w-full"
+              >
+                <Link2 className="h-4 w-4 shrink-0" />
+                <span className="truncate">Open Google Drive</span>
+                <span className="shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">↗</span>
+              </a>
+            ) : (
+              <p className="text-slate-500 text-sm italic">No Drive Link</p>
+            )}
+          </div>
+
+          {/* Comments / Completion Notes */}
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5 text-slate-400" />
+              <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Comments</p>
+            </div>
+            {task.completion_notes ? (
+              <div className="px-3 py-2.5 rounded-lg bg-slate-800/60 border border-white/5">
+                <p className="text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
+                  &ldquo;{task.completion_notes}&rdquo;
+                </p>
+              </div>
+            ) : (
+              <p className="text-slate-500 text-sm italic">No Comments</p>
+            )}
+          </div>
         </div>
       )}
 

@@ -39,6 +39,9 @@ export default function VideoProtocolPage() {
   const isManager = useIsManager();
   const canManage = isOwner || isManager;
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   const now = new Date();
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
@@ -119,7 +122,7 @@ export default function VideoProtocolPage() {
           </h1>
           <p className="text-slate-400 text-sm mt-1">Monthly video production workflow management</p>
         </div>
-        {canManage && (
+        {mounted && canManage && (
           <Button
             onClick={() => { setShowCreate(true); fetchClients(); }}
             className="bg-cyan-500 hover:bg-cyan-600"
@@ -194,7 +197,7 @@ export default function VideoProtocolPage() {
         <div className="text-center py-16 bg-slate-900/50 rounded-2xl border border-white/10">
           <Video className="h-12 w-12 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-400">No protocols for {MONTHS[currentMonth - 1]} {currentYear}</p>
-          {canManage && (
+          {mounted && canManage && (
             <Button
               onClick={() => { setShowCreate(true); fetchClients(); }}
               className="mt-4 bg-cyan-500 hover:bg-cyan-600"

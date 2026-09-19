@@ -32,6 +32,12 @@ class TaskSerializer(serializers.ModelSerializer):
     is_overdue = serializers.BooleanField(read_only=True)
     comments = TaskCommentSerializer(many=True, read_only=True)
     attachments = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
+    video_stage_id = serializers.IntegerField(source="video_stage.numeric_id", read_only=True, default=None)
+    # Submission context aliases — no new DB fields; reuse existing data.
+    # submitted_by_name = who completed the task (= the assignee)
+    submitted_by_name = serializers.CharField(source="assigned_to.full_name", read_only=True, default=None)
+    # submitted_at = when it was completed
+    submitted_at = serializers.DateTimeField(source="completed_at", read_only=True, default=None)
 
     class Meta:
         model = Task
@@ -61,6 +67,8 @@ class TaskSerializer(serializers.ModelSerializer):
             "due_time",
             "started_at",
             "completed_at",
+            "submitted_at",
+            "submitted_by_name",
             "parent_task",
             "carried_forward_from",
             "carry_forward_count",
@@ -72,6 +80,8 @@ class TaskSerializer(serializers.ModelSerializer):
             "rejection_count",
             "task_type",
             "task_type_name",
+            "video_stage",
+            "video_stage_id",
             "drive_link",
             "completion_notes",
             "is_overdue",
@@ -85,6 +95,7 @@ class TaskSerializer(serializers.ModelSerializer):
             "assigned_by",
             "started_at",
             "completed_at",
+            "submitted_at",
             "created_at",
             "updated_at",
             "original_due_date",

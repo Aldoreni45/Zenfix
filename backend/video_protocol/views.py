@@ -1,10 +1,12 @@
 from django.db.models import Count, Q
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from common.permissions import IsAuthenticatedAndActive
+from common.viewsets import NumericIdViewSetMixin
 from users.models import User
 
 from .models import MonthlyVideoProtocol, VideoRecord, VideoStage
@@ -26,6 +28,11 @@ STAGE_ORDER = [
     VideoStage.StageType.REVIEW,
     VideoStage.StageType.CLIENT_APPROVAL,
     VideoStage.StageType.INSTAGRAM_POST,
+]
+
+MONTHS = [
+    "", "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
 ]
 
 
@@ -53,7 +60,7 @@ def _validate_stage_transition(video, stage_type, action_type):
     return stage
 
 
-class MonthlyVideoProtocolViewSet(viewsets.ModelViewSet):
+class MonthlyVideoProtocolViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
     queryset = MonthlyVideoProtocol.objects.select_related("client", "created_by").prefetch_related("videos__stages")
     permission_classes = [IsAuthenticatedAndActive]
 
@@ -327,7 +334,7 @@ class MonthlyVideoProtocolViewSet(viewsets.ModelViewSet):
         })
 
 
-class VideoRecordViewSet(viewsets.ReadOnlyModelViewSet):
+class VideoRecordViewSet(NumericIdViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = VideoRecord.objects.select_related("protocol__client").prefetch_related("stages__assigned_to")
     serializer_class = VideoRecordSerializer
     permission_classes = [IsAuthenticatedAndActive]
@@ -340,7 +347,7 @@ class VideoRecordViewSet(viewsets.ReadOnlyModelViewSet):
         return qs
 
 
-class VideoStageViewSet(viewsets.ModelViewSet):
+class VideoStageViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
     queryset = VideoStage.objects.select_related("video__protocol__client", "assigned_to")
     serializer_class = VideoStageSerializer
     permission_classes = [IsAuthenticatedAndActive]
@@ -372,7 +379,7 @@ class VideoStageViewSet(viewsets.ModelViewSet):
             user_id = data["assigned_to"]
             if user_id:
                 try:
-                    user = User.objects.get(id=user_id, is_active=True)
+                    user = User.objects.get(numeric_id=user_id, is_active=True)
                     stage.assigned_to = user
                 except User.DoesNotExist:
                     return Response(
@@ -408,7 +415,19 @@ class VideoStageViewSet(viewsets.ModelViewSet):
         validated_stage.started_at = timezone.now()
         validated_stage.save(update_fields=["status", "started_at", "updated_at"])
 
-        return Response(VideoStageSerializer(validated_stage).data)
+        video = validated_stage.video
+        stages_data = VideoStageSerializer(video.stages.order_by("stage_type"), many=True).data
+        return Response({
+            "stage": VideoStageSerializer(validated_stage).data,
+            "video": {
+                "id": video.numeric_id,
+                "numeric_id": video.numeric_id,
+                "video_number": video.video_number,
+                "current_status": video.current_status,
+                "current_stage_name": video.current_stage_name,
+                "stages": stages_data,
+            },
+        })
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
@@ -420,13 +439,20 @@ class VideoStageViewSet(viewsets.ModelViewSet):
         except ValueError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        if stage.stage_type == VideoStage.StageType.INSTAGRAM_POST:
-            stage.instagram_url = request.data.get("instagram_url", stage.instagram_url)
-            stage.caption = request.data.get("caption", stage.caption)
+        if validated_stage.stage_type == VideoStage.StageType.INSTAGRAM_POST:
+            validated_stage.instagram_url = request.data.get("instagram_url", validated_stage.instagram_url)
+            validated_stage.caption = request.data.get("caption", validated_stage.caption)
+
+        drive_link = request.data.get("drive_link", "").strip()
+        completion_notes = request.data.get("completion_notes", "").strip()
+        if drive_link:
+            validated_stage.drive_link = drive_link
+        if completion_notes:
+            validated_stage.completion_notes = completion_notes
 
         validated_stage.status = VideoStage.Status.COMPLETED
         validated_stage.completed_at = timezone.now()
-        validated_stage.save(update_fields=["status", "completed_at", "instagram_url", "caption", "updated_at"])
+        validated_stage.save(update_fields=["status", "completed_at", "instagram_url", "caption", "drive_link", "completion_notes", "updated_at"])
 
         protocol = stage.video.protocol
         all_videos = protocol.videos.count()
@@ -440,7 +466,20 @@ class VideoStageViewSet(viewsets.ModelViewSet):
             protocol.status = MonthlyVideoProtocol.Status.COMPLETED
             protocol.save(update_fields=["status", "updated_at"])
 
-        return Response(VideoStageSerializer(validated_stage).data)
+        video = validated_stage.video
+        stages_data = VideoStageSerializer(video.stages.order_by("stage_type"), many=True).data
+        return Response({
+            "stage": VideoStageSerializer(validated_stage).data,
+            "video": {
+                "id": video.numeric_id,
+                "numeric_id": video.numeric_id,
+                "video_number": video.video_number,
+                "current_status": video.current_status,
+                "current_stage_name": video.current_stage_name,
+                "stages": stages_data,
+            },
+            "protocol_completed": protocol.status == MonthlyVideoProtocol.Status.COMPLETED,
+        })
 
     @action(detail=True, methods=["post"])
     def reject(self, request, pk=None):
@@ -469,27 +508,99 @@ class VideoStageViewSet(viewsets.ModelViewSet):
             protocol.status = MonthlyVideoProtocol.Status.ACTIVE
             protocol.save(update_fields=["status", "updated_at"])
 
-        return Response(VideoStageSerializer(stage).data)
+        from tasks.models import Task
+        Task.objects.filter(
+            video_stage=stage,
+            status__in=[Task.Status.ASSIGNED, Task.Status.IN_PROGRESS],
+        ).update(status=Task.Status.REJECTED, rejection_reason=stage.rejection_reason)
+
+        video = stage.video
+        stages_data = VideoStageSerializer(video.stages.order_by("stage_type"), many=True).data
+        return Response({
+            "stage": VideoStageSerializer(stage).data,
+            "video": {
+                "id": video.numeric_id,
+                "numeric_id": video.numeric_id,
+                "video_number": video.video_number,
+                "current_status": video.current_status,
+                "current_stage_name": video.current_stage_name,
+                "stages": stages_data,
+            },
+        })
 
     @action(detail=True, methods=["post"])
     def assign(self, request, pk=None):
         stage = self.get_object()
         user_id = request.data.get("assigned_to")
+        due_date_raw = request.data.get("due_date")
         if not user_id:
             return Response(
                 {"error": "assigned_to is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            user = User.objects.get(id=user_id, is_active=True)
+            user = User.objects.get(numeric_id=user_id, is_active=True)
         except User.DoesNotExist:
             return Response(
                 {"error": "User not found or inactive."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         stage.assigned_to = user
-        stage.save(update_fields=["assigned_to", "updated_at"])
-        return Response(VideoStageSerializer(stage).data)
+        if due_date_raw:
+            parsed_date = parse_date(due_date_raw)
+            if parsed_date:
+                stage.due_date = parsed_date
+        if stage.status == VideoStage.Status.NOT_STARTED:
+            stage.status = VideoStage.Status.IN_PROGRESS
+        if not stage.started_at:
+            stage.started_at = timezone.now()
+        stage.save(update_fields=["assigned_to", "due_date", "status", "started_at", "updated_at"])
+
+        from tasks.models import Task
+        from notifications.services import NotificationService
+        protocol = stage.video.protocol
+        stage_type_display = stage.get_stage_type_display()
+        task_title = f"{stage_type_display} - Video {stage.video.video_number:02d} ({protocol.client.name} - {MONTHS[protocol.month - 1]} {protocol.year})"
+        task = Task.objects.create(
+            title=task_title,
+            description=f"Auto-created from video protocol stage: {stage_type_display} for Video {stage.video.video_number:02d}",
+            client=protocol.client,
+            assigned_to=user,
+            assigned_by=request.user,
+            video_stage=stage,
+            priority=Task.Priority.HIGH if stage.stage_type in (VideoStage.StageType.SHOOT, VideoStage.StageType.INSTAGRAM_POST) else Task.Priority.MEDIUM,
+            status=Task.Status.ASSIGNED,
+            due_date=stage.due_date,
+            original_due_date=stage.due_date,
+            task_type=f"video_protocol_{stage.stage_type}",
+            notes=f"Video Protocol: {protocol.client.name} - {MONTHS[protocol.month - 1]} {protocol.year}",
+        )
+        NotificationService.notify(
+            recipient=user,
+            title="Task assigned",
+            message=f'You were assigned "{task_title}".',
+            notification_type="task_assigned",
+            related_object_type="task",
+            related_object_id=str(task.numeric_id),
+        )
+
+        video = stage.video
+        video_stages = video.stages.select_related("assigned_to").order_by("stage_type")
+        stages_data = VideoStageSerializer(video_stages, many=True).data
+
+        return Response({
+            "stage": VideoStageSerializer(stage).data,
+            "video": {
+                "id": video.numeric_id,
+                "numeric_id": video.numeric_id,
+                "video_number": video.video_number,
+                "title": video.title,
+                "current_status": video.current_status,
+                "current_stage_name": video.current_stage_name,
+                "stages": stages_data,
+            },
+        })
 
     @action(detail=False, methods=["get"])
     def my_tasks(self, request):

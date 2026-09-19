@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight, RefreshCw, Loader2 } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight, RefreshCw, Loader2, Link2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useCanManage } from '@/lib/hooks';
@@ -129,10 +129,10 @@ export default function TasksPage() {
           <p className="text-slate-400 mt-1">Manage daily tasks and workload allocation</p>
         </div>
         {canManage && (
-          <Link href="/adminzenfix/tasks/create">
+          <Link href="/adminzenfix/tasks/bulk">
             <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
               <Plus className="h-4 w-4 mr-2" />
-              Create Task
+              Bulk Create
             </Button>
           </Link>
         )}
@@ -312,6 +312,29 @@ export default function TasksPage() {
                   <p className="text-slate-500 text-xs">Assigned: {task.assigned_to_name}</p>
                 </div>
               )}
+
+              {task.status === 'completed' && task.drive_link && (
+                <div className="mt-2 pt-2 border-t border-white/5">
+                  <div className="flex items-center gap-1.5">
+                    <Link2 className="h-3 w-3 text-green-400 shrink-0" />
+                    <a
+                      href={task.drive_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-green-400 text-xs hover:underline truncate"
+                    >
+                      {task.drive_link}
+                    </a>
+                  </div>
+                  {task.completion_notes && (
+                    <div className="flex items-start gap-1.5 mt-1">
+                      <FileText className="h-3 w-3 text-cyan-400 shrink-0 mt-0.5" />
+                      <p className="text-slate-400 text-xs line-clamp-2">{task.completion_notes}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </Link>
           ))
         )}
@@ -322,10 +345,6 @@ export default function TasksPage() {
         <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
           <h3 className="text-white font-semibold mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Link href="/adminzenfix/tasks/create" className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-all">
-              <Plus className="h-5 w-5 text-cyan-400" />
-              <span className="text-white text-sm">Create Task</span>
-            </Link>
             <Link href="/adminzenfix/tasks/bulk" className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 transition-all">
               <CheckCircle className="h-5 w-5 text-green-400" />
               <span className="text-white text-sm">Bulk Create</span>
