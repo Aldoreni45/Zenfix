@@ -23,7 +23,8 @@ import {
   ChevronDown,
   Building2,
   Video,
-  FileText
+  FileText,
+  History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -53,6 +54,7 @@ const ownerNavigation = [
   { name: 'Video Protocol', href: '/adminzenfix/video-protocol', icon: Video },
   { name: 'Users', href: '/adminzenfix/users', icon: Users },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
+  { name: 'Task History', href: '/adminzenfix/task-history', icon: History },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Reports', href: '/adminzenfix/reports', icon: BarChart3 },
   { name: 'Analytics', href: '/adminzenfix/analytics', icon: TrendingUp },

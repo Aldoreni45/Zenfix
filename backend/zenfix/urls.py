@@ -11,6 +11,7 @@ from dashboard.views import DashboardViewSet
 from departments.views import DepartmentViewSet
 from notifications.views import NotificationViewSet
 from targets.views import MonthlyTargetViewSet
+from tasks.history_views import TaskHistoryViewSet
 from tasks.views import CommentViewSet, TaskViewSet
 from users.views import AuthViewSet, UserViewSet
 from videos.views import SocialPostViewSet, VideoAssetViewSet, VideoViewSet
@@ -21,6 +22,7 @@ router.register(r"users", UserViewSet, basename="users")
 router.register(r"departments", DepartmentViewSet, basename="departments")
 router.register(r"clients", ClientViewSet, basename="clients")
 router.register(r"tasks", TaskViewSet, basename="tasks")
+router.register(r"task-history", TaskHistoryViewSet, basename="task-history")
 router.register(r"comments", CommentViewSet, basename="comments")
 router.register(r"videos", VideoViewSet, basename="videos")
 router.register(r"video-assets", VideoAssetViewSet, basename="video-assets")

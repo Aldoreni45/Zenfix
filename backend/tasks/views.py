@@ -92,7 +92,19 @@ class TaskViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
         if new_status in {Task.Status.IN_PROGRESS, Task.Status.COMPLETED}:
             if not self._is_task_assignee(task, user):
                 raise PermissionDenied("Only the assigned employee can start or complete this task.")
+        old_status = task.status
         serializer.save()
+        updated = serializer.instance
+        if old_status != updated.status:
+            ActivityLogService.log(
+                actor=user,
+                action=ActivityLog.Action.STATUS_CHANGE,
+                entity_type="task",
+                entity_id=str(updated.numeric_id),
+                description=f"Task '{updated.title}' status changed from {old_status} to {updated.status}",
+                metadata={"from": old_status, "to": updated.status},
+                request=self.request,
+            )
 
     def perform_destroy(self, instance):
         if self.request.user.role == User.Role.EMPLOYEE:
@@ -233,6 +245,15 @@ class TaskViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
         task.rejection_reason = request.data.get("reason", "")
         task.rejection_count = (task.rejection_count or 0) + 1
         task.save()
+        ActivityLogService.log(
+            actor=request.user,
+            action=ActivityLog.Action.REJECT,
+            entity_type="task",
+            entity_id=str(task.numeric_id),
+            description=f"Task '{task.title}' rejected",
+            metadata={"reason": task.rejection_reason[:500]},
+            request=request,
+        )
         NotificationService.notify(recipient=task.assigned_to, title="Task rejected", message=task.rejection_reason, notification_type="task_rejected", related_object_type="task", related_object_id=str(task.numeric_id))
         return Response(TaskSerializer(task).data)
 
@@ -248,6 +269,15 @@ class TaskViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
         task.assigned_to = assignee
         task.status = Task.Status.ASSIGNED
         task.save()
+        ActivityLogService.log(
+            actor=request.user,
+            action=ActivityLog.Action.ASSIGN,
+            entity_type="task",
+            entity_id=str(task.numeric_id),
+            description=f"Assigned task '{task.title}' to {assignee.full_name or assignee.username}",
+            metadata={"assignee": str(assignee.numeric_id), "assignee_name": assignee.full_name or assignee.username},
+            request=request,
+        )
         NotificationService.notify(recipient=assignee, title="Task assigned", message=f'You were assigned "{task.title}".', notification_type="task_assigned", related_object_type="task", related_object_id=str(task.numeric_id))
         return Response(TaskSerializer(task).data)
 

@@ -7,7 +7,8 @@ import { extractApiErrorMessage } from './api';
 export function useApi<T>(
   endpoint: string,
   initialData: T | null = null,
-  dependencies: any[] = []
+  dependencies: any[] = [],
+  enabled = true
 ) {
   const initialDataRef = useRef(initialData);
   const [data, setData] = useState<T | null>(initialData);
@@ -34,8 +35,10 @@ export function useApi<T>(
   }, [endpoint]);
 
   useEffect(() => {
+    if (!enabled) return;
     fetchData();
-  }, [endpoint, ...dependencies]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endpoint, enabled, ...dependencies]);
 
   return { data, loading, error, refetch: fetchData };
 }
@@ -160,7 +163,46 @@ export function useMyActivityLogs() {
   return useApi<any[]>(apiEndpoints.myLogs, []);
 }
 
-// Users hook
+// Task History (owner-only) hooks
+type TaskHistoryOptions = { params?: string; enabled?: boolean };
+
+function taskHistoryOptions(options?: string | TaskHistoryOptions) {
+  if (typeof options === 'string') return { params: options, enabled: true };
+  return { params: options?.params, enabled: options?.enabled ?? true };
+}
+
+export function useTaskHistorySummary(options?: string | TaskHistoryOptions) {
+  const { params, enabled } = taskHistoryOptions(options);
+  const endpoint = params ? `${apiEndpoints.taskHistorySummary}?${params}` : apiEndpoints.taskHistorySummary;
+  return useApi<any>(endpoint, null, [], enabled);
+}
+
+export function useTaskHistoryUsers(options?: string | TaskHistoryOptions) {
+  const { params, enabled } = taskHistoryOptions(options);
+  const endpoint = params ? `${apiEndpoints.taskHistoryUsers}?${params}` : apiEndpoints.taskHistoryUsers;
+  return useApi<any[]>(endpoint, [], [], enabled);
+}
+
+export function useTaskHistoryDaily(options?: string | TaskHistoryOptions) {
+  const { params, enabled } = taskHistoryOptions(options);
+  const endpoint = params ? `${apiEndpoints.taskHistoryDaily}?${params}` : apiEndpoints.taskHistoryDaily;
+  return useApi<any[]>(endpoint, [], [], enabled);
+}
+
+export function useTaskHistoryUserDetail(userId: number, enabled = true) {
+  return useApi<any>(apiEndpoints.taskHistoryUserDetail(userId), null, [], enabled);
+}
+
+export function useTaskHistoryTasks(options?: string | TaskHistoryOptions) {
+  const { params, enabled } = taskHistoryOptions(options);
+  const endpoint = params ? `${apiEndpoints.taskHistoryTasks}?${params}` : apiEndpoints.taskHistoryTasks;
+  return useApi<any>(endpoint, { count: 0, page: 1, page_size: 20, items: [] }, [], enabled);
+}
+
+export function useTaskHistoryTaskDetail(taskId: number, enabled = true) {
+  return useApi<any>(apiEndpoints.taskHistoryTaskDetail(taskId), null, [], enabled);
+}
+
 export function useUsers(filters?: string) {
   const endpoint = filters ? `${apiEndpoints.users}?${filters}` : apiEndpoints.users;
   return useApi<any[]>(endpoint, []);

@@ -478,6 +478,15 @@ export const apiEndpoints = {
   activityLog: (id: number) => `/activity-logs/${id}`,
   myLogs: '/activity-logs/my_logs',
   recentLogs: '/activity-logs/recent',
+
+  // Task History (owner-only reports)
+  taskHistory: '/task-history',
+  taskHistorySummary: '/task-history/summary',
+  taskHistoryUsers: '/task-history/users',
+  taskHistoryUserDetail: (id: number) => `/task-history/users/${id}`,
+  taskHistoryDaily: '/task-history/daily',
+  taskHistoryTasks: '/task-history/tasks',
+  taskHistoryTaskDetail: (id: number) => `/task-history/tasks/${id}`,
   
   // Notifications
   notifications: '/notifications',
@@ -739,6 +748,91 @@ export interface Notification {
   related_entity_type?: string;
   related_entity_id?: string;
   created_at: string;
+}
+
+// Task History (owner-only) types
+export interface TaskHistorySummary {
+  total: number;
+  total_all_time: number;
+  completed: number;
+  pending: number;
+  in_progress: number;
+  overdue: number;
+  rejected: number;
+  cancelled: number;
+  carried_forward: number;
+  completion_rate: number;
+  due_soon: number;
+}
+
+export interface TaskHistoryUser {
+  id: number;
+  username: string;
+  name: string;
+  email: string;
+  role: string;
+  role_name: string;
+  department?: number;
+  department_name?: string;
+  assigned: number;
+  completed: number;
+  pending: number;
+  in_progress: number;
+  rejected: number;
+  overdue: number;
+  completion_rate: number;
+}
+
+export interface TaskHistoryDailyRow {
+  date: string;
+  total: number;
+  completed: number;
+  pending: number;
+  in_progress: number;
+  rejected: number;
+  overdue: number;
+}
+
+export interface TaskHistoryItem {
+  id: number;
+  task_id: string;
+  title: string;
+  client_name?: string;
+  assigned_to_name?: string;
+  assigned_manager_name?: string;
+  video_code?: string;
+  priority: string;
+  priority_name: string;
+  status: string;
+  status_name: string;
+  due_date: string | null;
+  due_time?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  carry_forward_count: number;
+  rejection_count: number;
+  is_overdue: boolean;
+}
+
+export interface TaskHistoryPage {
+  count: number;
+  page: number;
+  page_size: number;
+  items: TaskHistoryItem[];
+}
+
+export interface TaskHistoryUserDetail {
+  user: TaskHistoryUser & { status: string };
+  counts: TaskHistorySummary;
+  recent_tasks: TaskHistoryItem[];
+  activity: ActivityLog[];
+  all_time: { assigned: number; completed: number; pending: number; overdue: number };
+}
+
+export interface TaskHistoryTaskDetail {
+  task: Task;
+  timeline: ActivityLog[];
 }
 
 export interface DashboardData {
