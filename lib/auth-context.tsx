@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { api, apiEndpoints, clearTokens, hasAccessToken, hasRefreshToken } from './api';
+import { api, apiEndpoints, clearTokens, hasAccessToken, hasRefreshToken, storeTokens } from './api';
 
 const USER_ROLE_KEY = 'zenfix_user_role';
 
@@ -111,31 +111,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, REFRESH_INTERVAL_MS);
   }, [stopRefreshTimer, logout]);
 
+  const initStartedRef = useRef(false);
+
   const initializeAuth = useCallback(async () => {
+    // React StrictMode double-invokes effects in development. Guard so the
+    // auth bootstrap (and its network calls) runs exactly once per mount.
+    if (initStartedRef.current) return;
+    initStartedRef.current = true;
+
     console.log('[AUTH] initialization:start');
     setLoading(true);
     setInitialized(false);
 
-    // Optimistic: if tokens exist, assume authenticated while we fetch user data
     const hasAccess = hasAccessToken();
     const hasRefresh = hasRefreshToken();
     const tokensExist = hasAccess || hasRefresh;
-    
-    if (tokensExist) {
-      console.log('[AUTH] tokens-found, setting authenticated=true optimistically');
-      setIsAuthenticated(true);
+
+    // No tokens at all -> deterministically unauthenticated. Skip the /me call
+    // entirely (it would 401 and cascade into a CSRF + refresh round trip).
+    if (!tokensExist) {
+      console.log('[AUTH] no-tokens, unauthenticated');
+      setUser(null);
+      setIsAuthenticated(false);
+      clearSavedUserRole();
+      stopRefreshTimer();
+      setLoading(false);
+      setInitialized(true);
+      return;
     }
 
     try {
-      // Step 1: Try to get current user
+      // Step 1: try to get the current user (backend cookie auth works natively)
       let response = await api.get<User>(apiEndpoints.me);
       console.log('[AUTH] current-user:status', response.status);
 
-      // Step 2: If 401, try to refresh token and retry
+      // Step 2: if 401, refresh once and retry once (bounded, never a loop)
       if (response.status === 401 && hasRefresh) {
         console.log('[AUTH] access-token-expired, attempting refresh');
         const refreshedToken = await api.refreshToken();
-        
+
         if (refreshedToken) {
           console.log('[AUTH] refresh-success, retrying /me');
           response = await api.get<User>(apiEndpoints.me);
@@ -145,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Step 3: Set auth state based on final response
+      // Step 3: deterministic auth state from the final response
       if (response.data && (response.data.id || response.data.username)) {
         console.log('[AUTH] user-restored', { userId: response.data.id, role: response.data.role });
         setUser(response.data);
@@ -154,35 +168,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         scheduleRefresh();
       } else {
         console.log('[AUTH] no-user-restored', { status: response.status, hasError: !!response.error });
-        // Only clear auth if no tokens exist
-        if (!tokensExist) {
-          setUser(null);
-          setIsAuthenticated(false);
-          clearSavedUserRole();
-          stopRefreshTimer();
-        } else {
-          // Tokens exist but user fetch failed - keep isAuthenticated=true
-          console.log('[AUTH] tokens-exist-but-user-fetch-failed, keeping-authenticated=true');
-        }
-      }
-    } catch (error) {
-      console.log('[AUTH] initialization:error', error);
-      // Only clear auth if no tokens exist
-      if (!tokensExist) {
         setUser(null);
         setIsAuthenticated(false);
         clearSavedUserRole();
         stopRefreshTimer();
-      } else {
-        // Tokens exist but error occurred - keep isAuthenticated=true
-        console.log('[AUTH] tokens-exist-but-error-occurred, keeping-authenticated=true');
       }
+    } catch (error) {
+      console.log('[AUTH] initialization:error', error);
+      setUser(null);
+      setIsAuthenticated(false);
+      clearSavedUserRole();
+      stopRefreshTimer();
     } finally {
-      console.log('[AUTH] initialization:complete', { isAuthenticated, hasUser: !!user });
+      console.log('[AUTH] initialization:complete');
       setLoading(false);
       setInitialized(true);
     }
   }, [scheduleRefresh, stopRefreshTimer]);
+
+  // Explicit re-initialization used by UI (e.g. profile after save). Bypasses
+  // the StrictMode early-run guard because it is a deliberate user action.
+  const refetch = useCallback(async () => {
+    initStartedRef.current = false;
+    await initializeAuth();
+  }, [initializeAuth]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -204,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const access = payload?.access;
 
       if (!response.error && userData && access) {
+        storeTokens(access);
         console.log('[AUTH] login:success', { userId: userData.id, role: userData.role });
         setUser(userData);
         saveUserRole(userData.role);
@@ -229,7 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated,
     login,
     logout,
-    refetch: initializeAuth,
+    refetch,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

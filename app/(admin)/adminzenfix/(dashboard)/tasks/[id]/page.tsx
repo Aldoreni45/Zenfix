@@ -181,25 +181,26 @@ export default function TaskDetailPage() {
   }
 
   const canManage = user?.role === 'owner' || user?.role === 'manager';
-  const isAssignee = Boolean(
+
+  const assignedToId = task?.assigned_to;
+  const userId = user?.id;
+  const idsMatch = assignedToId != null && userId != null && (
+    assignedToId === userId ||
+    String(assignedToId) === String(userId) ||
+    (typeof assignedToId === 'object' && (
+      assignedToId.id === userId ||
+      String(assignedToId.id) === String(userId)
+    ))
+  );
+  const namesMatch = Boolean(
+    user != null &&
+    task?.assigned_to_name &&
     (
-      task?.assigned_to != null &&
-      user?.id != null &&
-      (
-        task.assigned_to === user.id ||
-        String(task.assigned_to) === String(user.id) ||
-        (typeof task.assigned_to === 'object' && (task.assigned_to.id === user.id || String(task.assigned_to.id) === String(user.id)))
-      )
-    ) ||
-    (
-      user != null &&
-      task?.assigned_to_name &&
-      (
-        user.full_name?.trim().toLowerCase() === task.assigned_to_name?.trim().toLowerCase() ||
-        user.username?.trim().toLowerCase() === task.assigned_to_name?.trim().toLowerCase()
-      )
+      (user.full_name && user.full_name.trim().toLowerCase() === task.assigned_to_name.trim().toLowerCase()) ||
+      (user.username && user.username.trim().toLowerCase() === task.assigned_to_name.trim().toLowerCase())
     )
   );
+  const isAssignee = Boolean(idsMatch || namesMatch);
   const isOverdue = task.is_overdue;
   const isOpen = ['pending', 'assigned', 'in_progress', 'blocked', 'submitted', 'rejected'].includes(task.status);
   // ONLY the assigned employee can start and complete tasks

@@ -512,7 +512,7 @@ export default function ProtocolDashboardPage() {
             Monthly Video Protocol &middot; {['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][protocol.month]} {protocol.year}
           </p>
         </div>
-        <Button onClick={fetchDashboard} variant="outline" className="border-white/10 text-slate-300 hover:text-white hover:bg-white/5">
+        <Button onClick={() => fetchDashboard()} variant="outline" className="border-white/10 text-slate-300 hover:text-white hover:bg-white/5">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>

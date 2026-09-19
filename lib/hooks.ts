@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { api, apiEndpoints, clearTokens, getStoredAccessToken, storeTokens, type ApiResponse } from './api';
 import { extractApiErrorMessage } from './api';
+import { useAuth } from './auth-context';
 
 // Generic data fetching hook
 export function useApi<T>(
@@ -14,6 +15,10 @@ export function useApi<T>(
   const [data, setData] = useState<T | null>(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Wait for the auth bootstrap to finish before firing requests: otherwise the
+  // whole dashboard/hooks layer races the /me + refresh round trip and issues a
+  // burst of 401s on every fresh load.
+  const { initialized } = useAuth();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -35,10 +40,10 @@ export function useApi<T>(
   }, [endpoint]);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!initialized || !enabled) return;
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint, enabled, ...dependencies]);
+  }, [endpoint, initialized, enabled, ...dependencies]);
 
   return { data, loading, error, refetch: fetchData };
 }
@@ -203,6 +208,7 @@ export function useTaskHistoryTaskDetail(taskId: number, enabled = true) {
   return useApi<any>(apiEndpoints.taskHistoryTaskDetail(taskId), null, [], enabled);
 }
 
+// Users hook
 export function useUsers(filters?: string) {
   const endpoint = filters ? `${apiEndpoints.users}?${filters}` : apiEndpoints.users;
   return useApi<any[]>(endpoint, []);

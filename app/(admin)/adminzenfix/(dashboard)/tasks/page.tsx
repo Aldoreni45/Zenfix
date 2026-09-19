@@ -5,16 +5,39 @@ import Link from 'next/link';
 import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight, RefreshCw, Loader2, Link2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useCanManage } from '@/lib/hooks';
+import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useMyTasks, useCanManage } from '@/lib/hooks';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+function TaskCardSkeleton() {
+  return (
+    <div className="bg-slate-900/50 border border-white/10 rounded-xl p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-4 w-16 rounded bg-white/5 animate-pulse" />
+            <div className="h-4 w-20 rounded bg-white/5 animate-pulse" />
+          </div>
+          <div className="h-5 w-3/4 rounded bg-white/10 animate-pulse mb-2" />
+          <div className="h-4 w-full rounded bg-white/5 animate-pulse" />
+        </div>
+        <div className="h-6 w-16 rounded bg-white/5 animate-pulse" />
+      </div>
+      <div className="flex items-center justify-between">
+        <div className="h-4 w-24 rounded bg-white/5 animate-pulse" />
+        <div className="h-5 w-16 rounded bg-white/5 animate-pulse" />
+      </div>
+    </div>
+  );
+}
 
 export default function TasksPage() {
   const { data: todayTasks, loading: todayLoading } = useTodayTasks();
   const { data: pendingTasks, loading: pendingLoading } = usePendingTasks();
   const { data: overdueTasks, loading: overdueLoading } = useOverdueTasks();
   const { data: pendingPreviousTasks, loading: previousLoading, refetch: refetchPrevious } = usePendingPreviousTasks();
+  const { data: myTasks, loading: myTasksLoading } = useMyTasks();
   
   const canManage = useCanManage();
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,6 +85,7 @@ export default function TasksPage() {
   const getCurrentTasks = () => {
     switch (activeTab) {
       case 'today': return todayTasks || [];
+      case 'my': return myTasks || [];
       case 'pending': return pendingTasks || [];
       case 'overdue': 
       case 'previous':
@@ -103,18 +127,18 @@ export default function TasksPage() {
     setCarryForwardingAll(false);
   };
 
-  const loading = todayLoading || pendingLoading || overdueLoading || previousLoading;
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500 mx-auto mb-4" />
-          <p className="text-slate-400">Loading tasks…</p>
-        </div>
-      </div>
-    );
-  }
+  const getCurrentLoading = () => {
+    switch (activeTab) {
+      case 'today': return todayLoading;
+      case 'my': return myTasksLoading;
+      case 'pending': return pendingLoading;
+      case 'overdue':
+      case 'previous':
+        return overdueLoading || previousLoading;
+      default: return false;
+    }
+  };
+  const currentLoading = getCurrentLoading();
 
   const overdueCount = (overdueTasks && overdueTasks.length > 0) 
     ? overdueTasks.length 
@@ -129,12 +153,20 @@ export default function TasksPage() {
           <p className="text-slate-400 mt-1">Manage daily tasks and workload allocation</p>
         </div>
         {canManage && (
-          <Link href="/adminzenfix/tasks/bulk">
-            <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Bulk Create
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/adminzenfix/tasks/create">
+              <Button variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Task
+              </Button>
+            </Link>
+            <Link href="/adminzenfix/tasks/bulk">
+              <Button className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Bulk Create
+              </Button>
+            </Link>
+          </div>
         )}
       </div>
 
@@ -189,6 +221,7 @@ export default function TasksPage() {
       <div className="flex items-center gap-2 border-b border-white/10 overflow-x-auto">
         {[
           { id: 'today', label: "Today's Tasks", count: todayTasks?.length || 0 },
+          { id: 'my', label: 'My Tasks', count: myTasks?.length || 0 },
           { id: 'pending', label: 'Pending', count: pendingTasks?.length || 0 },
           { id: 'overdue', label: 'Overdue', count: overdueCount, alert: overdueCount > 0 },
         ].map((tab) => (
@@ -245,7 +278,16 @@ export default function TasksPage() {
 
       {/* Tasks Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTasks.length === 0 ? (
+        {currentLoading ? (
+          <>
+            <TaskCardSkeleton />
+            <TaskCardSkeleton />
+            <TaskCardSkeleton />
+            <TaskCardSkeleton />
+            <TaskCardSkeleton />
+            <TaskCardSkeleton />
+          </>
+        ) : filteredTasks.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <p className="text-slate-500">
               {activeTab === 'overdue' ? 'No overdue tasks - great job!' :
@@ -317,15 +359,27 @@ export default function TasksPage() {
                 <div className="mt-2 pt-2 border-t border-white/5">
                   <div className="flex items-center gap-1.5">
                     <Link2 className="h-3 w-3 text-green-400 shrink-0" />
-                    <a
-                      href={task.drive_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-green-400 text-xs hover:underline truncate"
+                    {/* span (role=link) instead of <a>: this lives inside the card's
+                        outer <Link>, and nesting an <a> inside an <a> is invalid HTML
+                        that breaks hydration. */}
+                    <span
+                      role="link"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(task.drive_link, '_blank', 'noopener,noreferrer');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.open(task.drive_link, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      className="text-green-400 text-xs hover:underline truncate cursor-pointer"
                     >
                       {task.drive_link}
-                    </a>
+                    </span>
                   </div>
                   {task.completion_notes && (
                     <div className="flex items-start gap-1.5 mt-1">

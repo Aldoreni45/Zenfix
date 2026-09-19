@@ -196,27 +196,53 @@ function unwrapEnvelope<T>(payload: any): T {
 class ApiClient {
   private baseUrl: string;
   private csrfToken: string | null = null;
+  private csrfPromise: Promise<string | null> | null = null;
   private refreshPromise: Promise<string | null> | null = null;
+  // In-flight GET cache: if the same request is already in progress, concurrent
+  // callers reuse the pending promise instead of starting a duplicate request.
+  private inflightGets = new Map<string, Promise<ApiResponse<any>>>();
+  private readonly STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+  private readonly NO_REFRESH_ENDPOINTS = new Set(['/auth/login', '/auth/logout']);
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl;
   }
 
-  private async ensureCsrf(): Promise<string | null> {
-    if (this.csrfToken) return this.csrfToken;
-    try {
-      const response = await fetch(`${this.baseUrl}/auth/csrf`, {
-        credentials: 'include',
-      });
-      if (response.ok) {
-        const data = await response.json();
-        this.csrfToken = data.csrfToken;
-        return this.csrfToken;
+  /**
+   * Acquire a CSRF token once and reuse it for the rest of the session.
+   * Concurrency-safe: while a CSRF fetch is in flight all callers await the
+   * same promise. Failures are best-effort and NEVER trigger retries/loops.
+   */
+  private ensureCsrf(): Promise<string | null> {
+    if (this.csrfToken) return Promise.resolve(this.csrfToken);
+    if (this.csrfPromise) return this.csrfPromise;
+
+    this.csrfPromise = (async () => {
+      try {
+        const response = await fetch(`${this.baseUrl}/auth/csrf`, {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        if (response.ok) {
+          const payload = await response.json();
+          const token = payload?.csrfToken || payload?.data?.csrfToken || null;
+          if (token) {
+            this.csrfToken = token;
+            return token;
+          }
+        }
+      } catch {
+        // Best-effort CSRF only. This API authenticates via JWT cookies and
+        // does NOT enforce CSRF, so a missing token must never fail the request
+        // or start a request -> CSRF -> request loop.
       }
-    } catch {
-      // Ignore CSRF errors
-    }
-    return null;
+      return null;
+    })();
+
+    const settled = this.csrfPromise.finally(() => {
+      this.csrfPromise = null;
+    });
+    return settled.then(() => this.csrfToken);
   }
 
   public async refreshToken(): Promise<string | null> {
@@ -227,7 +253,7 @@ class ApiClient {
 
     this.refreshPromise = (async () => {
       try {
-        // Browser automatically sends HttpOnly refresh cookie via credentials: 'include'
+        // Browser automatically sends the refresh token cookie via credentials: 'include'
         let response = await fetch(`${this.baseUrl}/auth/token/refresh`, {
           method: 'POST',
           credentials: 'include',
@@ -278,30 +304,44 @@ class ApiClient {
     isRetry = false
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseUrl}${endpoint}`;
+    const method = (options.method || 'GET').toUpperCase();
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...((options.headers as Record<string, string>) || {}),
+    };
+
+    // CSRF is only relevant for state-changing methods. It is acquired lazily
+    // ONCE per session and never on retries, so it can never recurse.
+    if (
+      !isRetry &&
+      this.STATE_CHANGING_METHODS.has(method) &&
+      !headers['X-CSRFToken']
+    ) {
+      const csrf = await this.ensureCsrf();
+      if (csrf) headers['X-CSRFToken'] = csrf;
+    }
+
+    // Don't attach a stale access token to the login endpoint: an expired
+    // cookie/header token previously caused CookieJWTAuthentication to abort
+    // the request with 401 before AllowAny login logic could run.
+    const accessToken = getStoredAccessToken();
+    const isLogin = endpoint === '/auth/login';
+    if (accessToken && !headers['Authorization'] && !isLogin) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
 
     try {
-      const accessToken = getStoredAccessToken();
-      const csrf = await this.ensureCsrf();
-
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...(csrf ? { 'X-CSRFToken': csrf } : {}),
-        ...((options.headers as Record<string, string>) || {}),
-      };
-
-      // Add JWT token to Authorization header if not already present in options
-      if (accessToken && !headers['Authorization']) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-      }
-
       const response = await fetch(url, {
         ...options,
         credentials: 'include',
         headers,
       });
 
-      // Handle 401 Unauthorized - retry ONCE after token refresh
-      if (response.status === 401 && !isRetry) {
+      // Handle 401 Unauthorized - retry ONCE after token refresh.
+      // Guaranteed not to loop: retries re-enter as isRetry=true and any 401
+      // on a retry terminates immediately. Auth endpoints never trigger refresh.
+      if (response.status === 401 && !isRetry && !this.NO_REFRESH_ENDPOINTS.has(endpoint)) {
         // If another concurrent request already refreshed the token, use the fresh one
         const currentToken = getStoredAccessToken();
         let activeToken = currentToken;
@@ -311,7 +351,7 @@ class ApiClient {
         }
 
         if (activeToken) {
-          // Retry original request exactly ONCE with new access token
+          // Retry original request exactly ONCE with the new access token
           const retryHeaders = {
             ...headers,
             'Authorization': `Bearer ${activeToken}`,
@@ -333,13 +373,23 @@ class ApiClient {
         };
       }
 
-      // If retry itself returned 401, terminate without looping
+      // If the retry itself returned 401, terminate without looping
       if (response.status === 401 && isRetry) {
         const errorText = await response.text();
+        const body = errorText || 'Unauthorized';
+        if (body.includes('token_not_valid')) {
+          clearTokens();
+        }
         return {
-          error: errorText || 'Unauthorized',
+          error: body,
           status: 401,
         };
+      }
+
+      // Login failure: clear stale/expired tokens so the next attempt
+      // starts with a clean slate (prevents the expired-cookie 401 loop).
+      if (response.status === 401 && endpoint === '/auth/login') {
+        clearTokens();
       }
 
       if (!response.ok) {
@@ -364,7 +414,16 @@ class ApiClient {
   }
 
   async get<T>(endpoint: string): Promise<ApiResponse<T>> {
-    return this.request<T>(endpoint, { method: 'GET' });
+    const url = `${this.baseUrl}${endpoint}`;
+    const inflight = this.inflightGets.get(url);
+    if (inflight) return inflight as Promise<ApiResponse<T>>;
+
+    const promise = this.request<T>(endpoint, { method: 'GET' });
+    promise.finally(() => {
+      if (this.inflightGets.get(url) === promise) this.inflightGets.delete(url);
+    });
+    this.inflightGets.set(url, promise);
+    return promise;
   }
 
   async post<T>(endpoint: string, body: any): Promise<ApiResponse<T>> {

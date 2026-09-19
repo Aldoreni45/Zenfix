@@ -87,7 +87,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleLogout = async () => {
     await logout();
-    window.location.href = '/adminzenfix/login';
+    // Client-side navigation, avoids the full-page reload that re-boots the
+    // whole auth bootstrap (and its burst of network requests) on logout.
+    router.replace('/adminzenfix/login');
   };
 
   useEffect(() => {
@@ -140,7 +142,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group',
+                    'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200 group',
                     isActive
                       ? 'bg-gradient-to-r from-cyan-500/10 to-purple-500/10 text-cyan-400 border border-cyan-500/20'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -173,7 +175,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 rounded-xl transition-all duration-200 border border-transparent"
+              className="flex items-center gap-2 w-full px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 rounded-xl transition-colors duration-200 border border-transparent"
             >
               <LogOut className="h-4 w-4" />
               Logout
@@ -210,12 +212,12 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
             <div className="flex items-center gap-3">
               {/* Notifications */}
-              <Link href="/adminzenfix/notifications" className="relative p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200">
+              <Link href="/adminzenfix/notifications" className="relative p-2.5 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-colors duration-200">
                 <Bell className="h-5 w-5" />
               </Link>
 
               {/* Profile dropdown */}
-              <Link href="/adminzenfix/profile" className="flex items-center gap-2 p-2 hover:bg-white/5 rounded-xl transition-all duration-200">
+              <Link href="/adminzenfix/profile" className="flex items-center gap-2 p-2 hover:bg-white/5 rounded-xl transition-colors duration-200">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold text-xs">
                   {user?.first_name?.[0] || user?.username?.[0] || 'U'}
                 </div>
