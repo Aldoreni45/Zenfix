@@ -64,6 +64,14 @@ function clearSavedUserRole() {
   }
 }
 
+// Role-based landing page. After login (or when hitting an admin root URL)
+// owner/manager land on the Dashboard; employees land directly on Tasks
+// (their existing "My Tasks" page) and never on the Dashboard.
+export function getRoleLandingPage(role?: string | null): string {
+  if (role === 'employee') return '/adminzenfix/tasks';
+  return '/adminzenfix/dashboard';
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

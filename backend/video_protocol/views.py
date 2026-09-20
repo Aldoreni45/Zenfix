@@ -61,7 +61,9 @@ def _validate_stage_transition(video, stage_type, action_type):
 
 
 class MonthlyVideoProtocolViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
-    queryset = MonthlyVideoProtocol.objects.select_related("client", "created_by").prefetch_related("videos__stages")
+    queryset = MonthlyVideoProtocol.objects.select_related("client", "created_by").prefetch_related(
+        "videos__stages__tasks", "videos__stages__assigned_to"
+    )
     permission_classes = [IsAuthenticatedAndActive]
 
     def get_serializer_class(self):
@@ -133,7 +135,7 @@ class MonthlyVideoProtocolViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def dashboard(self, request, pk=None):
         protocol = self.get_object()
-        videos = protocol.videos.prefetch_related("stages").all()
+        videos = protocol.videos.prefetch_related("stages__tasks", "stages__assigned_to").all()
 
         from django.db.models import Count as DCount, Q
         stage_stats = {}

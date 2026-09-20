@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useAuth, useDashboard, useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useUnreadNotifications, useNotificationCount, useMyActivityLogs } from '@/lib/hooks';
+import { useAuth, useDashboard, useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useUnreadNotifications, useNotificationCount, useMyActivityLogs, getRoleLandingPage } from '@/lib/hooks';
 import { api, apiEndpoints } from '@/lib/api';
 
 const PRIORITY_COLORS: Record<string, string> = {
@@ -54,6 +54,14 @@ export default function DashboardPage() {
       router.push('/adminzenfix/login');
     }
   }, [initialized, isAuthenticated, router]);
+
+  useEffect(() => {
+    // Route protection: the Dashboard is an owner/manager page. Employees who
+    // navigate directly to /adminzenfix/dashboard are sent to their Tasks page.
+    if (initialized && isAuthenticated && user?.role === 'employee') {
+      router.replace(getRoleLandingPage(user.role));
+    }
+  }, [initialized, isAuthenticated, user?.role, router]);
 
   const userRole = user?.role || 'employee';
 

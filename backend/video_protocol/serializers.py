@@ -20,13 +20,45 @@ class VideoStageSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     is_locked = serializers.BooleanField(read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
-    # Submission context: who completed this stage (= assigned_to) and when (= completed_at)
+    # Submission context. A video-protocol stage is usually completed by
+    # completing its linked Task ("My Tasks"), which writes drive_link and
+    # completion_notes to the Task, NOT to the VideoStage. To surface the SAME
+    # real submission data that the My Tasks page shows, drive_link and
+    # completion_notes fall back to the linked (completed) task via the
+    # existing Task.video_stage relationship. No new DB fields.
+    drive_link = serializers.SerializerMethodField()
+    completion_notes = serializers.SerializerMethodField()
     submitted_by_name = serializers.SerializerMethodField()
+
+    def _linked_completed_task(self, obj):
+        from tasks.models import Task
+
+        return (
+            obj.tasks.filter(status=Task.Status.COMPLETED)
+            .order_by("-completed_at", "-updated_at")
+            .first()
+        )
+
+    def get_drive_link(self, obj):
+        if obj.drive_link:
+            return obj.drive_link
+        task = self._linked_completed_task(obj)
+        return (task.drive_link or "") if task else ""
+
+    def get_completion_notes(self, obj):
+        if obj.completion_notes:
+            return obj.completion_notes
+        task = self._linked_completed_task(obj)
+        return (task.completion_notes or "") if task else ""
 
     def get_submitted_by_name(self, obj):
         if obj.assigned_to:
             full = f"{obj.assigned_to.first_name} {obj.assigned_to.last_name}".strip()
             return full or obj.assigned_to.email
+        task = self._linked_completed_task(obj)
+        if task and task.assigned_to:
+            full = f"{task.assigned_to.first_name} {task.assigned_to.last_name}".strip()
+            return full or task.assigned_to.email
         return None
 
     class Meta:

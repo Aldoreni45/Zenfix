@@ -2,21 +2,21 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, getRoleLandingPage } from '@/lib/auth-context';
 import { Loader2 } from 'lucide-react';
 
 export default function AdminRootPage() {
   const router = useRouter();
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
     if (loading) return;
     if (isAuthenticated) {
-      router.replace('/adminzenfix/dashboard');
+      router.replace(getRoleLandingPage(user?.role));
     } else {
       router.replace('/adminzenfix/login');
     }
-  }, [isAuthenticated, loading, router]);
+  }, [isAuthenticated, loading, router, user?.role]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950">

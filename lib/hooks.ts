@@ -359,5 +359,6 @@ export {
   useIsEmployee, 
   useCanManage,
   useCanManageUsers, 
-  useCanApproveVideos 
+  useCanApproveVideos,
+  getRoleLandingPage
 } from './auth-context';

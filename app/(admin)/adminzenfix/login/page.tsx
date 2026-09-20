@@ -2,16 +2,24 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/lib/auth-context';
+import { useAuth, useUserRole, getRoleLandingPage } from '@/lib/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Lock, User, Loader2 } from 'lucide-react';
 
+// Resolve where to go after login. The `from` query param is honored for
+// owner/manager, but employees must never land on the Dashboard.
+function resolveLoginTarget(from: string | null, role?: string | null): string {
+  if (from && from !== '/adminzenfix/dashboard') return from;
+  return getRoleLandingPage(role);
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const userRole = useUserRole();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [credentials, setCredentials] = useState({
@@ -22,9 +30,9 @@ function LoginForm() {
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       const from = searchParams.get('from');
-      router.replace(from || '/adminzenfix/dashboard');
+      router.replace(resolveLoginTarget(from, userRole));
     }
-  }, [isAuthenticated, authLoading, router, searchParams]);
+  }, [isAuthenticated, authLoading, router, searchParams, userRole]);
 
   if (authLoading) {
     return (
@@ -64,7 +72,7 @@ function LoginForm() {
 
     if (result.success) {
       const from = searchParams.get('from');
-      router.replace(from || '/adminzenfix/dashboard');
+      router.replace(resolveLoginTarget(from, userRole));
     } else {
       setError(result.error || 'Login failed. Please try again.');
     }
