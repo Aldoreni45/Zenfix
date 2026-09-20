@@ -445,6 +445,8 @@ class VideoStageViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
 
         drive_link = request.data.get("drive_link", "").strip()
         completion_notes = request.data.get("completion_notes", "").strip()
+        import sys
+        print(f"[DEBUG complete] stage={validated_stage.numeric_id} drive_link={repr(drive_link)} request.data={dict(request.data)}", file=sys.stderr)
         if drive_link:
             validated_stage.drive_link = drive_link
         if completion_notes:

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { api, apiEndpoints, clearTokens, hasAccessToken, hasRefreshToken, storeTokens } from './api';
+import { api, apiEndpoints, clearTokens, getStoredAccessToken, hasAccessToken, hasRefreshToken, storeTokens } from './api';
 
 const USER_ROLE_KEY = 'zenfix_user_role';
 
@@ -125,23 +125,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const hasAccess = hasAccessToken();
     const hasRefresh = hasRefreshToken();
-    const tokensExist = hasAccess || hasRefresh;
-
-    // No tokens at all -> deterministically unauthenticated. Skip the /me call
-    // entirely (it would 401 and cascade into a CSRF + refresh round trip).
-    if (!tokensExist) {
-      console.log('[AUTH] no-tokens, unauthenticated');
-      setUser(null);
-      setIsAuthenticated(false);
-      clearSavedUserRole();
-      stopRefreshTimer();
-      setLoading(false);
-      setInitialized(true);
-      return;
-    }
+    // Session signal: any JS-visible JWT cookie or stored access token.
+    // Used only for recovery decisions, NEVER as a reason to skip restore
+    // (cookies may be HttpOnly and invisible to document.cookie while still
+    // being sent to the /me endpoint by the browser).
+    const sessionHint = hasAccess || hasRefresh || !!getStoredAccessToken();
 
     try {
-      // Step 1: try to get the current user (backend cookie auth works natively)
+      // Step 1: always try to get the current user. The browser automatically
+      // sends the session cookies (even HttpOnly ones), so /me restores the
+      // session even when JS cannot read them from document.cookie.
       let response = await api.get<User>(apiEndpoints.me);
       console.log('[AUTH] current-user:status', response.status);
 
@@ -166,6 +159,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         saveUserRole(response.data.role);
         setIsAuthenticated(true);
         scheduleRefresh();
+      } else if (sessionHint) {
+        // A session signal exists but the restore request failed (e.g. a
+        // transient network hiccup while the page reloads). Keep the admin
+        // logged in instead of bouncing to the login screen; the background
+        // refresh loop will recover the session or clear it if truly dead.
+        console.log('[AUTH] no-user-restored-but-session-exists, keeping-authenticated', { status: response.status, hasError: !!response.error });
+        setUser(null);
+        setIsAuthenticated(true);
+        scheduleRefresh();
       } else {
         console.log('[AUTH] no-user-restored', { status: response.status, hasError: !!response.error });
         setUser(null);
@@ -175,10 +177,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.log('[AUTH] initialization:error', error);
-      setUser(null);
-      setIsAuthenticated(false);
-      clearSavedUserRole();
-      stopRefreshTimer();
+      if (sessionHint) {
+        console.log('[AUTH] error-but-session-exists, keeping-authenticated');
+        setUser(null);
+        setIsAuthenticated(true);
+        scheduleRefresh();
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        clearSavedUserRole();
+        stopRefreshTimer();
+      }
     } finally {
       console.log('[AUTH] initialization:complete');
       setLoading(false);
@@ -254,10 +263,12 @@ export function useAuth() {
 }
 
 export function useUserRole() {
-  const { user } = useAuth();
-  // Fallback to sessionStorage if user is null (during initial load)
+  const { user, initialized } = useAuth();
   if (user?.role) return user.role;
-  const savedRole = getSavedUserRole();
+  // Only trust the sessionStorage fallback after the auth bootstrap finishes.
+  // Reading it during SSR or the first client render would diverge from the
+  // server (no storage server-side) and break React hydration.
+  const savedRole = initialized ? getSavedUserRole() : null;
   return (savedRole as 'owner' | 'manager' | 'employee') || 'employee';
 }
 

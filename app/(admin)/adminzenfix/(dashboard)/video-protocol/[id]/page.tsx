@@ -165,10 +165,13 @@ function VideoCard({ video, users, onAction, canManage }: { video: VideoRecord; 
     if (completeDriveLink.trim()) payload.drive_link = completeDriveLink.trim();
     if (completeNotes.trim()) payload.completion_notes = completeNotes.trim();
     if (completeNotes.trim()) payload.notes = completeNotes.trim();
+    console.log('[VideoCard handleComplete] stageId=', stageId, 'payload=', payload, 'completeDriveLink=', completeDriveLink);
     await onAction('complete', stageId, payload);
     setShowComplete(null);
     setCompleteNotes('');
     setCompleteDriveLink('');
+    // Auto-open the submission details so user can verify the drive link was saved
+    setShowStageDetails(stageId);
   };
 
   return (
@@ -459,7 +462,7 @@ export default function ProtocolDashboardPage() {
     }
 
     toast.success(`${action} successful`);
-    fetchDashboard(true);
+    await fetchDashboard(true);
   }, [fetchDashboard]);
 
   if (loading) {
