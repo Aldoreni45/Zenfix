@@ -151,7 +151,7 @@ export default function ServicesSection() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.2, delay: idx * 0.03 }}
-                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700/50 rounded-xl p-4 flex flex-col min-h-[220px] max-h-[260px] hover:-translate-y-3 transition-transform duration-200 hover:border-electric-cyan/50 hover:shadow-[0_8px_24px_-8px_rgba(6,182,212,0.3)]"
+                className="group relative border border-white/10 bg-white/5 rounded-xl p-4 flex flex-col min-h-[220px] max-h-[260px] hover:-translate-y-3 transition-transform duration-200 hover:border-electric-cyan/50 hover:shadow-[0_8px_24px_-8px_rgba(6,182,212,0.3)] backdrop-blur-xl"
                 whileHover={{ 
                   scale: 1.01,
                 }}
