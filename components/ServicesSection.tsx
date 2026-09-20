@@ -6,92 +6,92 @@ import { Search, MousePointerClick, Megaphone, PenTool, LayoutDashboard, Bot, Sm
 const services = [
   {
     title: "SEO Optimization",
-    desc: "Dominate search rankings with our data-driven SEO strategies that drive high-intent organic traffic.",
+    desc: "Improve search visibility and drive qualified organic traffic.",
     icon: Search,
   },
   {
     title: "Google Ads",
-    desc: "Precision-targeted PPC campaigns that maximize your ad spend and turn clicks into revenue.",
+    desc: "Target high-intent customers with performance-focused PPC.",
     icon: MousePointerClick,
   },
   {
     title: "Meta Ads",
-    desc: "Scroll-stopping Facebook and Instagram campaigns engineered to capture attention and drive leads.",
+    desc: "Reach the right audience with conversion-focused social campaigns.",
     icon: Megaphone,
   },
   {
     title: "Social Media Management",
-    desc: "Build your brand presence across all platforms with engaging content and community management.",
+    desc: "Build your brand with engaging content and community management.",
     icon: Users,
   },
   {
     title: "Lead Generation",
-    desc: "High-converting lead generation strategies that fill your pipeline with qualified prospects.",
+    desc: "Generate qualified leads that grow your sales pipeline.",
     icon: Target,
   },
   {
     title: "Website Development",
-    desc: "Custom, responsive websites built for performance, speed, and exceptional user experience.",
+    desc: "Fast, responsive websites built for performance and conversion.",
     icon: LayoutDashboard,
   },
   {
     title: "Web Application Development",
-    desc: "Scalable web applications tailored to your business needs with modern technologies.",
+    desc: "Scalable web applications tailored to your business needs.",
     icon: Code,
   },
   {
     title: "Mobile App Development",
-    desc: "Native and cross-platform mobile applications that deliver seamless user experiences.",
+    desc: "Native and cross-platform mobile applications with seamless UX.",
     icon: Smartphone,
   },
   {
     title: "Brand Identity",
-    desc: "Comprehensive branding solutions that define your unique identity and market position.",
+    desc: "Comprehensive branding that defines your unique market position.",
     icon: Palette,
   },
   {
     title: "Content Marketing",
-    desc: "Authority-building content that engages your audience and accelerates the buyer's journey.",
+    desc: "Authority-building content that engages your audience.",
     icon: PenTool,
   },
   {
     title: "Email Marketing",
-    desc: "Automated email campaigns that nurture leads and drive conversions at scale.",
+    desc: "Automated campaigns that nurture leads and drive conversions.",
     icon: Mail,
   },
   {
     title: "Marketing Automation",
-    desc: "Streamline your marketing with AI-powered automation that saves time and boosts results.",
+    desc: "AI-powered automation that saves time and boosts results.",
     icon: Bot,
   },
   {
     title: "Performance Marketing",
-    desc: "Data-driven performance marketing campaigns focused on measurable ROI and growth.",
+    desc: "Data-driven campaigns focused on measurable ROI and growth.",
     icon: BarChart3,
   },
   {
     title: "Analytics & Reporting",
-    desc: "Comprehensive analytics and reporting that provide actionable insights for optimization.",
+    desc: "Actionable insights that optimize your marketing performance.",
     icon: Zap,
   },
   {
     title: "Local SEO",
-    desc: "Dominate local search results and attract customers in your geographic area.",
+    desc: "Dominate local search and attract nearby customers.",
     icon: Globe,
   },
   {
     title: "AI Chatbots",
-    desc: "Intelligent chatbots that provide 24/7 customer support and lead qualification.",
+    desc: "24/7 intelligent customer support and lead qualification.",
     icon: MessageSquare,
   },
   {
     title: "CRM Integration",
-    desc: "Seamless CRM integration that unifies your marketing, sales, and customer data.",
+    desc: "Unify marketing, sales, and customer data seamlessly.",
     icon: LayoutDashboard,
   },
   {
     title: "Landing Page Design",
-    desc: "High-converting landing pages optimized for specific campaigns and lead generation.",
+    desc: "High-converting pages optimized for campaigns and leads.",
     icon: Target,
   },
 ];
@@ -140,89 +140,37 @@ export default function ServicesSection() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6 lg:gap-8 xl:gap-10 2xl:gap-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4 lg:gap-5 xl:gap-6 2xl:gap-6 max-w-[1600px] mx-auto">
           {services.map((service, idx) => {
             const Icon = service.icon;
-            
-            // New elegant animation variants
-            const animationVariants = [
-              { 
-                initial: { opacity: 0, y: 30 }, 
-                whileInView: { opacity: 1, y: 0 }, 
-                transition: { duration: 0.4, delay: idx * 0.06 } 
-              },
-              { 
-                initial: { opacity: 0, scale: 0.95 }, 
-                whileInView: { opacity: 1, scale: 1 }, 
-                transition: { duration: 0.4, delay: idx * 0.06 } 
-              },
-              { 
-                initial: { opacity: 0, x: -20 }, 
-                whileInView: { opacity: 1, x: 0 }, 
-                transition: { duration: 0.4, delay: idx * 0.06 } 
-              },
-              { 
-                initial: { opacity: 0, x: 20 }, 
-                whileInView: { opacity: 1, x: 0 }, 
-                transition: { duration: 0.4, delay: idx * 0.06 } 
-              },
-              { 
-                initial: { opacity: 0, y: -20 }, 
-                whileInView: { opacity: 1, y: 0 }, 
-                transition: { duration: 0.4, delay: idx * 0.06 } 
-              },
-              { 
-                initial: { opacity: 0, scale: 0.9, y: 20 }, 
-                whileInView: { opacity: 1, scale: 1, y: 0 }, 
-                transition: { duration: 0.4, delay: idx * 0.06 } 
-              },
-            ];
-            
-            const variant = animationVariants[idx % animationVariants.length];
             
             return (
               <motion.div
                 key={idx}
-                initial={variant.initial}
-                whileInView={variant.whileInView}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={variant.transition}
-                className="group relative gradient-border p-5 md:p-6 lg:p-8 xl:p-10 rounded-2xl md:rounded-3xl transition-all duration-700 overflow-hidden hover:-translate-y-3 hover:shadow-[0_20px_60px_-15px_rgba(6,182,212,0.3)]"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.2, delay: idx * 0.03 }}
+                className="group relative bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700/50 rounded-xl p-4 flex flex-col min-h-[220px] max-h-[260px] hover:-translate-y-3 transition-transform duration-200 hover:border-electric-cyan/50 hover:shadow-[0_8px_24px_-8px_rgba(6,182,212,0.3)]"
                 whileHover={{ 
-                  scale: 1.02,
-                  boxShadow: "0 25px 80px -15px rgba(6,182,212,0.4)"
+                  scale: 1.01,
                 }}
               >
-                {/* Premium Hover Gradient Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-electric-cyan/10 via-royal-blue/10 to-purple/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                
-                {/* Shimmer Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
-                
-                {/* Glow Effect */}
-                <div className="absolute -inset-1 bg-gradient-to-r from-electric-cyan via-royal-blue to-purple opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-700" />
-                
                 <div className="relative z-10 flex flex-col h-full">
-                  <motion.div 
-                    className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-18 rounded-2xl md:rounded-3xl bg-gradient-to-br from-electric-cyan/30 to-royal-blue/30 flex items-center justify-center mb-5 md:mb-7 lg:mb-9 border border-electric-cyan/40 group-hover:scale-125 group-hover:rotate-12 transition-all duration-700 shadow-[0_8px_32px_rgba(6,182,212,0.2)] group-hover:shadow-[0_12px_48px_rgba(6,182,212,0.4)]"
-                    whileHover={{ scale: 1.25, rotate: 12 }}
-                  >
-                    <Icon className="text-electric-cyan group-hover:text-white transition-colors w-6 h-6 md:w-7 md:h-7 lg:w-8 lg:h-8" />
-                  </motion.div>
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-electric-cyan/20 to-royal-blue/20 flex items-center justify-center mb-3 border border-electric-cyan/30 group-hover:border-electric-cyan/50 transition-colors duration-200">
+                    <Icon className="text-electric-cyan w-5 h-5" />
+                  </div>
                   
-                  <h4 className="text-lg md:text-xl lg:text-2xl xl:text-3xl font-heading font-bold text-white mb-3 md:mb-4 lg:mb-5 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-electric-cyan group-hover:via-royal-blue group-hover:to-purple transition-colors duration-500">{service.title}</h4>
+                  <h4 className="text-base font-bold text-white mb-2 group-hover:text-electric-cyan transition-colors duration-200">{service.title}</h4>
                   
-                  <p className="text-sm md:text-base lg:text-lg text-gray-400 leading-relaxed mb-5 md:mb-7 lg:mb-9 flex-grow group-hover:text-gray-300 transition-colors duration-500">
+                  <p className="text-sm text-gray-400 leading-relaxed flex-grow group-hover:text-gray-300 transition-colors duration-200">
                     {service.desc}
                   </p>
                   
-                  <motion.div 
-                    className="flex items-center gap-3 text-xs md:text-sm lg:text-base font-bold text-electric-cyan uppercase tracking-wider group-hover:gap-6 transition-all duration-500 mt-auto cursor-pointer group-hover:text-royal-blue"
-                    whileHover={{ gap: 24 }}
-                  >
+                  <div className="flex items-center gap-2 text-xs font-bold text-electric-cyan uppercase tracking-wider mt-auto pt-3 cursor-pointer group-hover:text-royal-blue transition-colors duration-200">
                     <span>Learn More</span>
-                    <span className="w-8 h-[2px] bg-gradient-to-r from-electric-cyan to-royal-blue group-hover:w-16 transition-all duration-500" />
-                  </motion.div>
+                    <span className="text-electric-cyan group-hover:text-royal-blue transition-colors duration-200">→</span>
+                  </div>
                 </div>
               </motion.div>
             );

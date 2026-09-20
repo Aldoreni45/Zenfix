@@ -25,7 +25,7 @@ export default function HeroSlider() {
       </div>
 
       <div className="relative z-10 w-full max-w-[1800px] mx-auto px-[20px] md:px-[40px] lg:px-[80px] xl:px-[100px]">
-        <div className="grid lg:grid-cols-[55%_45%] gap-12 md:gap-16 lg:gap-[100px] items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-12 md:gap-16 lg:gap-[100px] items-start">
           {/* Left Content */}
           <div className="flex flex-col items-start gap-10 md:gap-12 lg:gap-16">
 
@@ -61,10 +61,10 @@ export default function HeroSlider() {
           </div>
 
           {/* Right Content - AI Powered Dashboard */}
-          <div className="relative lg:mt-8">
-            <div className="grid grid-cols-2 gap-4 md:gap-5 lg:gap-6 max-w-full">
+          <div className="relative lg:mt-8 w-full min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5 lg:gap-6 w-full min-w-0">
               {/* Marketing Card - Top Center */}
-              <div className="col-span-2 glass-card rounded-3xl p-6 border border-white/10 animate-float-1 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+              <div className="col-span-1 sm:col-span-2 glass-card rounded-3xl p-4 sm:p-5 md:p-6 border border-white/10 animate-float-1 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500 min-w-0">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center">
                     <BarChart3 className="w-5 h-5 text-white" />
@@ -80,7 +80,7 @@ export default function HeroSlider() {
               </div>
 
               {/* Lead Card - Left */}
-              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-2 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+              <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 animate-float-2 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500 min-w-0">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple to-pink flex items-center justify-center">
                     <Target className="w-5 h-5 text-white" />
@@ -96,7 +96,7 @@ export default function HeroSlider() {
               </div>
 
               {/* SEO Card - Right */}
-              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-3 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+              <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 animate-float-3 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500 min-w-0">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center">
                     <Globe className="w-5 h-5 text-white" />
@@ -112,7 +112,7 @@ export default function HeroSlider() {
               </div>
 
               {/* AI Card - Center */}
-              <div className="col-span-2 glass-card rounded-3xl p-6 border border-white/10 animate-float-4 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+              <div className="col-span-1 sm:col-span-2 glass-card rounded-3xl p-4 sm:p-5 md:p-6 border border-white/10 animate-float-4 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500 min-w-0">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan via-royal-blue to-purple flex items-center justify-center">
                     <Sparkles className="w-5 h-5 text-white" />
@@ -128,7 +128,7 @@ export default function HeroSlider() {
               </div>
 
               {/* ROI Card - Left */}
-              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-5 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+              <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 animate-float-5 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500 min-w-0">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-white" />
@@ -144,7 +144,7 @@ export default function HeroSlider() {
               </div>
 
               {/* Social Card - Right */}
-              <div className="glass-card rounded-3xl p-5 border border-white/10 animate-float-6 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500">
+              <div className="glass-card rounded-3xl p-4 sm:p-5 border border-white/10 animate-float-6 hover:scale-105 hover:shadow-[0_0_40px_rgba(6,182,212,0.3)] transition-all duration-500 min-w-0">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center">
                     <Users className="w-5 h-5 text-white" />
