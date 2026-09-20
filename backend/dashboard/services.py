@@ -14,10 +14,8 @@ from videos.models import Video
 class DashboardService:
     @staticmethod
     def _task_filters_for(user) -> Q:
-        if user.role == User.Role.OWNER:
+        if user.role == User.Role.OWNER or user.role == User.Role.MANAGER:
             return Q()
-        if user.role == User.Role.MANAGER:
-            return Q(assigned_manager=user) | Q(assigned_by=user) | Q(assigned_to__reports_to=user) | Q(created_by=user)
         return Q(assigned_to=user)
 
     @classmethod
@@ -25,16 +23,11 @@ class DashboardService:
         today = timezone.localdate()
         task_q = cls._task_filters_for(user)
         tasks = Task.objects.filter(task_q)
-        if user.role == User.Role.OWNER:
+        if user.role == User.Role.OWNER or user.role == User.Role.MANAGER:
             clients = Client.objects.all()
             users = User.objects.all()
             videos = Video.objects.all()
             approvals = Approval.objects.all()
-        elif user.role == User.Role.MANAGER:
-            clients = Client.objects.filter(assigned_manager=user)
-            users = User.objects.filter(Q(pk=user.pk) | Q(reports_to=user) | Q(role=User.Role.EMPLOYEE))
-            videos = Video.objects.filter(Q(created_by=user) | Q(assigned_to__reports_to=user) | Q(assigned_to=user) | Q(client__assigned_manager=user))
-            approvals = Approval.objects.filter(Q(reviewed_by=user) | Q(requested_by__reports_to=user) | Q(status=Approval.Status.PENDING))
         else:
             clients = Client.objects.filter(tasks__assigned_to=user).distinct()
             users = User.objects.filter(pk=user.pk)
@@ -69,7 +62,7 @@ class DashboardService:
             "videos_remaining": max((video_stats["total"] or 0) - (video_stats["approved"] or 0), 0),
         }
 
-        if user.role == User.Role.OWNER:
+        if user.role == User.Role.OWNER or user.role == User.Role.MANAGER:
             payload.update(
                 {
                     "total_users": users.count(),
@@ -86,29 +79,6 @@ class DashboardService:
                     "total_monthly_target": 0,
                 }
             )
-        elif user.role == User.Role.MANAGER:
-            team = User.objects.filter(Q(reports_to=user) | Q(role=User.Role.EMPLOYEE))
-            payload.update(
-                {
-                    "assigned_clients": clients.count(),
-                    "team_members": team.count(),
-                    "approvals": approvals.filter(status=Approval.Status.PENDING).count(),
-                    "workflow_statistics": video_stats,
-                    "workload": {
-                        "total": team.count(),
-                        "assigned_clients": clients.count(),
-                        "employees": [
-                            {
-                                "id": member.numeric_id,
-                                "name": member.full_name,
-                                "role": member.role,
-                                "pending_tasks": Task.objects.filter(assigned_to=member, status__in=[Task.Status.PENDING, Task.Status.ASSIGNED]).count(),
-                            }
-                            for member in team.filter(role=User.Role.EMPLOYEE)[:50]
-                        ],
-                    },
-                }
-            )
         else:
             payload.update(
                 {
@@ -122,7 +92,7 @@ class DashboardService:
 
     @staticmethod
     def task_summary(user: User) -> dict:
-        qs = Task.objects.all() if user.role == User.Role.OWNER else Task.objects.filter(DashboardService._task_filters_for(user))
+        qs = Task.objects.all() if user.role == User.Role.OWNER or user.role == User.Role.MANAGER else Task.objects.filter(DashboardService._task_filters_for(user))
         return {
             "total": qs.count(),
             "by_status": {

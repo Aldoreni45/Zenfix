@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function HeroSlider() {
   return (
-    <section id="home" className="relative min-h-[90vh] lg:min-h-screen pt-[80px] pb-[60px] md:pt-[100px] md:pb-[80px] lg:pt-[120px] lg:pb-[100px] bg-background overflow-hidden">
+    <section id="home" className="relative pt-[80px] pb-[40px] md:pt-[100px] md:pb-[60px] lg:pt-[120px] lg:pb-[80px] bg-background overflow-hidden">
       {/* Premium Background */}
       <div className="absolute inset-0">
         {/* Animated Grid */}
@@ -18,7 +18,7 @@ export default function HeroSlider() {
       </div>
 
       <div className="relative z-10 w-full max-w-[1600px] mx-auto px-[20px] md:px-[40px] lg:px-[60px] xl:px-[80px]">
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-8 md:gap-12 lg:gap-20 items-center min-h-[auto] lg:min-h-[70vh]">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] gap-8 md:gap-12 lg:gap-20 items-center">
           {/* Left Content */}
           <div className="flex flex-col items-start gap-6 md:gap-8 lg:gap-12 order-1 lg:order-1">
             {/* Eyebrow */}

@@ -147,7 +147,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AUTH] current-user:status', response.status);
 
       // Step 2: if 401, refresh once and retry once (bounded, never a loop)
-      if (response.status === 401 && hasRefresh) {
+      // Only attempt refresh if there's evidence of an existing session (sessionHint)
+      // to avoid unnecessary refresh attempts when there's no session at all
+      if (response.status === 401 && hasRefresh && sessionHint) {
         console.log('[AUTH] access-token-expired, attempting refresh');
         const refreshedToken = await api.refreshToken();
 

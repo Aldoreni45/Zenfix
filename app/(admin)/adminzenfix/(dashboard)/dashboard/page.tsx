@@ -350,19 +350,24 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Quick actions for owner */}
-      {userRole === 'owner' && (
+      {/* Quick actions for owner and manager */}
+      {(userRole === 'owner' || userRole === 'manager') && (
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-semibold text-white">Quick Actions</h3>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
+            {(userRole === 'owner' ? [
               { label: 'Create Task', href: '/adminzenfix/tasks/create', icon: CheckSquare, color: 'text-cyan-400' },
               { label: 'Add Client', href: '/adminzenfix/clients/create', icon: Users, color: 'text-purple-400' },
               { label: 'View Reports', href: '/adminzenfix/analytics', icon: TrendingUp, color: 'text-green-400' },
               { label: 'Activity Logs', href: '/adminzenfix/activity-logs', icon: Activity, color: 'text-amber-400' },
-            ].map((action) => (
+            ] : [
+              { label: 'Create Task', href: '/adminzenfix/tasks/create', icon: CheckSquare, color: 'text-cyan-400' },
+              { label: 'Add Client', href: '/adminzenfix/clients/create', icon: Users, color: 'text-purple-400' },
+              { label: 'View Reports', href: '/adminzenfix/reports', icon: TrendingUp, color: 'text-green-400' },
+              { label: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar, color: 'text-blue-400' },
+            ]).map((action) => (
               <Link key={action.label} href={action.href}
                 className="flex items-center gap-3 p-4 bg-white/5 border border-white/5 rounded-xl hover:bg-white/10 hover:border-white/10 transition-all group">
                 <action.icon className={cn('h-5 w-5 flex-shrink-0', action.color)} />

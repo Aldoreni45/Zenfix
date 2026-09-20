@@ -29,10 +29,8 @@ class ClientViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Client.objects.all()
-        if user.role == User.Role.OWNER:
+        if user.role == User.Role.OWNER or user.role == User.Role.MANAGER:
             return qs
-        if user.role == User.Role.MANAGER:
-            return qs.filter(Q(assigned_manager=user) | Q(assigned_team_ids__contains=user.numeric_id) | Q(created_by=user))
         return qs.filter(Q(assigned_team_ids__contains=user.numeric_id) | Q(tasks__assigned_to=user)).distinct()
 
     def perform_create(self, serializer):

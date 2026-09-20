@@ -341,7 +341,13 @@ class ApiClient {
       // Handle 401 Unauthorized - retry ONCE after token refresh.
       // Guaranteed not to loop: retries re-enter as isRetry=true and any 401
       // on a retry terminates immediately. Auth endpoints never trigger refresh.
-      if (response.status === 401 && !isRetry && !this.NO_REFRESH_ENDPOINTS.has(endpoint)) {
+      // Only attempt refresh if there's evidence of an existing session to avoid
+      // unnecessary refresh attempts when there's no session at all.
+      const hasAccess = hasAccessToken();
+      const hasRefresh = hasRefreshToken();
+      const sessionHint = hasAccess || hasRefresh || !!getStoredAccessToken();
+      
+      if (response.status === 401 && !isRetry && !this.NO_REFRESH_ENDPOINTS.has(endpoint) && sessionHint) {
         // If another concurrent request already refreshed the token, use the fresh one
         const currentToken = getStoredAccessToken();
         let activeToken = currentToken;

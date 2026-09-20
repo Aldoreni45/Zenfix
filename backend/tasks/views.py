@@ -30,10 +30,8 @@ class TaskViewSet(NumericIdViewSetMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Task.objects.all()
-        if user.role == User.Role.OWNER:
+        if user.role == User.Role.OWNER or user.role == User.Role.MANAGER:
             return qs
-        if user.role == User.Role.MANAGER:
-            return qs.filter(Q(assigned_manager=user) | Q(assigned_by=user) | Q(created_by=user) | Q(assigned_to__reports_to=user))
         return qs.filter(assigned_to=user)
 
     def perform_create(self, serializer):
