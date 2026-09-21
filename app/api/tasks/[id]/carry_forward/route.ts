@@ -5,7 +5,7 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { handleError, handleForbidden, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
-import { parseDueDateUTC, todayLocalISO } from '@/lib/date-utils';
+import { getDaysUntilDue, parseDueDateUTC, todayLocalISO } from '@/lib/date-utils';
 
 export async function POST(
   request: NextRequest,
@@ -34,6 +34,13 @@ export async function POST(
       // Django: Validate date (date-only, stored at UTC midnight)
       let parsedDate;
       if (new_due_date) {
+        const daysUntilDue = getDaysUntilDue(new_due_date);
+        if (daysUntilDue === null) {
+          return handleValidationError('Invalid date. Use YYYY-MM-DD format.');
+        }
+        if (daysUntilDue < 0) {
+          return handleValidationError('New due date cannot be in the past.');
+        }
         parsedDate = parseDueDateUTC(new_due_date);
         if (!parsedDate) {
           return handleValidationError('Invalid date. Use YYYY-MM-DD format.');

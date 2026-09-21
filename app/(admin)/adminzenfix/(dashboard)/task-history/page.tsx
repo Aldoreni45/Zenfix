@@ -391,7 +391,7 @@ export default function TaskHistoryPage() {
                   {filteredTeam.map((u: any) => (
                     <tr key={u.id} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer">
                       <td className="py-2.5 pr-4">
-                        <Link href={`/adminzenfix/task-history/users/${u.id}`} className="flex items-center gap-3 group">
+                        <Link href={`/adminzenfix/task-history/users/${u.id}${dateParams ? `?${dateParams}` : ''}`} className="flex items-center gap-3 group">
                           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                             {(u.name || u.username || 'U')[0]}
                           </div>

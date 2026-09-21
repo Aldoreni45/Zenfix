@@ -36,7 +36,7 @@ function TaskCardSkeleton() {
 export default function TasksPage() {
   const { data: todayTasks, loading: todayLoading } = useTodayTasks();
   const { data: pendingTasks, loading: pendingLoading } = usePendingTasks();
-  const { data: overdueTasks, loading: overdueLoading } = useOverdueTasks();
+  const { data: overdueTasks, loading: overdueLoading, refetch: refetchOverdue } = useOverdueTasks();
   const { data: pendingPreviousTasks, loading: previousLoading, refetch: refetchPrevious } = usePendingPreviousTasks();
   const { data: myTasks, loading: myTasksLoading } = useMyTasks();
   
@@ -115,14 +115,16 @@ export default function TasksPage() {
       return;
     }
     setCarryForwardingAll(true);
-    const res = await api.post<{ carried_count: number }>(apiEndpoints.carryForwardAllPending, {
+    const res = await api.post<{ carried_forward_count: number }>(apiEndpoints.carryForwardAllPending, {
       new_due_date: carryForwardDate,
+      date: todayLocalISO(),
     });
     if (res.error) {
       toast.error(extractApiErrorMessage(res));
     } else if (res.data) {
-      toast.success(`${res.data.carried_count} task(s) carried forward to ${formatDueDate(carryForwardDate)}`);
+      toast.success(`${res.data.carried_forward_count} task(s) carried forward to ${formatDueDate(carryForwardDate)}`);
       setCarryForwardDate('');
+      refetchOverdue();
       refetchPrevious();
     }
     setCarryForwardingAll(false);
@@ -187,7 +189,7 @@ export default function TasksPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     type="date"
-                    min={todayLocalISO(new Date(Date.now() + 86400000))}
+                    min={todayLocalISO()}
                     value={carryForwardDate}
                     onChange={(e) => setCarryForwardDate(e.target.value)}
                     className="bg-slate-800/50 border-white/10 text-white text-sm w-40"

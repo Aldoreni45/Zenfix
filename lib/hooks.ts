@@ -194,8 +194,9 @@ export function useTaskHistoryDaily(options?: string | TaskHistoryOptions) {
   return useApi<any[]>(endpoint, [], [], enabled);
 }
 
-export function useTaskHistoryUserDetail(userId: number, enabled = true) {
-  return useApi<any>(apiEndpoints.taskHistoryUserDetail(userId), null, [], enabled);
+export function useTaskHistoryUserDetail(userId: number, params?: string, enabled = true) {
+  const endpoint = params ? `${apiEndpoints.taskHistoryUserDetail(userId)}?${params}` : apiEndpoints.taskHistoryUserDetail(userId);
+  return useApi<any>(endpoint, null, [], enabled);
 }
 
 export function useTaskHistoryTasks(options?: string | TaskHistoryOptions) {

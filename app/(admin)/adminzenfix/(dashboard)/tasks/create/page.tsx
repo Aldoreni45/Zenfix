@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useClients, useUsers, useManagers, useCanManage } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
+import { todayLocalISO } from '@/lib/date-utils';
 
 const TASK_TYPES = [
   { value: 'shoot_video', label: 'Shoot Video' },
@@ -87,6 +88,11 @@ export default function CreateTaskPage() {
     }
     if (!form.due_date) {
       setFieldErrors({ due_date: 'Due date is required' });
+      setSubmitting(false);
+      return;
+    }
+    if (form.due_date < todayLocalISO()) {
+      setFieldErrors({ due_date: 'Due date cannot be in the past.' });
       setSubmitting(false);
       return;
     }
@@ -297,6 +303,7 @@ export default function CreateTaskPage() {
             <Input
               id="due_date"
               type="date"
+              min={todayLocalISO()}
               value={form.due_date}
               onChange={(e) => setField('due_date', e.target.value)}
               className="bg-slate-800/50 border-white/10 text-white [color-scheme:dark]"

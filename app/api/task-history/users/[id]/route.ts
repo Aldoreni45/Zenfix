@@ -23,10 +23,7 @@ function parseDateRange(searchParams: URLSearchParams): { start: Date; end: Date
   const endRaw = searchParams.get('end');
 
   if (!startRaw && !endRaw) {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 29);
-    return { start, end };
+    return null;
   }
 
   if (!startRaw || !endRaw) {

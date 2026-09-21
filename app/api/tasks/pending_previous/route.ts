@@ -28,8 +28,11 @@ async function handler(request: NextRequest, user: any) {
     }
 
     // Tasks due strictly before the start of the target day (UTC midnight)
+    // that are still open (any status except completed/cancelled). This
+    // mirrors the Overdue list so carry-forward previews match what managers
+    // actually see as overdue.
     const filters: any = {
-      status: 'pending',
+      status: { $nin: [TaskStatus.COMPLETED, TaskStatus.CANCELLED] },
       due_date: { $lt: targetDate }
     };
 

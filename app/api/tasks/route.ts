@@ -12,7 +12,7 @@ import { formatDate, formatDateRequired } from '@/lib/api-helpers/response-forma
 import { handleError, handleValidationError, handleForbidden } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { sendTaskAssignmentNotification } from '@/lib/api-helpers/notification-helper';
-import { isOverdueByDate, parseDueDateUTC, toDateOnlyISO } from '@/lib/date-utils';
+import { getDaysUntilDue, isOverdueByDate, parseDueDateUTC, toDateOnlyISO } from '@/lib/date-utils';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -215,6 +215,10 @@ async function createHandler(request: NextRequest, user: any) {
       dueDateParsed = parseDueDateUTC(due_date);
       if (!dueDateParsed) {
         return handleValidationError('Invalid due date. Use YYYY-MM-DD format.');
+      }
+      const daysUntilDue = getDaysUntilDue(due_date);
+      if (daysUntilDue !== null && daysUntilDue < 0) {
+        return handleValidationError('Due date cannot be in the past.');
       }
     }
 

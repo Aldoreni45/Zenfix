@@ -20,7 +20,7 @@ export default function CarryForwardPage() {
 
   const [newDueDate, setNewDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ carried_count: number } | null>(null);
+  const [result, setResult] = useState<{ carried_forward_count: number } | null>(null);
 
   // Redirect in an effect so we never call the router during render.
   useEffect(() => {
@@ -44,22 +44,23 @@ export default function CarryForwardPage() {
       return;
     }
 
-    const res = await api.post<{ carried_count: number }>(apiEndpoints.carryForwardAllPending, {
+    const res = await api.post<{ carried_forward_count: number }>(apiEndpoints.carryForwardAllPending, {
       new_due_date: newDueDate,
+      date: todayLocalISO(),
     });
 
     if (res.error) {
       toast.error(extractApiErrorMessage(res));
     } else if (res.data) {
       setResult(res.data);
-      toast.success(`${res.data.carried_count} pending task${res.data.carried_count !== 1 ? 's' : ''} carried forward`);
+      toast.success(`${res.data.carried_forward_count} pending task${res.data.carried_forward_count !== 1 ? 's' : ''} carried forward`);
       refetch();
     }
     setSubmitting(false);
   };
 
   const today = todayLocalISO();
-  const minDate = todayLocalISO(new Date(Date.now() + 86400000));
+  const minDate = todayLocalISO();
 
   return (
     <div className="space-y-6">
@@ -174,7 +175,7 @@ export default function CarryForwardPage() {
         {result && (
           <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
             <p className="text-green-400 text-sm">
-              {result.carried_count} pending task{result.carried_count !== 1 ? 's' : ''} carried forward to{' '}
+              {result.carried_forward_count} pending task{result.carried_forward_count !== 1 ? 's' : ''} carried forward to{' '}
               {formatDueDate(newDueDate)}.
             </p>
           </div>

@@ -9,7 +9,7 @@ import { TaskPriority, TaskStatus } from '@/lib/types/models';
 import { handleForbidden, handleValidationError, handleError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { sendTaskAssignmentNotification } from '@/lib/api-helpers/notification-helper';
-import { parseDueDateUTC } from '@/lib/date-utils';
+import { getDaysUntilDue, parseDueDateUTC } from '@/lib/date-utils';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -49,6 +49,13 @@ async function handler(request: NextRequest, user: any) {
 
       if (!title) {
         continue; // Skip tasks without title
+      }
+
+      if (due_date) {
+        const daysUntilDue = getDaysUntilDue(due_date);
+        if (daysUntilDue !== null && daysUntilDue < 0) {
+          continue;
+        }
       }
 
       // Validate client

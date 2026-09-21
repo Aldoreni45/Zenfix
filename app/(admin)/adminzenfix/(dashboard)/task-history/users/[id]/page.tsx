@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Loader2, ArrowLeft, Mail, Building2, CheckCircle2, ListTodo, Clock,
@@ -38,11 +38,15 @@ function timeAgo(ts: string) {
 export default function TaskHistoryUserDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { initialized } = useAuth();
   const userRole = useUserRole();
   const userId = Number(params.id);
   const isOwner = initialized && userRole === 'owner';
-  const { data, loading, error, refetch } = useTaskHistoryUserDetail(userId, isOwner);
+  const start = searchParams.get('start');
+  const end = searchParams.get('end');
+  const rangeParams = searchParams.get('all') === '1' ? 'all=1' : start && end ? `start=${start}&end=${end}` : '';
+  const { data, loading, error, refetch } = useTaskHistoryUserDetail(userId, rangeParams || undefined, isOwner);
 
   if (initialized && !isOwner) {
     return (

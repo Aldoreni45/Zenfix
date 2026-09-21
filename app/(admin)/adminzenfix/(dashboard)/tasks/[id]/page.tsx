@@ -386,7 +386,7 @@ export default function TaskDetailPage() {
               <Input
                 id="carry-forward-date"
                 type="date"
-                min={todayLocalISO(new Date(Date.now() + 86400000))}
+                min={todayLocalISO()}
                 value={carryForwardDate}
                 onChange={(e) => setCarryForwardDate(e.target.value)}
                 className="bg-slate-800/50 border-white/10 text-white"
