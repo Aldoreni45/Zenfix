@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth/middleware';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { UserModel } from '@/lib/mongodb/models/user';
+import { VideoStageModel, VideoRecordModel, VideoProtocolModel } from '@/lib/mongodb/models/video-protocol';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { NotificationModel } from '@/lib/mongodb/models/notification';
 import { TaskStatus } from '@/lib/types/models';
+import { loadProtocolContent } from '@/lib/api-helpers/video-protocol';
 import { handleError, handleForbidden, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 
@@ -77,6 +79,33 @@ async function handler(request: NextRequest, user: any, id: string) {
         { error: 'Failed to complete task' },
         { status: 500 }
       );
+    }
+
+    // Django: When a task that was auto-created from a Video Protocol stage is
+    // completed, mirror the native video-stage completion so the related Video
+    // Protocol stage, progress, and aggregates stay in sync. This reuses the
+    // exact same helper as the protocol page (loadProtocolContent ->
+    // refreshProtocolAggregates); no second status system is introduced.
+    if (updatedTask.status === TaskStatus.COMPLETED && updatedTask.video_stage_id) {
+      const linkedStage = await VideoStageModel.findByNumericId(updatedTask.video_stage_id);
+      if (linkedStage && linkedStage.status !== 'completed') {
+        await VideoStageModel.update(linkedStage.numeric_id, {
+          status: 'completed',
+          completed_at: new Date(),
+          completion_notes: updatedTask.completion_notes || undefined,
+          drive_link: updatedTask.drive_link || undefined,
+        });
+
+        // Recompute + persist protocol aggregates via the existing single
+        // source of truth (used by the dashboard/detail routes).
+        const linkedRecord = await VideoRecordModel.findByNumericId(linkedStage.video_record_id);
+        if (linkedRecord) {
+          const linkedProtocol = await VideoProtocolModel.findByNumericId(linkedRecord.protocol_id);
+          if (linkedProtocol) {
+            await loadProtocolContent(linkedProtocol);
+          }
+        }
+      }
     }
 
     // Log activity

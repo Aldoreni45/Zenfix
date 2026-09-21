@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/auth/middleware';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { TaskStatus } from '@/lib/types/models';
+import { isOverdueByDate } from '@/lib/date-utils';
+
+function isReportingOverdue(task: any): boolean {
+  return (
+    !!task.due_date &&
+    isOverdueByDate(task.due_date) &&
+    task.status !== TaskStatus.COMPLETED &&
+    task.status !== TaskStatus.CANCELLED
+  );
+}
 
 function parseDateRange(searchParams: URLSearchParams): { start: Date; end: Date } | null {
   if (searchParams.get('all') === '1') return null;
@@ -80,7 +90,11 @@ async function handler(request: NextRequest, _user: any) {
       if (task.status === TaskStatus.COMPLETED) {
         bucket.completed += 1;
       } else if (task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED) {
-        bucket.pending += 1;
+        if (isReportingOverdue(task)) {
+          bucket.overdue += 1;
+        } else {
+          bucket.pending += 1;
+        }
       } else if (
         task.status === TaskStatus.IN_PROGRESS ||
         task.status === TaskStatus.BLOCKED ||

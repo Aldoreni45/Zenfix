@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireOwner } from '@/lib/auth/middleware';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { TaskStatus } from '@/lib/types/models';
+import { isOverdueByDate } from '@/lib/date-utils';
+
+function isReportingOverdue(task: any): boolean {
+  return (
+    !!task.due_date &&
+    isOverdueByDate(task.due_date) &&
+    task.status !== TaskStatus.COMPLETED &&
+    task.status !== TaskStatus.CANCELLED
+  );
+}
 
 function parseDateRange(searchParams: URLSearchParams): { start: Date; end: Date } | null {
   if (searchParams.get('all') === '1') return null;
@@ -34,7 +44,9 @@ function summarizeTasks(tasks: any[]) {
   const total = tasks.length;
   const completed = tasks.filter((task) => task.status === TaskStatus.COMPLETED).length;
   const pending = tasks.filter(
-    (task) => task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED
+    (task) =>
+      !isReportingOverdue(task) &&
+      (task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED)
   ).length;
   const in_progress = tasks.filter(
     (task) =>
@@ -42,14 +54,7 @@ function summarizeTasks(tasks: any[]) {
       task.status === TaskStatus.BLOCKED ||
       task.status === TaskStatus.SUBMITTED
   ).length;
-  const overdue = tasks.filter(
-    (task) =>
-      task.status === TaskStatus.OVERDUE ||
-      (!!task.due_date &&
-        new Date(task.due_date) < new Date() &&
-        task.status !== TaskStatus.COMPLETED &&
-        task.status !== TaskStatus.CANCELLED)
-  ).length;
+  const overdue = tasks.filter((task) => isReportingOverdue(task)).length;
   const rejected = tasks.filter((task) => task.status === TaskStatus.REJECTED).length;
   const cancelled = tasks.filter((task) => task.status === TaskStatus.CANCELLED).length;
   const carried_forward = tasks.filter((task) => (task.carry_forward_count || 0) > 0).length;

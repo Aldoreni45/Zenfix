@@ -5,6 +5,16 @@ import { TaskModel } from '@/lib/mongodb/models/task';
 import { UserModel } from '@/lib/mongodb/models/user';
 import { TaskStatus } from '@/lib/types/models';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
+import { isOverdueByDate } from '@/lib/date-utils';
+
+function isReportingOverdue(task: any): boolean {
+  return (
+    !!task.due_date &&
+    isOverdueByDate(task.due_date) &&
+    task.status !== TaskStatus.COMPLETED &&
+    task.status !== TaskStatus.CANCELLED
+  );
+}
 
 function parseDateRange(searchParams: URLSearchParams): { start: Date; end: Date } | null {
   if (searchParams.get('all') === '1') return null;
@@ -36,21 +46,18 @@ function parseDateRange(searchParams: URLSearchParams): { start: Date; end: Date
 function summarizeTasks(tasks: any[]) {
   const total = tasks.length;
   const completed = tasks.filter((task) => task.status === TaskStatus.COMPLETED).length;
-  const pending = tasks.filter((task) => task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED).length;
+  const pending = tasks.filter(
+    (task) =>
+      !isReportingOverdue(task) &&
+      (task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED)
+  ).length;
   const in_progress = tasks.filter(
     (task) =>
       task.status === TaskStatus.IN_PROGRESS ||
       task.status === TaskStatus.BLOCKED ||
       task.status === TaskStatus.SUBMITTED
   ).length;
-  const overdue = tasks.filter(
-    (task) =>
-      task.status === TaskStatus.OVERDUE ||
-      (!!task.due_date &&
-        new Date(task.due_date) < new Date() &&
-        task.status !== TaskStatus.COMPLETED &&
-        task.status !== TaskStatus.CANCELLED)
-  ).length;
+  const overdue = tasks.filter((task) => isReportingOverdue(task)).length;
   const rejected = tasks.filter((task) => task.status === TaskStatus.REJECTED).length;
   return {
     total,
@@ -97,11 +104,7 @@ export const GET = requireOwner(async function handler(request: NextRequest, _us
         description: task.description || '',
         client_name: task.client_id ? 'Client' : 'No client',
         status: task.status,
-        is_overdue:
-          !!task.due_date &&
-          new Date(task.due_date) < new Date() &&
-          task.status !== TaskStatus.COMPLETED &&
-          task.status !== TaskStatus.CANCELLED,
+        is_overdue: isReportingOverdue(task),
         due_date: task.due_date ? task.due_date.toISOString().slice(0, 10) : null,
         completed_at: task.completed_at ? task.completed_at.toISOString() : null,
         created_at: task.created_at.toISOString(),
@@ -140,16 +143,11 @@ export const GET = requireOwner(async function handler(request: NextRequest, _us
         assigned: allTimeTasks.length,
         completed: allTimeTasks.filter((task) => task.status === TaskStatus.COMPLETED).length,
         pending: allTimeTasks.filter(
-          (task) => task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED
-        ).length,
-        overdue: allTimeTasks.filter(
           (task) =>
-            task.status === TaskStatus.OVERDUE ||
-            (!!task.due_date &&
-              new Date(task.due_date) < new Date() &&
-              task.status !== TaskStatus.COMPLETED &&
-              task.status !== TaskStatus.CANCELLED)
+            !isReportingOverdue(task) &&
+            (task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED)
         ).length,
+        overdue: allTimeTasks.filter((task) => isReportingOverdue(task)).length,
       },
     });
   } catch (error) {

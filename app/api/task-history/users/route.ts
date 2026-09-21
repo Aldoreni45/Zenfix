@@ -4,6 +4,16 @@ import { UserModel } from '@/lib/mongodb/models/user';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { TaskStatus } from '@/lib/types/models';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
+import { isOverdueByDate } from '@/lib/date-utils';
+
+function isReportingOverdue(task: any): boolean {
+  return (
+    !!task.due_date &&
+    isOverdueByDate(task.due_date) &&
+    task.status !== TaskStatus.COMPLETED &&
+    task.status !== TaskStatus.CANCELLED
+  );
+}
 
 function parseDateRange(searchParams: URLSearchParams): { start: Date; end: Date } | null {
   if (searchParams.get('all') === '1') return null;
@@ -62,7 +72,9 @@ async function handler(request: NextRequest, _user: any) {
         const assigned = tasks.length;
         const completed = tasks.filter((task) => task.status === TaskStatus.COMPLETED).length;
         const pending = tasks.filter(
-          (task) => task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED
+          (task) =>
+            !isReportingOverdue(task) &&
+            (task.status === TaskStatus.PENDING || task.status === TaskStatus.ASSIGNED)
         ).length;
         const in_progress = tasks.filter(
           (task) =>
@@ -71,14 +83,7 @@ async function handler(request: NextRequest, _user: any) {
             task.status === TaskStatus.SUBMITTED
         ).length;
         const rejected = tasks.filter((task) => task.status === TaskStatus.REJECTED).length;
-        const overdue = tasks.filter(
-          (task) =>
-            task.status === TaskStatus.OVERDUE ||
-            (!!task.due_date &&
-              new Date(task.due_date) < new Date() &&
-              task.status !== TaskStatus.COMPLETED &&
-              task.status !== TaskStatus.CANCELLED)
-        ).length;
+        const overdue = tasks.filter((task) => isReportingOverdue(task)).length;
 
         return {
           id: u.numeric_id,
