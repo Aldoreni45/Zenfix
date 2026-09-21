@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// Role-based navigation based on Django backend
+// Role-based navigation based on Next.js backend
 const employeeNavigation = [
   { name: 'My Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },

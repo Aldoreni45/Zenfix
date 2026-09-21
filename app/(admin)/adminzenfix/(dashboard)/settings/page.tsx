@@ -104,12 +104,12 @@ export default function SettingsPage() {
               <div className="bg-white/5 rounded-xl p-4 flex justify-between">
                 <span className="text-gray-400">API Base URL</span>
                 <span className="text-white font-medium break-all text-right">
-                  {process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api'}
+                  {process.env.NEXT_PUBLIC_API_URL || '/api'}
                 </span>
               </div>
               <div className="bg-white/5 rounded-xl p-4 flex justify-between">
                 <span className="text-gray-400">Backend</span>
-                <span className="text-white font-medium">Django REST Framework</span>
+                <span className="text-white font-medium">Next.js with MongoDB</span>
               </div>
               <div className="bg-white/5 rounded-xl p-4 flex justify-between">
                 <span className="text-gray-400">Frontend</span>

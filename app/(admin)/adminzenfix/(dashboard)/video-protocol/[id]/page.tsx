@@ -16,6 +16,7 @@ import { api, apiEndpoints, extractApiErrorMessage, VideoProtocolDashboard, Vide
 import { useIsOwner, useIsManager } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
+import { formatDueDate } from '@/lib/date-utils';
 
 const STAGE_ICONS: Record<string, any> = {
   shoot: Camera,
@@ -27,6 +28,7 @@ const STAGE_ICONS: Record<string, any> = {
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   not_started: { color: 'text-slate-400', bg: 'bg-slate-500/10', label: 'Not Started' },
+  in_progress: { color: 'text-cyan-400', bg: 'bg-cyan-500/10', label: 'In Progress' },
   shooting: { color: 'text-yellow-400', bg: 'bg-yellow-500/10', label: 'Shooting' },
   editing: { color: 'text-blue-400', bg: 'bg-blue-500/10', label: 'Editing' },
   in_review: { color: 'text-purple-400', bg: 'bg-purple-500/10', label: 'In Review' },
@@ -70,11 +72,11 @@ function StageBar({ stage, onAction, canManage, onShowDetails }: { stage: VideoS
           <p className="text-[10px] text-slate-500 truncate">
             {stage.assigned_to_detail.first_name} {stage.assigned_to_detail.last_name}
             {stage.due_date && (
-              <span className="ml-1 text-slate-600">due {stage.due_date}</span>
+              <span className="ml-1 text-slate-600">due {formatDueDate(stage.due_date)}</span>
             )}
           </p>
         ) : stage.due_date ? (
-          <p className="text-[10px] text-slate-600 truncate">due {stage.due_date}</p>
+          <p className="text-[10px] text-slate-600 truncate">due {formatDueDate(stage.due_date)}</p>
         ) : null}
       </div>
       {isCompleted && (

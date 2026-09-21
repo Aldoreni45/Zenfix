@@ -9,6 +9,7 @@ import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTask
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatDueDate, todayLocalISO } from '@/lib/date-utils';
 
 function TaskCardSkeleton() {
   return (
@@ -120,7 +121,7 @@ export default function TasksPage() {
     if (res.error) {
       toast.error(extractApiErrorMessage(res));
     } else if (res.data) {
-      toast.success(`${res.data.carried_count} task(s) carried forward to ${new Date(carryForwardDate + 'T00:00:00').toLocaleDateString()}`);
+      toast.success(`${res.data.carried_count} task(s) carried forward to ${formatDueDate(carryForwardDate)}`);
       setCarryForwardDate('');
       refetchPrevious();
     }
@@ -186,7 +187,7 @@ export default function TasksPage() {
                 <div className="flex items-center gap-2">
                   <Input
                     type="date"
-                    min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                    min={todayLocalISO(new Date(Date.now() + 86400000))}
                     value={carryForwardDate}
                     onChange={(e) => setCarryForwardDate(e.target.value)}
                     className="bg-slate-800/50 border-white/10 text-white text-sm w-40"
@@ -335,7 +336,7 @@ export default function TasksPage() {
                 <div className="flex items-center gap-2">
                   <Calendar className={cn('h-4 w-4', task.is_overdue ? 'text-red-400' : 'text-slate-400')} />
                   <span className={task.is_overdue ? 'text-red-400 font-medium' : 'text-slate-400'}>
-                    {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString() : 'No due date'}
+                    {formatDueDate(task.due_date)}
                   </span>
                 </div>
                 <span className={cn('px-2 py-1 rounded-full text-xs font-medium capitalize', getStatusColor(task.status, task.is_overdue))}>

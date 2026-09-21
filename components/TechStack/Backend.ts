@@ -6,7 +6,7 @@ export const backendTech: Technology[] = [
   { name: "NestJS", color: "#E0234E", icon: "/tech-icons/nestjs.svg" },
   { name: "Python", color: "#3776AB", icon: "/tech-icons/python.svg" },
   { name: "FastAPI", color: "#009688", icon: "/tech-icons/fastapi.svg" },
-  { name: "Django", color: "#44B78B", icon: "/tech-icons/django.svg" },
+  { name: "Next.js", color: "#000000", icon: "/tech-icons/nextjs.svg" },
   { name: "Flask", color: "#ffffff", icon: "/tech-icons/flask.svg" },
   { name: "Java", color: "#F89820", icon: "/tech-icons/java.svg" },
   { name: "Spring", color: "#6DB33F", icon: "/tech-icons/spring.svg" },

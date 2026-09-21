@@ -39,8 +39,7 @@ function loadEnv() {
 loadEnv();
 
 const URI = process.env.MONGODB_URI;
-const DB = process.env.MONGODB_DB || 'zenfix';
-const COLLECTION = 'data';
+const DB = 'prod_zenfix';
 
 if (!URI) {
   console.error('MONGODB_URI is not set. Add it to your .env file.');
@@ -162,6 +161,115 @@ const DEMO_USERS = [
     status_name: 'Active',
     avatar: '',
   },
+  {
+    username: 'sarah',
+    email: 'sarah@zenfix.io',
+    first_name: 'Sarah',
+    last_name: 'Johnson',
+    phone: '+1 555 0103',
+    password: 'sarah123',
+    role: 'manager',
+    role_name: 'Manager',
+    department: 'Production',
+    department_name: 'Production',
+    status: 'active',
+    status_name: 'Active',
+    avatar: '',
+  },
+  {
+    username: 'mike',
+    email: 'mike@zenfix.io',
+    first_name: 'Mike',
+    last_name: 'Williams',
+    phone: '+1 555 0104',
+    password: 'mike123',
+    role: 'employee',
+    role_name: 'Employee',
+    department: 'Production',
+    department_name: 'Production',
+    status: 'active',
+    status_name: 'Active',
+    avatar: '',
+  },
+  {
+    username: 'emma',
+    email: 'emma@zenfix.io',
+    first_name: 'Emma',
+    last_name: 'Davis',
+    phone: '+1 555 0105',
+    password: 'emma123',
+    role: 'employee',
+    role_name: 'Employee',
+    department: 'Production',
+    department_name: 'Production',
+    status: 'active',
+    status_name: 'Active',
+    avatar: '',
+  },
+  {
+    username: 'john',
+    email: 'john@zenfix.io',
+    first_name: 'John',
+    last_name: 'Smith',
+    phone: '+1 555 0106',
+    password: 'john123',
+    role: 'employee',
+    role_name: 'Employee',
+    department: 'Production',
+    department_name: 'Production',
+    status: 'active',
+    status_name: 'Active',
+    avatar: '',
+  },
+  {
+    username: 'lisa',
+    email: 'lisa@zenfix.io',
+    first_name: 'Lisa',
+    last_name: 'Brown',
+    phone: '+1 555 0107',
+    password: 'lisa123',
+    role: 'manager',
+    role_name: 'Manager',
+    department: 'Client Success',
+    department_name: 'Client Success',
+    status: 'active',
+    status_name: 'Active',
+    avatar: '',
+  },
+];
+
+const DEMO_DEPARTMENTS = [
+  { name: 'Management', description: 'Executive management team' },
+  { name: 'Client Success', description: 'Client relationship management' },
+  { name: 'Production', description: 'Video production team' },
+  { name: 'Marketing', description: 'Marketing and social media' },
+  { name: 'Design', description: 'Creative design team' },
+];
+
+const DEMO_CLIENTS = [
+  { name: 'TechCorp Inc.', industry: 'Technology', contact: 'John Doe', email: 'john@techcorp.com', phone: '+1 555 1001' },
+  { name: 'Global Brands LLC', industry: 'Retail', contact: 'Jane Smith', email: 'jane@globalbrands.com', phone: '+1 555 1002' },
+  { name: 'StartupXYZ', industry: 'SaaS', contact: 'Mike Johnson', email: 'mike@startupxyz.com', phone: '+1 555 1003' },
+  { name: 'EcoFriendly Co', industry: 'Environment', contact: 'Sarah Green', email: 'sarah@ecofriendly.com', phone: '+1 555 1004' },
+  { name: 'FashionForward', industry: 'Fashion', contact: 'Emma Style', email: 'emma@fashionforward.com', phone: '+1 555 1005' },
+  { name: 'FoodieDelights', industry: 'Food & Beverage', contact: 'Chef Mario', email: 'mario@foodiedelights.com', phone: '+1 555 1006' },
+  { name: 'FitLife Gym', industry: 'Fitness', contact: 'Tom Strong', email: 'tom@fitlife.com', phone: '+1 555 1007' },
+  { name: 'TravelAdventures', industry: 'Travel', contact: 'Wanderlust Amy', email: 'amy@traveladventures.com', phone: '+1 555 1008' },
+];
+
+const DEMO_TASKS = [
+  { title: 'Create product launch video', description: 'Promotional video for new product', priority: 'high', status: 'pending', department: 'Production' },
+  { title: 'Edit client testimonial', description: 'Edit and polish testimonial video', priority: 'medium', status: 'in_progress', department: 'Production' },
+  { title: 'Design social media graphics', description: 'Create Instagram graphics for campaign', priority: 'high', status: 'pending', department: 'Design' },
+  { title: 'Review video analytics', description: 'Analyze video performance metrics', priority: 'low', status: 'completed', department: 'Marketing' },
+  { title: 'Shoot interview footage', description: 'On-location interview shoot', priority: 'high', status: 'pending', department: 'Production' },
+  { title: 'Color correction for ad', description: 'Color grade commercial advertisement', priority: 'medium', status: 'in_progress', department: 'Production' },
+  { title: 'Write video script', description: 'Script for product demo video', priority: 'high', status: 'completed', department: 'Marketing' },
+  { title: 'Add subtitles to video', description: 'Captioning for accessibility', priority: 'low', status: 'pending', department: 'Production' },
+  { title: 'Client meeting - project review', description: 'Monthly client review meeting', priority: 'medium', status: 'pending', department: 'Client Success' },
+  { title: 'Export final video files', description: 'Render and export deliverables', priority: 'high', status: 'in_progress', department: 'Production' },
+  { title: 'Create storyboard', description: 'Storyboard for upcoming campaign', priority: 'medium', status: 'pending', department: 'Design' },
+  { title: 'Upload videos to platform', description: 'Upload to YouTube and social media', priority: 'high', status: 'completed', department: 'Marketing' },
 ];
 
 (async () => {
@@ -173,58 +281,30 @@ const DEMO_USERS = [
   try {
     await client.connect();
     const db = client.db(DB);
-    const col = db.collection(COLLECTION);
+    const counters = db.collection('zenfix_sequences');
+    const usersCol = db.collection('zf_users');
+    const departmentsCol = db.collection('zf_departments');
+    const clientsCol = db.collection('zf_clients');
+    const tasksCol = db.collection('zf_tasks');
+    const activityLogsCol = db.collection('zf_activity_logs');
+    const notificationsCol = db.collection('zf_notifications');
 
-    console.log(`Connected to ${DB}.${COLLECTION}`);
+    console.log(`Connected to ${DB}`);
 
     // --- Indexes ------------------------------------------------------------
-    // Counters live in a dedicated collection so they never collide with the
-    // unique { entity, id } index on the data collection.
-    const counters = db.collection('counters');
-
-    // --- Indexes ------------------------------------------------------------
-    // Drop an obsolete index that conflicts with entity documents (created by
-    // an earlier version of the seed and no longer needed).
-    try {
-      await col.dropIndex('entity_1_key_1');
-      console.log('Dropped obsolete index entity_1_key_1.');
-    } catch {
-      /* index does not exist */
-    }
-    await col.createIndex({ entity: 1, id: 1 }, { unique: true });
-    // Usernames must be unique among users only. Use a PARTIAL index so that
-    // documents that have no `username` (videos, clients, tasks, ...) never
-    // collide on a null value, which a plain sparse compound index would.
-    try {
-      await col.dropIndex('entity_1_username_1');
-    } catch {
-      /* never created or already replaced */
-    }
-    await col.createIndex(
-      { entity: 1, username: 1 },
-      { unique: true, partialFilterExpression: { entity: 'users', username: { $type: 'string' } } }
-    );
-    await col.createIndex({ entity: 1, status: 1 });
-    await col.createIndex({ entity: 1, receiver: 1, read: 1 });
-    await col.createIndex({ entity: 1, due_date: 1, status: 1 });
+    await counters.createIndex({ _id: 1 });
+    await usersCol.createIndex({ numeric_id: 1 }, { unique: true });
+    await usersCol.createIndex({ username: 1 }, { unique: true });
+    await usersCol.createIndex({ email: 1 }, { unique: true });
+    await departmentsCol.createIndex({ numeric_id: 1 }, { unique: true });
+    await departmentsCol.createIndex({ name: 1 }, { unique: true });
+    await clientsCol.createIndex({ numeric_id: 1 }, { unique: true });
+    await clientsCol.createIndex({ name: 1 }, { unique: true });
+    await tasksCol.createIndex({ numeric_id: 1 }, { unique: true });
+    await tasksCol.createIndex({ task_id: 1 }, { unique: true });
+    await activityLogsCol.createIndex({ numeric_id: 1 }, { unique: true });
+    await notificationsCol.createIndex({ numeric_id: 1 }, { unique: true });
     console.log('Indexes ensured.');
-
-    // Self-heal: remove any documents that earlier buggy seeds left without a
-    // numeric id (they would collide with the unique { entity, id } index) as
-    // well as the legacy inline counters stored in the data collection.
-    const entityNames = [
-      'users', 'clients', 'monthly-targets', 'videos', 'video-assets',
-      'tasks', 'approvals', 'social-posts', 'activity-logs', 'notifications',
-    ];
-    const healed = await col.deleteMany({
-      entity: { $in: entityNames },
-      $or: [{ id: { $exists: false } }, { id: null }],
-    });
-    // Drop any plaintext password field that an earlier seed may have stored.
-    await col.updateMany({ entity: 'users' }, { $unset: { password: '' } });
-    await col.deleteMany({ entity: '__counter__' });
-    if (healed.deletedCount > 0) console.log(`  cleaned ${healed.deletedCount} corrupt doc(s)`);
-    await counters.deleteMany({ _id: { $nin: entityNames } });
 
     const nextId = async (name) => {
       const c = await counters.findOneAndUpdate(
@@ -234,120 +314,190 @@ const DEMO_USERS = [
       );
       return c?.value ?? 1;
     };
-    const setCounterAtLeast = async (name, minValue) => {
-      await counters.updateOne({ _id: name }, { $max: { value: minValue } }, { upsert: true });
-    };
 
     // --- Users ---------------------------------------------------------------
     const passwordRounds = 12;
-    let nextUserId = 1;
     for (const u of DEMO_USERS) {
-      const existing = await col.findOne({ entity: 'users', username: u.username });
+      const existing = await usersCol.findOne({ username: u.username });
       const passwordHash = await bcrypt.hash(u.password, passwordRounds);
-      const { password: _plain, ...userData } = u;
+      
+      const userData = {
+        username: u.username,
+        email: u.email,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        password: passwordHash,
+        phone: u.phone,
+        role: u.role,
+        status: 'active',
+        department_id: null,
+        reports_to_id: null,
+        avatar: u.avatar || null,
+      };
+      
       if (!existing) {
-        await col.insertOne({
-          entity: 'users',
-          id: nextUserId,
+        const numeric_id = await nextId('users.user');
+        const doc = {
           ...userData,
-          passwordHash,
-          full_name: `${u.first_name} ${u.last_name}`.trim(),
-          last_login: null,
-          created_at: now,
-          updated_at: now,
-        });
-        console.log(`  created user: ${u.username} (id=${nextUserId}, role=${u.role})`);
+          numeric_id,
+          is_active: true,
+          is_staff: u.role === 'owner',
+          is_superuser: u.role === 'owner',
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        await usersCol.insertOne(doc);
+        console.log(`  created user: ${u.username} (id=${numeric_id})`);
       } else {
-        // Always re-hash so the password is up to date after deployment.
-        await col.updateOne(
-          { _id: existing._id },
-          { $set: { passwordHash, updated_at: now } }
+        await usersCol.updateOne(
+          { username: u.username },
+          { $set: { ...userData, updated_at: new Date() } }
         );
-        console.log(`  refreshed user: ${u.username} (id=${existing.id})`);
+        console.log(`  refreshed user: ${u.username} (id=${existing.numeric_id})`);
       }
-      nextUserId += 1;
     }
-    // Keep the id counter monotonic regardless of which users already existed.
-    await setCounterAtLeast('users', nextUserId - 1);
 
-    // Verify we can authenticate the first user (quick sanity check).
-    const admin = await col.findOne({ entity: 'users', username: 'admin' });
-    if (!admin) throw new Error('Failed to seed admin user');
-    const ok = await bcrypt.compare('admin123', admin.passwordHash);
-    console.log(`  sanity check: admin/admin123 -> ${ok ? 'OK' : 'FAILED'}`);
-
-    // --- Sample data (only if the dashboard collections are empty) -----------
-    const sampleClients = [
-      { name: 'Alpha Studios', company_name: 'Alpha Studios LLC', contact_person: 'Sarah Chen', phone: '+1 555 0201', email: 'sarah@alphastudios.com', instagram_username: 'alphastudios', instagram_url: 'https://instagram.com/alphastudios', status: 'active', status_name: 'Active', assigned_manager: 2, manager_name: 'Manager Demo', manager_email: 'manager@zenfix.io', notes: 'Monthly retention package.', current_month_target: { year: new Date().getFullYear(), month: new Date().getMonth() + 1, target_videos: 8, completed_videos: 3, posted_videos: 2, progress_percentage: 38 } },
-      { name: 'Bright Realty', company_name: 'Bright Realty Group', contact_person: 'Marcus Reed', phone: '+1 555 0202', email: 'marcus@brightrealty.com', instagram_username: 'brightrealty', instagram_url: 'https://instagram.com/brightrealty', status: 'active', status_name: 'Active', assigned_manager: 2, manager_name: 'Manager Demo', manager_email: 'manager@zenfix.io', notes: 'Quad-weekly video drops.', current_month_target: { year: new Date().getFullYear(), month: new Date().getMonth() + 1, target_videos: 12, completed_videos: 5, posted_videos: 4, progress_percentage: 42 } },
-      { name: 'Nova Fitness', company_name: 'Nova Fitness Clubs', contact_person: 'Elena Gomez', phone: '+1 555 0203', email: 'elena@novafitness.com', instagram_username: 'novafitness', instagram_url: 'https://instagram.com/novafitness', status: 'active', status_name: 'Active', assigned_manager: 2, manager_name: 'Manager Demo', manager_email: 'manager@zenfix.io', notes: 'Reels heavy.', current_month_target: { year: new Date().getFullYear(), month: new Date().getMonth() + 1, target_videos: 10, completed_videos: 2, posted_videos: 1, progress_percentage: 20 } },
-    ];
-
-    const taskCount = await col.countDocuments({ entity: 'tasks' });
-    if (taskCount > 0) {
-      console.log('Sample tasks exist — skipping sample data.');
-    } else {
-      const clientColl = (await col.countDocuments({ entity: 'clients' })) === 0;
-      const videoColl = (await col.countDocuments({ entity: 'videos' })) === 0;
-
-      if (clientColl) {
-        for (let i = 0; i < sampleClients.length; i += 1) {
-          const id = await nextId('clients');
-          await col.insertOne({
-            entity: 'clients',
-            id,
-            created_at: now,
-            updated_at: now,
-            ...sampleClients[i],
-          });
-          console.log(`  created client: ${sampleClients[i].name} (id=${id})`);
-        }
+    // --- Departments --------------------------------------------------------
+    const departmentMap = {};
+    for (const dept of DEMO_DEPARTMENTS) {
+      const existing = await departmentsCol.findOne({ name: dept.name });
+      if (!existing) {
+        const numeric_id = await nextId('departments.department');
+        const doc = {
+          numeric_id,
+          name: dept.name,
+          description: dept.description,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        await departmentsCol.insertOne(doc);
+        departmentMap[dept.name] = numeric_id;
+        console.log(`  created department: ${dept.name} (id=${numeric_id})`);
+      } else {
+        departmentMap[dept.name] = existing.numeric_id;
+        console.log(`  refreshed department: ${dept.name} (id=${existing.numeric_id})`);
       }
+    }
 
-      if (videoColl) {
-        const baseVideos = [
-          { title: 'Alpha Studio Tour — Reel', client: 1, client_name: 'Alpha Studios', status: 'approved', priority: 'high', shooter: 3, editor: 3 },
-          { title: 'Bright Realty — Spring Listings', client: 2, client_name: 'Bright Realty', status: 'in_progress', priority: 'medium', shooter: 3, editor: 3 },
-          { title: 'Nova Fitness — January Intros', client: 3, client_name: 'Nova Fitness', status: 'waiting_approval', priority: 'high', shooter: 3, editor: 3 },
-        ];
-        for (const v of baseVideos) {
-          const id = await nextId('videos');
-          await col.insertOne({
-            entity: 'videos',
-            id,
-            video_code: `ZF-${String(id).padStart(4, '0')}`,
-            ...v,
-            status_name: v.status.split('_').map((s) => s[0].toUpperCase() + s.slice(1)).join(' '),
-            priority_name: v.priority[0].toUpperCase() + v.priority.slice(1),
-            shooter_name: 'Employee Demo',
-            editor_name: 'Employee Demo',
-            is_overdue: false,
-            created_at: now,
-            updated_at: now,
-          });
-          console.log(`  created video: ${v.title} (id=${id})`);
-        }
+    // --- Clients ------------------------------------------------------------
+    for (const client of DEMO_CLIENTS) {
+      const existing = await clientsCol.findOne({ name: client.name });
+      if (!existing) {
+        const numeric_id = await nextId('clients.client');
+        const doc = {
+          numeric_id,
+          name: client.name,
+          industry: client.industry,
+          contact_person: client.contact,
+          email: client.email,
+          phone: client.phone,
+          status: 'active',
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        await clientsCol.insertOne(doc);
+        console.log(`  created client: ${client.name} (id=${numeric_id})`);
+      } else {
+        console.log(`  refreshed client: ${client.name} (id=${existing.numeric_id})`);
       }
+    }
 
-      const taskSamples = [
-        { task_type: 'shooting', task_type_name: 'Shooting', title: 'Shoot Alpha Studio reel', description: 'Capture b-roll for the studio tour.', priority: 'high', priority_name: 'High', status: 'completed', status_name: 'Completed', assigned_to: 3, assigned_to_name: 'Employee Demo', assigned_manager: 2, assigned_manager_name: 'Manager Demo', created_by: 1, created_by_name: 'ZenFix Owner', client: 1, client_name: 'Alpha Studios', video: 1, video_code: 'ZF-0001', due_date: todayPlus(0), estimated_hours: 3, actual_hours: 2.5, task_id: 'T-1001', is_overdue: false },
-        { task_type: 'editing', task_type_name: 'Editing', title: 'Edit Bright Realty listings', description: 'Cut highlight reel for the spring campaign.', priority: 'medium', priority_name: 'Medium', status: 'in_progress', status_name: 'In Progress', assigned_to: 3, assigned_to_name: 'Employee Demo', assigned_manager: 2, assigned_manager_name: 'Manager Demo', created_by: 1, created_by_name: 'ZenFix Owner', client: 2, client_name: 'Bright Realty', video: 2, video_code: 'ZF-0002', due_date: todayPlus(1), estimated_hours: 4, task_id: 'T-1002', is_overdue: false },
-        { task_type: 'approval', task_type_name: 'Approval', title: 'Send Nova Fitness for approval', description: 'Client review for the new intros.', priority: 'high', priority_name: 'High', status: 'pending', status_name: 'Pending', assigned_to: 2, assigned_to_name: 'Manager Demo', assigned_manager: 2, assigned_manager_name: 'Manager Demo', created_by: 1, created_by_name: 'ZenFix Owner', client: 3, client_name: 'Nova Fitness', video: 3, video_code: 'ZF-0003', due_date: todayPlus(-2), estimated_hours: 1, task_id: 'T-1003', is_overdue: true },
-      ];
-      for (const t of taskSamples) {
-        const id = await nextId('tasks');
-        await col.insertOne({
-          entity: 'tasks',
-          id,
-          ...t,
-          due_time: null,
-          attachments: [],
-          comments: [],
-          created_at: now,
-          updated_at: now,
-        });
-        console.log(`  created task: ${t.title} (id=${id})`);
+    // --- Tasks -------------------------------------------------------------
+    const userMap = {};
+    const users = await usersCol.find({}).toArray();
+    users.forEach(u => userMap[u.username] = u.numeric_id);
+    const clientDocs = await clientsCol.find({}).toArray();
+    const clientMap = {};
+    clientDocs.forEach(c => clientMap[c.name] = c.numeric_id);
+
+    for (const task of DEMO_TASKS) {
+      const existing = await tasksCol.findOne({ title: task.title });
+      if (!existing) {
+        const numeric_id = await nextId('tasks.task');
+        const task_id = `ZF-TASK-${numeric_id.toString().padStart(4, '0')}`;
+        const deptId = departmentMap[task.department] || null;
+        const clientId = clientDocs.length > 0 ? clientDocs[Math.floor(Math.random() * clientDocs.length)].numeric_id : null;
+        const assignedTo = users.find(u => u.role === 'employee')?.numeric_id || userMap['employee'];
+        const createdBy = userMap['admin'];
+
+        const doc = {
+          numeric_id,
+          task_id,
+          title: task.title,
+          description: task.description,
+          client_id: clientId,
+          assigned_to_id: assignedTo,
+          assigned_by_id: createdBy,
+          created_by_id: createdBy,
+          department_id: deptId,
+          priority: task.priority,
+          status: task.status,
+          due_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+        await tasksCol.insertOne(doc);
+        console.log(`  created task: ${task.title} (id=${numeric_id})`);
+      } else {
+        console.log(`  refreshed task: ${task.title} (id=${existing.numeric_id})`);
       }
+    }
+
+    // --- Activity Logs ------------------------------------------------------
+    // Clear existing activity logs to avoid conflicts
+    await activityLogsCol.deleteMany({});
+    const actions = ['created', 'updated', 'deleted', 'completed', 'assigned'];
+    const entities = ['task', 'client', 'user', 'video', 'approval'];
+    for (let i = 0; i < 20; i++) {
+      const numeric_id = await nextId('activity_logs.activitylog');
+      const action = actions[Math.floor(Math.random() * actions.length)];
+      const entity = entities[Math.floor(Math.random() * entities.length)];
+      const user = users[Math.floor(Math.random() * users.length)];
+      
+      const doc = {
+        numeric_id,
+        actor_id: user.numeric_id,
+        action,
+        entity_type: entity,
+        entity_id: Math.floor(Math.random() * 100).toString(),
+        description: `${action} ${entity} ${Math.floor(Math.random() * 1000)}`,
+        metadata: {},
+        created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+        updated_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+      };
+      await activityLogsCol.insertOne(doc);
+    }
+    console.log(`  created 20 activity logs`);
+
+    // --- Notifications ------------------------------------------------------
+    const notificationTypes = ['task_assigned', 'task_completed', 'approval_required', 'system_alert'];
+    const priorities = ['low', 'medium', 'high', 'urgent'];
+    for (let i = 0; i < 15; i++) {
+      const numeric_id = await nextId('notifications.notification');
+      const type = notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
+      const priority = priorities[Math.floor(Math.random() * priorities.length)];
+      const user = users[Math.floor(Math.random() * users.length)];
+      
+      const doc = {
+        numeric_id,
+        user_id: user.numeric_id,
+        type,
+        title: `${type.replace('_', ' ').toUpperCase()}`,
+        message: `This is a ${type} notification for ${user.first_name}`,
+        priority,
+        is_read: Math.random() > 0.5,
+        created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
+      };
+      await notificationsCol.insertOne(doc);
+    }
+    console.log(`  created 15 notifications`);
+
+    // Sanity check: verify the admin user can be authenticated.
+    const adminUser = await usersCol.findOne({ username: 'admin' });
+    const isValid = await bcrypt.compare('admin123', adminUser.password);
+    console.log(`  sanity check: admin/admin123 -> ${isValid ? 'OK' : 'FAIL'}`);
+    if (!isValid) {
+      throw new Error('Admin password verification failed');
     }
 
     console.log('Seed complete.');
@@ -358,9 +508,3 @@ const DEMO_USERS = [
     await client.close();
   }
 })();
-
-function todayPlus(days) {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}

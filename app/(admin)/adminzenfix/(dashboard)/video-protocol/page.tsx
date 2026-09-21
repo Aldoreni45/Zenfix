@@ -42,9 +42,10 @@ export default function VideoProtocolPage() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
+  // Month is 1-12 everywhere in this feature. getMonth() returns 0-11, so always +1.
   const now = new Date();
-  const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
-  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [protocols, setProtocols] = useState<ProtocolListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -54,20 +55,31 @@ export default function VideoProtocolPage() {
   const [selectedClient, setSelectedClient] = useState('');
   const [targetVideos, setTargetVideos] = useState('5');
 
-  const fetchProtocols = useCallback(async () => {
+  const fetchProtocols = useCallback(async (month: number, year: number) => {
+    const params = new URLSearchParams({
+      month: String(month),
+      year: String(year),
+    });
+    console.log('[VIDEO PROTOCOL] fetching:', { month, year });
     setLoading(true);
-    const res = await api.get<ProtocolListItem[]>(
-      `${apiEndpoints.protocols}?month=${currentMonth}&year=${currentYear}`
-    );
-    if (res.error) {
-      toast.error(extractApiErrorMessage(res));
-    } else {
-      setProtocols(Array.isArray(res.data) ? res.data : []);
+    try {
+      const res = await api.get<ProtocolListItem[]>(
+        `${apiEndpoints.protocols}?${params.toString()}`
+      );
+      if (res.error) {
+        toast.error(extractApiErrorMessage(res));
+        setProtocols([]);
+      } else {
+        setProtocols(Array.isArray(res.data) ? res.data : []);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [currentMonth, currentYear]);
+  }, []);
 
-  useEffect(() => { fetchProtocols(); }, [fetchProtocols]);
+  useEffect(() => {
+    fetchProtocols(selectedMonth, selectedYear);
+  }, [fetchProtocols, selectedMonth, selectedYear]);
 
   const fetchClients = async () => {
     const res = await api.get<any[]>(apiEndpoints.clients);
@@ -79,8 +91,8 @@ export default function VideoProtocolPage() {
     setCreating(true);
     const res = await api.post(apiEndpoints.protocols, {
       client: Number(selectedClient),
-      month: currentMonth,
-      year: currentYear,
+      month: selectedMonth,
+      year: selectedYear,
       target_videos: Number(targetVideos) || 5,
     });
     setCreating(false);
@@ -91,17 +103,26 @@ export default function VideoProtocolPage() {
       setShowCreate(false);
       setSelectedClient('');
       setTargetVideos('5');
-      fetchProtocols();
+      fetchProtocols(selectedMonth, selectedYear);
     }
   };
 
-  const navigateMonth = (delta: number) => {
-    let m = currentMonth + delta;
-    let y = currentYear;
-    if (m < 1) { m = 12; y--; }
-    if (m > 12) { m = 1; y++; }
-    setCurrentMonth(m);
-    setCurrentYear(y);
+  const navigateMonth = (direction: number) => {
+    if (direction === -1) {
+      if (selectedMonth === 1) {
+        setSelectedMonth(12);
+        setSelectedYear((prev) => prev - 1);
+      } else {
+        setSelectedMonth((prev) => prev - 1);
+      }
+    } else {
+      if (selectedMonth === 12) {
+        setSelectedMonth(1);
+        setSelectedYear((prev) => prev + 1);
+      } else {
+        setSelectedMonth((prev) => prev + 1);
+      }
+    }
   };
 
   const getProgressColor = (pct: number) => {
@@ -139,7 +160,7 @@ export default function VideoProtocolPage() {
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-white">{MONTHS[currentMonth - 1]} {currentYear}</h2>
+          <h2 className="text-xl font-semibold text-white">{MONTHS[selectedMonth - 1]} {selectedYear}</h2>
         </div>
         <Button variant="ghost" size="sm" onClick={() => navigateMonth(1)} className="text-slate-400 hover:text-white">
           <ChevronRight className="h-5 w-5" />
@@ -196,7 +217,7 @@ export default function VideoProtocolPage() {
       ) : protocols.length === 0 ? (
         <div className="text-center py-16 bg-slate-900/50 rounded-2xl border border-white/10">
           <Video className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400">No protocols for {MONTHS[currentMonth - 1]} {currentYear}</p>
+          <p className="text-slate-400">No protocols for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
           {mounted && canManage && (
             <Button
               onClick={() => { setShowCreate(true); fetchClients(); }}
@@ -217,8 +238,8 @@ export default function VideoProtocolPage() {
 
             return (
               <div
-                key={p.id}
-                onClick={() => router.push(`/adminzenfix/video-protocol/${p.id}`)}
+                key={p.numeric_id}
+                onClick={() => router.push(`/adminzenfix/video-protocol/${p.numeric_id}`)}
                 className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:border-cyan-500/30 transition-all cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-4">

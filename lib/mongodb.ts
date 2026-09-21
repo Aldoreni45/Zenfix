@@ -217,3 +217,20 @@ export async function isMongoConnected(): Promise<boolean> {
     return false;
   }
 }
+
+export async function getNextNumericId(sequenceName: string): Promise<number> {
+  const db = await getDb();
+  const collection = db.collection('zenfix_sequences');
+  
+  const result = await collection.findOneAndUpdate(
+    { _id: sequenceName as any },
+    { $inc: { value: 1 } },
+    { upsert: true, returnDocument: 'after' }
+  );
+  
+  if (!result || !result.value) {
+    throw new Error('Failed to generate numeric ID');
+  }
+  
+  return result.value.value;
+}

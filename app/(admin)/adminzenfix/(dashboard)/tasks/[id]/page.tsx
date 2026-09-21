@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { formatDueDate, getDueDateStatus, todayLocalISO } from '@/lib/date-utils';
 
 function getStatusColor(status: string, isOverdue: boolean) {
   if (isOverdue) return 'bg-red-500/10 text-red-400 border-red-500/20';
@@ -28,19 +29,6 @@ function getStatusColor(status: string, isOverdue: boolean) {
     overdue: 'bg-red-500/10 text-red-400 border-red-500/20',
   };
   return colors[status] || 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-}
-
-function getDaysUntilDue(dueDate: string | null): string | null {
-  if (!dueDate) return null;
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-  const due = new Date(dueDate + 'T00:00:00');
-  const diffMs = due.getTime() - now.getTime();
-  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return `${Math.abs(diffDays)} day(s) overdue`;
-  if (diffDays === 0) return 'Due today';
-  if (diffDays === 1) return 'Due tomorrow';
-  return `Due in ${diffDays} day(s)`;
 }
 
 export default function TaskDetailPage() {
@@ -208,7 +196,7 @@ export default function TaskDetailPage() {
   const canComplete = isAssignee && isOpen && ['pending', 'assigned', 'in_progress', 'submitted', 'rejected'].includes(task.status);
   const canCarryForward = canManage && isOpen;
   const canReject = canManage && ['in_progress', 'completed', 'waiting_approval', 'submitted'].includes(task.status);
-  const dueDateInfo = getDaysUntilDue(task.due_date);
+  const dueDateStatus = getDueDateStatus(task.due_date);
 
   // Debug logging
   console.log('[TASK DETAIL DEBUG]', {
@@ -276,12 +264,12 @@ export default function TaskDetailPage() {
             <Calendar className="h-5 w-5 text-slate-400 shrink-0" />
             <div className="min-w-0">
               <p className="text-xs text-slate-500">Due Date</p>
-              <p className={cn('text-sm', isOverdue ? 'text-red-400 font-medium' : 'text-white')}>
-                {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString() : '—'}
+              <p className={cn('text-sm', dueDateStatus.tone === 'overdue' ? 'text-red-400 font-medium' : 'text-white')}>
+                {task.due_date ? formatDueDate(task.due_date) : '—'}
               </p>
-              {dueDateInfo && (
-                <p className={cn('text-xs', isOverdue ? 'text-red-400' : 'text-slate-500')}>
-                  {dueDateInfo}
+              {dueDateStatus.tone !== 'none' && (
+                <p className={cn('text-xs', dueDateStatus.tone === 'overdue' ? 'text-red-400' : 'text-slate-500')}>
+                  {dueDateStatus.label}
                 </p>
               )}
             </div>
@@ -391,14 +379,14 @@ export default function TaskDetailPage() {
               Carry Forward Task
             </p>
             <p className="text-xs text-slate-500">
-              Move this task to a new due date. Current due: {task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString() : 'None'}
+              Move this task to a new due date. Current due: {task.due_date ? formatDueDate(task.due_date) : 'None'}
             </p>
             <div className="space-y-2">
               <Label htmlFor="carry-forward-date" className="text-slate-400 text-xs">New Due Date <span className="text-red-400">*</span></Label>
               <Input
                 id="carry-forward-date"
                 type="date"
-                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                min={todayLocalISO(new Date(Date.now() + 86400000))}
                 value={carryForwardDate}
                 onChange={(e) => setCarryForwardDate(e.target.value)}
                 className="bg-slate-800/50 border-white/10 text-white"
@@ -502,7 +490,7 @@ export default function TaskDetailPage() {
                         year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
-                        hour12: true,
+                        hour12: true,     
                       })
                     : '—'}
                 </p>

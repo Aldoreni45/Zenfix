@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { usePendingPreviousTasks, useCanManage } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
+import { formatDueDate, getDueDateStatus, todayLocalISO } from '@/lib/date-utils';
 
 export default function CarryForwardPage() {
   const router = useRouter();
@@ -57,8 +58,8 @@ export default function CarryForwardPage() {
     setSubmitting(false);
   };
 
-  const today = new Date().toISOString().split('T')[0];
-  const minDate = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const today = todayLocalISO();
+  const minDate = todayLocalISO(new Date(Date.now() + 86400000));
 
   return (
     <div className="space-y-6">
@@ -112,10 +113,10 @@ export default function CarryForwardPage() {
                     <p className="text-white font-medium truncate">
                       {t.task_id} — {t.title}
                     </p>
-                    <p className="text-xs text-slate-500">Due {t.due_date}</p>
+                    <p className="text-xs text-slate-500">Due {formatDueDate(t.due_date)}</p>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 shrink-0 ml-3">
-                    {new Date(`${t.due_date}T00:00:00`).getTime() < Date.now() ? 'Overdue' : 'Pending'}
+                    {getDueDateStatus(t.due_date).tone === 'overdue' ? 'Overdue' : 'Pending'}
                   </span>
                 </div>
               ))
@@ -174,7 +175,7 @@ export default function CarryForwardPage() {
           <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-xl">
             <p className="text-green-400 text-sm">
               {result.carried_count} pending task{result.carried_count !== 1 ? 's' : ''} carried forward to{' '}
-              {new Date(`${newDueDate}T00:00:00`).toLocaleDateString()}.
+              {formatDueDate(newDueDate)}.
             </p>
           </div>
         )}

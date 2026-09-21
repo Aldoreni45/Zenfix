@@ -254,8 +254,8 @@ const techs: Technology[] = [
     ),
   },
   {
-    name: "Django",
-    color: "#44B78B",
+    name: "Next.js",
+    color: "#000000",
     svg: (
       <svg viewBox="0 0 32 32" className="w-8 h-8">
         <rect width="32" height="32" rx="4" fill="#092E20"/>

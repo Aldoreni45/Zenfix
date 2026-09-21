@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useVideos, useCanManage } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
+import { formatDueDate } from '@/lib/date-utils';
 
 export default function VideosPage() {
   const { data: videos, loading, error, refetch } = useVideos();
@@ -218,7 +219,7 @@ export default function VideosPage() {
                   {video.shoot_date && (
                     <div className="flex items-center justify-between text-slate-400">
                       <span>Shoot Date:</span>
-                      <span className="text-white">{new Date(video.shoot_date).toLocaleDateString()}</span>
+                      <span className="text-white">{formatDueDate(video.shoot_date)}</span>
                     </div>
                   )}
                 </div>

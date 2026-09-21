@@ -6,6 +6,7 @@ import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2, AlertCirc
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useTasks } from '@/lib/hooks';
+import { formatDueDate, getDueDateStatus, parseDueDate } from '@/lib/date-utils';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -45,8 +46,8 @@ export default function CalendarPage() {
     const key = keyOfDate(date);
     return activeTasks.filter((t: any) => {
       if (!t.due_date) return false;
-      const d = new Date(`${t.due_date}T00:00:00`);
-      return keyOfDate(d) === key;
+      const d = parseDueDate(t.due_date);
+      return d ? keyOfDate(d) === key : false;
     });
   };
 
@@ -88,7 +89,11 @@ export default function CalendarPage() {
 
   const upcoming = [...activeTasks]
     .filter((t: any) => t.due_date && !t.is_overdue)
-    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+    .sort((a: any, b: any) => {
+      const ad = parseDueDate(a.due_date);
+      const bd = parseDueDate(b.due_date);
+      return (ad ? ad.getTime() : 0) - (bd ? bd.getTime() : 0);
+    })
     .slice(0, 6);
 
   const headerLabel =
@@ -304,8 +309,7 @@ export default function CalendarPage() {
               <p className="text-slate-400 text-center py-8">No upcoming deadlines</p>
             ) : (
               upcoming.map((task: any) => {
-                const due = new Date(`${task.due_date}T00:00:00`);
-                const daysUntil = Math.ceil((due.getTime() - Date.now()) / 86400000);
+                const dueDateStatus = getDueDateStatus(task.due_date);
                 return (
                   <Link
                     key={task.id}
@@ -317,12 +321,7 @@ export default function CalendarPage() {
                       <div className="min-w-0">
                         <p className="text-white font-medium truncate">{task.title}</p>
                         <p className="text-sm text-slate-400">
-                          {due.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ·{' '}
-                          {daysUntil === 0
-                            ? 'Today'
-                            : daysUntil === 1
-                            ? 'Tomorrow'
-                            : `In ${daysUntil} days`}
+                          {formatDueDate(task.due_date)} · {dueDateStatus.label}
                           {task.assigned_to_name && ` · ${task.assigned_to_name}`}
                         </p>
                       </div>

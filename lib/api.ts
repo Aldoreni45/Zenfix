@@ -1,5 +1,7 @@
-// API client for the Django REST backend, reached via the Next.js /api proxy.
+// API client for the Next.js backend (MongoDB + JWT authentication)
 
+// When running in the same Next.js app, use relative /api path
+// When running separately, set NEXT_PUBLIC_API_URL to the Next.js backend URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 // JWT token storage keys (browser-only, guarded for SSR)
@@ -64,15 +66,14 @@ export function setAccessToken(token: string | null): void {
 
 /**
  * Store access token in frontend memory and storage.
- * Note: Refresh token is NEVER handled by JavaScript; it is stored strictly
- * as an HttpOnly cookie managed by Django.
+ * Note: Refresh token is stored as an HttpOnly cookie managed by Next.js backend.
  */
 export function storeTokens(access: string, _refresh?: string): void {
   setAccessToken(access);
 }
 
 /**
- * Refresh token is stored in an HttpOnly cookie and is NOT accessible to JavaScript.
+ * Refresh token is stored in an HttpOnly cookie managed by Next.js backend.
  * Kept only for API compatibility; always returns null.
  */
 export function getStoredRefreshToken(): string | null {
@@ -122,8 +123,7 @@ export function hasRefreshToken(): boolean {
 
 /**
  * Turn a raw ApiResponse into a human-friendly message.
- * The MongoDB backend returns errors as `{ detail: string }` (or field maps),
- * so we unwrap the first message.
+ * The Next.js backend returns errors in various formats, so we unwrap them.
  */
 export function extractApiErrorMessage(response: ApiResponse<unknown>): string {
   if (!response.error) return 'Unexpected error';
@@ -149,7 +149,10 @@ export function extractApiErrorMessage(response: ApiResponse<unknown>): string {
 
   if (response.status === 401) return 'Invalid credentials or session expired.';
   if (response.status === 403) return 'You do not have permission to perform this action.';
+  if (response.status === 404) return 'Requested endpoint or resource was not found.';
+  if (response.status === 410) return 'This endpoint is deprecated or no longer available.';
   if (response.status === 429) return 'Too many requests. Please try again later.';
+  if (response.status && response.status >= 500) return 'Server error. Please try again shortly.';
   if (response.status === 0 || response.status === undefined) return 'Network error. Please check your connection.';
 
   const trimmed = response.error.trim();
@@ -166,7 +169,7 @@ function readCookie(name: string): string | null {
 function unwrapEnvelope<T>(payload: any): T {
   if (!payload) return payload as T;
   
-  // Handle DRF envelope format with success flag
+  // Handle API envelope format with success flag
   if (typeof payload === 'object' && payload.success === true && 'data' in payload) {
     const inner = payload.data;
     if (inner && typeof inner === 'object' && Array.isArray(inner.results)) {
@@ -393,7 +396,7 @@ class ApiClient {
       }
 
       // Login failure: clear stale/expired tokens so the next attempt
-      // starts with a clean slate (prevents the expired-cookie 401 loop).
+      // starts with a clean slate.
       if (response.status === 401 && endpoint === '/auth/login') {
         clearTokens();
       }
@@ -585,7 +588,7 @@ export const apiEndpoints = {
   myVideoTasks: '/video-protocol/video-stages/my_tasks',
 };
 
-// Type definitions based on Django models
+// Type definitions based on Next.js backend models
 export interface User {
   id: number;
   username: string;

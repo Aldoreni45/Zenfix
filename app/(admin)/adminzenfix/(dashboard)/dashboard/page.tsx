@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth, useDashboard, useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useUnreadNotifications, useNotificationCount, useMyActivityLogs, getRoleLandingPage } from '@/lib/hooks';
 import { api, apiEndpoints } from '@/lib/api';
+import { formatDueDate, parseDueDate } from '@/lib/date-utils';
 
 const PRIORITY_COLORS: Record<string, string> = {
   urgent: '#EF4444', high: '#F97316', medium: '#F59E0B', low: '#10B981',
@@ -169,8 +170,8 @@ export default function DashboardPage() {
     });
     return uniqueTasks.filter((task) => {
       if (!task.due_date) return false;
-      const taskDate = new Date(task.due_date);
-      return taskDate.toDateString() === date.toDateString();
+      const taskDate = parseDueDate(task.due_date);
+      return taskDate ? taskDate.toDateString() === date.toDateString() : false;
     });
   };
 
@@ -401,7 +402,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <span className="text-xs text-red-400 font-medium">
-                  {new Date(task.due_date).toLocaleDateString()}
+                  {formatDueDate(task.due_date)}
                 </span>
               </div>
             ))}
