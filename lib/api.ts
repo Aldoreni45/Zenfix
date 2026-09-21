@@ -519,6 +519,7 @@ export const apiEndpoints = {
   pendingPreviousTasks: '/tasks/pending_previous',
   bulkCreateTasks: '/tasks/bulk_create',
   assignTask: (id: number) => `/tasks/${id}/assign`,
+  reassignTask: (id: number) => `/tasks/${id}/reassign`,
   startTask: (id: number) => `/tasks/${id}/start`,
   completeTask: (id: number) => `/tasks/${id}/complete`,
   carryForwardTask: (id: number) => `/tasks/${id}/carry_forward`,

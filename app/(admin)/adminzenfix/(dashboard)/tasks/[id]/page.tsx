@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft, Clock, User, Calendar, Link2, FileText, RefreshCw,
   Play, CheckCircle2, XCircle, Loader2, AlertTriangle, AlertCircle,
+  UserCog, Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useEmployees } from '@/lib/hooks';
 import { formatDueDate, getDueDateStatus, todayLocalISO } from '@/lib/date-utils';
 
 function getStatusColor(status: string, isOverdue: boolean) {
@@ -33,8 +35,10 @@ function getStatusColor(status: string, isOverdue: boolean) {
 
 export default function TaskDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const taskId = String(params.id);
   const { user } = useAuth();
+  const { data: employees } = useEmployees();
 
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +52,11 @@ export default function TaskDetailPage() {
   const [carryingForward, setCarryingForward] = useState(false);
   const [carryForwardDate, setCarryForwardDate] = useState('');
   const [carryForwarding, setCarryForwarding] = useState(false);
+  const [reassignPanel, setReassignPanel] = useState(false);
+  const [reassignTo, setReassignTo] = useState('');
+  const [reassigning, setReassigning] = useState(false);
+  const [deletePanel, setDeletePanel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchTask = useCallback(async () => {
     setLoading(true);
@@ -140,6 +149,36 @@ export default function TaskDetailPage() {
     setCarryForwarding(false);
   };
 
+  const handleReassign = async () => {
+    if (!reassignTo) {
+      toast.error('Select an employee');
+      return;
+    }
+    setReassigning(true);
+    const res = await api.post(apiEndpoints.reassignTask(Number(taskId)), { assigned_to: Number(reassignTo) });
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+    } else {
+      toast.success('Task reassigned');
+      setReassignPanel(false);
+      setReassignTo('');
+      await fetchTask();
+    }
+    setReassigning(false);
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    const res = await api.delete(apiEndpoints.task(Number(taskId)));
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+      setDeleting(false);
+    } else {
+      toast.success('Task deleted');
+      router.push('/adminzenfix/tasks');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -170,7 +209,7 @@ export default function TaskDetailPage() {
 
   const canManage = user?.role === 'owner' || user?.role === 'manager';
 
-  const assignedToId = task?.assigned_to;
+  const assignedToId = task?.assigned_to ?? task?.assigned_to_id;
   const userId = user?.id;
   const idsMatch = assignedToId != null && userId != null && (
     assignedToId === userId ||
@@ -196,16 +235,11 @@ export default function TaskDetailPage() {
   const canComplete = isAssignee && isOpen && ['pending', 'assigned', 'in_progress', 'submitted', 'rejected'].includes(task.status);
   const canCarryForward = canManage && isOpen;
   const canReject = canManage && ['in_progress', 'completed', 'waiting_approval', 'submitted'].includes(task.status);
+  const isVideoTask = Boolean(task.video_stage_id);
+  const isLockedStatus = task.status === 'completed' || task.status === 'cancelled';
+  const canReassign = canManage && !isVideoTask && !isLockedStatus;
+  const canDelete = canManage && !isVideoTask;
   const dueDateStatus = getDueDateStatus(task.due_date);
-
-  // Debug logging
-  console.log('[TASK DETAIL DEBUG]', {
-    'user.id': user?.id, 'user.role': user?.role, 'user.full_name': user?.full_name,
-    'task.assigned_to': task?.assigned_to, 'task.assigned_to_name': task?.assigned_to_name,
-    'task.status': task?.status,
-    isAssignee, isOpen, canStart, canComplete, canManage,
-    'type_assigned_to': typeof task?.assigned_to, 'type_user_id': typeof user?.id,
-  });
 
   return (
     <div className="space-y-6">
@@ -310,19 +344,31 @@ export default function TaskDetailPage() {
               Carry Forward
             </Button>
           )}
+          {canReassign && !reassignPanel && (
+            <Button onClick={() => setReassignPanel(true)} disabled={acting} variant="outline" className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10">
+              <UserCog className="h-4 w-4 mr-2" />
+              Reassign
+            </Button>
+          )}
+          {canDelete && !deletePanel && (
+            <Button onClick={() => setDeletePanel(true)} disabled={acting} variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
           {canReject && !rejecting && (
             <Button onClick={() => setRejecting(true)} disabled={acting} variant="outline" className="border-red-500/50 text-red-400 hover:bg-red-500/10">
               <XCircle className="h-4 w-4 mr-2" />
               Reject
             </Button>
           )}
-          {canManage && !isAssignee && task.assigned_to && ['pending', 'assigned', 'in_progress'].includes(task.status) && (
+          {canManage && !isAssignee && assignedToId && ['pending', 'assigned', 'in_progress'].includes(task.status) && (
             <span className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg px-3 py-2 flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-cyan-400" />
               Assigned to {task.assigned_to_name || 'employee'} (only assignee can start & complete)
             </span>
           )}
-          {canManage && !task.assigned_to && (
+          {canManage && !assignedToId && (
             <span className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 flex items-center gap-1.5">
               <AlertCircle className="h-3.5 w-3.5" />
               Unassigned — Assign to an employee so they can start work
@@ -398,6 +444,66 @@ export default function TaskDetailPage() {
                 Confirm Carry Forward
               </Button>
               <Button variant="ghost" onClick={() => { setCarryingForward(false); setCarryForwardDate(''); }} className="text-slate-400">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Reassign form */}
+        {reassignPanel && (
+          <div className="mt-4 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl space-y-3">
+            <p className="text-sm text-slate-300 font-medium flex items-center gap-2">
+              <UserCog className="h-4 w-4 text-cyan-400" />
+              Reassign Task
+            </p>
+            <p className="text-xs text-slate-500">
+              Move this task to another employee. Current assignee: {task.assigned_to_name || 'Unassigned'}
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="reassign-employee" className="text-slate-400 text-xs">New Assignee <span className="text-red-400">*</span></Label>
+              <select
+                id="reassign-employee"
+                value={reassignTo}
+                onChange={(e) => setReassignTo(e.target.value)}
+                className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 [&>option]:bg-slate-900"
+              >
+                <option value="">Select employee...</option>
+                {(employees || [])
+                  .filter((u: any) => u.id !== task.assigned_to_id)
+                  .map((u: any) => (
+                    <option key={u.id} value={u.id} className="bg-slate-900">
+                      {u.full_name || u.username}
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleReassign} disabled={reassigning || !reassignTo} className="bg-cyan-500 hover:bg-cyan-600">
+                {reassigning ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserCog className="h-4 w-4 mr-2" />}
+                Confirm Reassign
+              </Button>
+              <Button variant="ghost" onClick={() => { setReassignPanel(false); setReassignTo(''); }} className="text-slate-400">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Delete confirmation */}
+        {deletePanel && (
+          <div className="mt-4 p-4 bg-red-500/5 border border-red-500/20 rounded-xl space-y-3">
+            <p className="text-sm text-slate-300 font-medium flex items-center gap-2">
+              <Trash2 className="h-4 w-4 text-red-400" />
+              Delete Task
+            </p>
+            <p className="text-xs text-slate-500">Are you sure you want to delete this task?</p>
+            <div className="flex gap-2">
+              <Button onClick={handleDelete} disabled={deleting} className="bg-red-500 hover:bg-red-600">
+                {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                Confirm Delete
+              </Button>
+              <Button variant="ghost" onClick={() => setDeletePanel(false)} className="text-slate-400">
                 Cancel
               </Button>
             </div>

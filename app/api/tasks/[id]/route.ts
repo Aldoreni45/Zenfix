@@ -377,6 +377,27 @@ async function deleteHandler(request: NextRequest, user: any, id: string) {
       );
     }
 
+    // Video Protocol safety: tasks auto-created from a video stage are owned by
+    // their Video Protocol lifecycle (stage sync/aggregates). Never delete them
+    // through the general-task system.
+    if (taskDoc.video_stage_id) {
+      return NextResponse.json(
+        { error: 'Video Protocol tasks cannot be deleted.' },
+        { status: 400 }
+      );
+    }
+
+    // Reuse the existing activity log system before the record is removed.
+    await logActivity({
+      actorId: user.userId,
+      action: 'DELETE',
+      entityType: 'task',
+      entityId: taskDoc.numeric_id.toString(),
+      description: `Deleted task '${taskDoc.title}'`,
+      metadata: { task_id: taskDoc.task_id },
+      request,
+    });
+
     await TaskModel.delete(numericId);
 
     return NextResponse.json({ success: true });
