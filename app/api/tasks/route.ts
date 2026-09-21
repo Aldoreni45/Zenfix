@@ -164,7 +164,7 @@ async function createHandler(request: NextRequest, user: any) {
       assigned_manager,
       department,
       priority = 'MEDIUM',
-      status = 'PENDING',
+      status = TaskStatus.PENDING,
       due_date,
       due_time,
       parent_task,

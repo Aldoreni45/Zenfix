@@ -229,14 +229,15 @@ export default function TaskDetailPage() {
   );
   const isAssignee = Boolean(idsMatch || namesMatch);
   const isOverdue = task.is_overdue;
-  const isOpen = ['pending', 'assigned', 'in_progress', 'blocked', 'submitted', 'rejected'].includes(task.status);
+  const status = String(task.status || '').toLowerCase();
+  const isOpen = ['pending', 'assigned', 'in_progress', 'blocked', 'submitted', 'rejected'].includes(status);
   // ONLY the assigned employee can start and complete tasks
-  const canStart = isAssignee && isOpen && ['pending', 'assigned', 'rejected'].includes(task.status);
-  const canComplete = isAssignee && isOpen && ['pending', 'assigned', 'in_progress', 'submitted', 'rejected'].includes(task.status);
+  const canStart = isAssignee && isOpen && ['pending', 'assigned', 'rejected'].includes(status);
+  const canComplete = isAssignee && isOpen && ['pending', 'assigned', 'in_progress', 'submitted', 'rejected'].includes(status);
   const canCarryForward = canManage && isOpen;
-  const canReject = canManage && ['in_progress', 'completed', 'waiting_approval', 'submitted'].includes(task.status);
+  const canReject = canManage && ['in_progress', 'completed', 'waiting_approval', 'submitted'].includes(status);
   const isVideoTask = Boolean(task.video_stage_id);
-  const isLockedStatus = task.status === 'completed' || task.status === 'cancelled';
+  const isLockedStatus = status === 'completed' || status === 'cancelled';
   const canReassign = canManage && !isVideoTask && !isLockedStatus;
   const canDelete = canManage && !isVideoTask;
   const dueDateStatus = getDueDateStatus(task.due_date);
@@ -362,7 +363,7 @@ export default function TaskDetailPage() {
               Reject
             </Button>
           )}
-          {canManage && !isAssignee && assignedToId && ['pending', 'assigned', 'in_progress'].includes(task.status) && (
+          {canManage && !isAssignee && assignedToId && ['pending', 'assigned', 'in_progress'].includes(status) && (
             <span className="text-xs text-slate-400 bg-white/5 border border-white/10 rounded-lg px-3 py-2 flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-cyan-400" />
               Assigned to {task.assigned_to_name || 'employee'} (only assignee can start & complete)
@@ -558,7 +559,7 @@ export default function TaskDetailPage() {
         </div>
       )}
 
-      {task.status === 'completed' && (
+      {status === 'completed' && (
         <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-5 space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between flex-wrap gap-2">

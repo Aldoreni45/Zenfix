@@ -36,12 +36,13 @@ async function handler(request: NextRequest, user: any, id: string) {
     }
 
     // Django: Task cannot be completed in its current status
+    const status = String(taskDoc.status || '').toLowerCase();
     if (
-      taskDoc.status !== TaskStatus.IN_PROGRESS &&
-      taskDoc.status !== TaskStatus.ASSIGNED &&
-      taskDoc.status !== TaskStatus.PENDING &&
-      taskDoc.status !== TaskStatus.SUBMITTED &&
-      taskDoc.status !== TaskStatus.REJECTED
+      status !== TaskStatus.IN_PROGRESS &&
+      status !== TaskStatus.ASSIGNED &&
+      status !== TaskStatus.PENDING &&
+      status !== TaskStatus.SUBMITTED &&
+      status !== TaskStatus.REJECTED
     ) {
       return NextResponse.json(
         { error: 'Task cannot be completed in its current status.' },

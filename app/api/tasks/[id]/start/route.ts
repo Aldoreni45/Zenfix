@@ -32,10 +32,11 @@ async function handler(request: NextRequest, user: any, id: string) {
     }
 
     // Django: Task can only be started when pending or assigned or rejected
+    const status = String(taskDoc.status || '').toLowerCase();
     if (
-      taskDoc.status !== TaskStatus.PENDING &&
-      taskDoc.status !== TaskStatus.ASSIGNED &&
-      taskDoc.status !== TaskStatus.REJECTED
+      status !== TaskStatus.PENDING &&
+      status !== TaskStatus.ASSIGNED &&
+      status !== TaskStatus.REJECTED
     ) {
       return NextResponse.json(
         { error: 'Task can only be started when pending or assigned.' },
