@@ -79,13 +79,13 @@ export default function ActivityLogsPage() {
     if (search.trim()) params.set('search', search.trim());
     if (filterAction) params.set('action', filterAction);
 
-    const res = await api.get<{ count: number; results: LogEntry[] }>(`${apiEndpoints.activityLogs}?${params}`);
+    const res = await api.get<{ items: LogEntry[]; count: number }>(`${apiEndpoints.activityLogs}?${params}`);
 
     if (res.error) {
       setLoadError(extractApiErrorMessage(res));
       toast.error('Failed to fetch activity logs');
     } else if (res.data) {
-      setLogs(res.data.results || []);
+      setLogs(res.data.items || []);
       setTotal(res.data.count || 0);
     }
     setLoading(false);

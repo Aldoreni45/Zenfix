@@ -66,9 +66,14 @@ export class ActivityLogModel {
     return await collection.findOne({ _id: id });
   }
 
-  static async findAll(filters: Partial<ActivityLogDocument> = {}, limit: number = 100): Promise<ActivityLogDocument[]> {
+  static async findAll(filters: Partial<ActivityLogDocument> = {}, limit: number = 100, skip: number = 0): Promise<ActivityLogDocument[]> {
     const collection = await this.getCollection();
-    return await collection.find(filters).sort({ created_at: -1 }).limit(limit).toArray();
+    return await collection.find(filters).sort({ created_at: -1 }).skip(skip).limit(limit).toArray();
+  }
+
+  static async count(filters: Partial<ActivityLogDocument> = {}): Promise<number> {
+    const collection = await this.getCollection();
+    return await collection.countDocuments(filters);
   }
 
   static async findRecent(limit: number = 10): Promise<ActivityLogDocument[]> {

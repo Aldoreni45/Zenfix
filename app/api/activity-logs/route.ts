@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, requireOwnerOrManager } from '@/lib/auth/middleware';
+import { requireAuth } from '@/lib/auth/middleware';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { UserModel } from '@/lib/mongodb/models/user';
-import { formatUserName, formatActionName, formatEntityName } from '@/lib/api-helpers/data-enrichment';
-import { formatDate } from '@/lib/api-helpers/response-formatter';
 import { handleError } from '@/lib/api-helpers/error-handler';
 
 async function handler(request: NextRequest, user: any) {
@@ -11,10 +9,12 @@ async function handler(request: NextRequest, user: any) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
     const entity_type = searchParams.get('entity_type');
-    const limit = parseInt(searchParams.get('limit') || '100');
+    const search = searchParams.get('search')?.trim();
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1') || 1);
+    const pageSize = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '20') || 20));
 
     const filters: any = {};
-    
+
     // Role-based filtering
     if (user.role === 'owner' || user.role === 'manager') {
       // See all
@@ -25,15 +25,39 @@ async function handler(request: NextRequest, user: any) {
     if (action) filters.action = action;
     if (entity_type) filters.entity_type = entity_type;
 
-    const logs = await ActivityLogModel.findAll(filters, limit || 100);
+    // Search by entity id or actor name/email/username
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const rx = new RegExp(escaped, 'i');
+      let actorIds: number[] = [];
+      try {
+        const actorMatches = await UserModel.findAll({
+          $or: [
+            { username: rx },
+            { email: rx },
+            { first_name: rx },
+            { last_name: rx },
+          ],
+        } as any);
+        actorIds = actorMatches.map((u) => u.numeric_id as number);
+      } catch {
+        actorIds = [];
+      }
+      const or: any[] = [{ entity_id: rx }];
+      if (actorIds.length) or.push({ actor_id: { $in: actorIds } });
+      filters.$or = or;
+    }
 
-    const logsWithDetails = await Promise.all(
+    const total = await ActivityLogModel.count(filters);
+    const logs = await ActivityLogModel.findAll(filters, pageSize, (page - 1) * pageSize);
+
+    const items = await Promise.all(
       logs.map(async (l) => {
         let actor = null;
         if (l.actor_id) {
           actor = await UserModel.findByNumericId(l.actor_id);
         }
-        
+
         return {
           id: l.numeric_id,
           user: l.actor_id,
@@ -54,7 +78,7 @@ async function handler(request: NextRequest, user: any) {
       })
     );
 
-    return NextResponse.json(logsWithDetails);
+    return NextResponse.json({ items, count: total, page, page_size: pageSize });
   } catch (error) {
     return handleError(error, 'List activity logs');
   }
