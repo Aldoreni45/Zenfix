@@ -2,11 +2,18 @@ import 'server-only';
 import dns from 'node:dns';
 import { MongoClient, type Db } from 'mongodb';
 
-const MONGO_URI = process.env.MONGODB_URI;
 const MONGO_DB = process.env.MONGODB_DB || 'prod_zenfix';
 
-if (!MONGO_URI) {
-  throw new Error('MONGODB_URI environment variable is not set');
+// Read the URI lazily so it is resolved at connection time (runtime), not at
+// module evaluation during `next build`. The build process has no access to
+// the Vercel runtime environment variables, and a module-scope throw would
+// abort "collect page data" for every API route that imports this module.
+function getMongoUri(): string {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error('MONGODB_URI environment variable is not set');
+  }
+  return uri;
 }
 
 /**
@@ -163,7 +170,7 @@ async function connect(): Promise<MongoClient> {
   // Resolve SRV once per process (system DNS first, DoH fallback).
   const uri = await (async () => {
     if (globalForMongo._resolvedUri) return globalForMongo._resolvedUri;
-    const resolved = await resolveMongoUri(MONGO_URI as string);
+    const resolved = await resolveMongoUri(getMongoUri());
     globalForMongo._resolvedUri = resolved;
     return resolved;
   })();
@@ -180,9 +187,13 @@ async function connect(): Promise<MongoClient> {
 }
 
 export function getMongoClient(): Promise<MongoClient> {
-  if (process.env.NODE_ENV === 'production') {
-    return connect();
-  }
+  // Cache the connection promise on `globalThis` in all environments. In
+  // development this (a) avoids creating a new pool on every hot reload and
+  // (b) reuses the pool across reloads. In production it keeps a single
+  // connection per serverless instance, which is the documented pattern for
+  // Next.js + MongoDB. The promise is created lazily on first use, never at
+  // module evaluation time, so importing this module during `next build`
+  // cannot trigger a database connection.
   if (!globalForMongo._mongoClientPromise) {
     globalForMongo._mongoClientPromise = connect();
   }
@@ -240,5 +251,3 @@ export async function isMongoConnected(): Promise<boolean> {
     return false;
   }
 }
-
-export default getMongoClient();
