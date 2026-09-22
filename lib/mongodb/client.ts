@@ -93,15 +93,14 @@ async function resolveSeedlistSrv(host: string): Promise<Seedlist> {
   // TXT options (authSource, replicaSet) — non-fatal if unavailable.
   const options: Record<string, string> = {};
   try {
-    let txt: string[][] = [];
+    let records: string[];
     try {
-      txt = await dns.promises.resolveTxt(host);
+      records = (await dns.promises.resolveTxt(host)).map((chunks) => chunks.join(''));
     } catch {
-      const values = await resolveDoh(host, 'TXT');
-      txt = values.map((v) => v.replace(/^"|"$/g, '').split('&'));
+      records = await resolveDoh(host, 'TXT');
     }
-    for (const parts of txt) {
-      for (const part of parts) {
+    for (const record of records) {
+      for (const part of record.replace(/^"|"$/g, '').split('&')) {
         const eq = part.indexOf('=');
         if (eq === -1) continue;
         options[part.slice(0, eq)] = part.slice(eq + 1);

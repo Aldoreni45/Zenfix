@@ -1,8 +1,4 @@
-import { SignJWT, jwtVerify } from 'jose';
-
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-);
+import { SignJWT, jwtVerify, decodeJwt } from 'jose';
 
 const ACCESS_TOKEN_EXPIRY = '1h'; // 1 hour
 const REFRESH_TOKEN_EXPIRY = '7d'; // 7 days
@@ -14,12 +10,24 @@ export interface JWTPayload {
   type: 'access' | 'refresh';
 }
 
+function getSecret(name: string): Uint8Array {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} environment variable is not set`);
+  }
+  return new TextEncoder().encode(value);
+}
+
+function secretNameFor(type: 'access' | 'refresh'): string {
+  return type === 'access' ? 'JWT_ACCESS_SECRET' : 'JWT_REFRESH_SECRET';
+}
+
 export async function signAccessToken(payload: Omit<JWTPayload, 'type'>): Promise<string> {
   return await new SignJWT({ ...payload, type: 'access' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(ACCESS_TOKEN_EXPIRY)
-    .sign(JWT_SECRET);
+    .sign(getSecret(secretNameFor('access')));
 }
 
 export async function signRefreshToken(payload: Omit<JWTPayload, 'type'>): Promise<string> {
@@ -27,12 +35,19 @@ export async function signRefreshToken(payload: Omit<JWTPayload, 'type'>): Promi
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(REFRESH_TOKEN_EXPIRY)
-    .sign(JWT_SECRET);
+    .sign(getSecret(secretNameFor('refresh')));
 }
 
 export async function verifyToken(token: string): Promise<JWTPayload> {
+  let type: unknown;
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    type = (decodeJwt(token) as { type?: unknown } | null)?.type;
+  } catch {
+    type = undefined;
+  }
+  const secret = getSecret(secretNameFor(type === 'refresh' ? 'refresh' : 'access'));
+  try {
+    const { payload } = await jwtVerify(token, secret);
     return payload as unknown as JWTPayload;
   } catch (error) {
     throw new Error('Invalid or expired token');
