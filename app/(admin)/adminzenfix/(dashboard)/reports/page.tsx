@@ -468,8 +468,8 @@ export default function ReportsPage() {
                 <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} width={80} />
                 <Tooltip contentStyle={tooltipStyle} />
                 <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Tasks">
-                  {deptData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  {deptData.map((d: any, i: number) => (
+                    <Cell key={d.name} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -497,7 +497,7 @@ export default function ReportsPage() {
                 <Bar dataKey="efficiency" radius={[4, 4, 0, 0]} name="Efficiency">
                   {efficiencyData.slice(0, 8).map((entry: any, i: number) => (
                     <Cell
-                      key={i}
+                      key={entry.name}
                       fill={entry.efficiency >= 80 ? '#10B981' : entry.efficiency >= 50 ? '#F59E0B' : '#EF4444'}
                     />
                   ))}
@@ -552,7 +552,7 @@ export default function ReportsPage() {
                       : 'text-red-400 bg-red-500/10 border-red-500/20';
                   const barColor = eff >= 80 ? '#10B981' : eff >= 50 ? '#F59E0B' : '#EF4444';
                   return (
-                    <tr key={i} className="border-b border-white/5 hover:bg-white/3 transition-colors">
+                    <tr key={item.name} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                       <td className="py-3 pl-2">
                         <p className="text-white font-medium">{item.name}</p>
                       </td>

@@ -337,8 +337,8 @@ export default function DashboardPage() {
               <PieChart>
                 <Pie data={statusPieData.filter(d => d.value > 0)} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
                   paddingAngle={3} dataKey="value">
-                  {statusPieData.filter(d => d.value > 0).map((_: any, i: number) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  {statusPieData.filter(d => d.value > 0).map((d: any, i: number) => (
+                    <Cell key={d.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: any, n: any) => [v, n]} />

@@ -205,14 +205,14 @@ export default function CalendarPage() {
 
               {/* Calendar Days */}
               <div className="grid grid-cols-7">
-                {calendarDays.map((cell, index) => {
+                {calendarDays.map((cell) => {
                   const isToday =
                     cell.isCurrentMonth &&
                     keyOfDate(cell.date) === keyOfDate(today);
                   const dayTasks = getTasksForDay(cell.date);
                   return (
                     <div
-                      key={index}
+                      key={keyOfDate(cell.date)}
                       className={cn(
                         'min-h-[120px] p-2 border-b border-r border-white/5 transition-colors',
                         !cell.isCurrentMonth && 'bg-slate-950/30',

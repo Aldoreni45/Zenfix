@@ -146,7 +146,7 @@ export default function ServicesSection() {
             
             return (
               <motion.div
-                key={idx}
+                key={service.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
