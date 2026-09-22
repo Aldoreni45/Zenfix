@@ -166,6 +166,57 @@ const globalForMongo = globalThis as unknown as {
   _resolvedUri?: string;
 };
 
+/**
+ * Credential-free fingerprint of the configured MONGODB_URI, for server-side
+ * diagnostics. It never contains the username, password, or the raw URI, so it
+ * is safe to log.
+ */
+function describeMongoUri(uri: string): Record<string, unknown> {
+  const scheme = uri.startsWith('mongodb+srv://') ? 'mongodb+srv' : 'mongodb';
+  const raw = uri.slice(uri.indexOf('://') + 3);
+  const at = raw.lastIndexOf('@');
+  const credentialPart = at >= 0 ? raw.slice(0, at) : '';
+  const rest = at >= 0 ? raw.slice(at + 1) : raw;
+  const host = rest.split(/[/?]/)[0];
+  const user = credentialPart ? credentialPart.split(':')[0] : '';
+  const password = credentialPart.includes(':') ? credentialPart.slice(credentialPart.indexOf(':') + 1) : '';
+  const uriDbMatch = /^\/([^?]+)/.exec(rest);
+  return {
+    scheme,
+    host,
+    username_present: user.length > 0,
+    username_length: user.length,
+    password_length: password.length,
+    password_requires_url_encoding: /[ @/?:%#]/.test(password),
+    auth_source_in_uri: /(^|[&?])authSource=/i.test(rest),
+    database_in_uri: uriDbMatch ? uriDbMatch[1] : '(not in URI)',
+    env_db: MONGO_DB,
+  };
+}
+
+/** Redact any `mongodb://` URI a driver error might embed before logging. */
+function redactUris(text: string): string {
+  return text.replace(/mongodb(\+srv)?:\/\/[^\s'"]*/gi, '[MONGODB_URI redacted]');
+}
+
+/**
+ * Build a credential-free error for connection failures so server logs (and
+ * any caller) never leak MONGODB_URI or its credentials, while still pointing
+ * at what to check on the server.
+ */
+function mongoFailure(error: unknown): Error {
+  const name = (error as { codeName?: string; name?: string })?.codeName || (error as { name?: string })?.name || 'Error';
+  const raw = error instanceof Error ? error.message : String(error);
+  const sanitizedRaw = redactUris(raw).replace(/\s+/g, ' ').trim().slice(0, 300);
+  const authHint =
+    name === 'AuthenticationFailed' || /bad auth|authentication failed/i.test(raw)
+      ? ' MongoDB reached the cluster but rejected the credentials. Verify MONGODB_URI on the server (username, password URL-encoding, authSource) and Atlas Network Access; the application reads process.env.MONGODB_URI correctly.'
+      : '';
+  const prefix = `MongoDB connection failed: ${name}.`;
+  const detail = sanitizedRaw && !/bad auth|authentication failed/i.test(sanitizedRaw) ? ` ${sanitizedRaw}` : '';
+  return new Error(`${prefix}${detail}${authHint}`);
+}
+
 async function connect(): Promise<MongoClient> {
   // Resolve SRV once per process (system DNS first, DoH fallback).
   const uri = await (async () => {
@@ -182,7 +233,13 @@ async function connect(): Promise<MongoClient> {
     minPoolSize: 0,
     appName: 'zenfix',
   });
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (error) {
+    await client.close().catch(() => undefined);
+    console.error('[mongodb] connection failed. config fingerprint:', describeMongoUri(getMongoUri()));
+    throw mongoFailure(error);
+  }
   return client;
 }
 
