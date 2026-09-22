@@ -24,7 +24,8 @@ import {
   Building2,
   Video,
   FileText,
-  History
+  History,
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,16 +72,32 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
+  // Sticky: the first auth bootstrap decision locks in the shell. Never drop
+  // back to the loader afterwards, because `initializeAuth()` flips
+  // `initialized` back to false during a later `refetch()` (e.g. profile save)
+  // and gating directly on it would blank the whole dashboard every refetch.
+  const [authReady, setAuthReady] = useState(false);
+  // Last known-good role, so a temporary `null` from `useUserRole()` while a
+  // refetch re-runs never causes the Employee nav to flash.
+  const [resolvedRole, setResolvedRole] = useState<'owner' | 'manager' | 'employee' | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const navigation = !mounted
-    ? employeeNavigation
-    : userRole === 'owner'
+  useEffect(() => {
+    if (initialized) setAuthReady(true);
+  }, [initialized]);
+
+  useEffect(() => {
+    if (userRole) setResolvedRole(userRole);
+  }, [userRole]);
+
+  const effectiveRole = userRole || resolvedRole;
+
+  const navigation = effectiveRole === 'owner'
     ? ownerNavigation
-    : userRole === 'manager'
+    : effectiveRole === 'manager'
     ? managerNavigation
     : employeeNavigation;
 
@@ -96,6 +113,26 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       router.push('/adminzenfix/login');
     }
   }, [initialized, isAuthenticated, router]);
+
+  // Gate the role-based shell on the FIRST auth bootstrap finishing. Without
+  // this, `useUserRole()` returns null until /api/users/me resolves, and
+  // rendering the Employee nav/sidebar before that caused the Owner/Manager
+  // "flicker" on page refresh.
+  if (!authReady || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 bg-gradient-to-br from-cyan-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto">
+            <span className="text-3xl font-bold text-white">Z</span>
+          </div>
+          <div className="flex items-center gap-2 text-slate-400">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span>Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 overflow-hidden">
@@ -118,7 +155,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           {/* Logo */}
           <div className="flex items-center justify-between h-20 px-6 border-b border-white/5">
             <Link
-              href={userRole === 'employee' ? '/adminzenfix/tasks' : '/adminzenfix/dashboard'}
+              href={effectiveRole === 'employee' ? '/adminzenfix/tasks' : '/adminzenfix/dashboard'}
               className="flex items-center gap-3"
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center overflow-hidden">
@@ -172,7 +209,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 <p className="text-sm font-medium text-white truncate">
                   {mounted ? (user?.first_name || user?.username || 'User') : '\u00A0'}
                 </p>
-                <p className="text-xs text-gray-400 capitalize">{mounted ? (user?.role_name || userRole) : '\u00A0'}</p>
+                <p className="text-xs text-gray-400 capitalize">{mounted ? (user?.role_name || effectiveRole) : '\u00A0'}</p>
               </div>
             </div>
             <button

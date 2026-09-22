@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { VideoStageModel } from '@/lib/mongodb/models/video-protocol';
 import { VideoRecordModel } from '@/lib/mongodb/models/video-protocol';
 import { VideoProtocolModel } from '@/lib/mongodb/models/video-protocol';
+import { TaskModel } from '@/lib/mongodb/models/task';
 import { requireAuth } from '@/lib/auth/middleware';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
-import { ActivityAction } from '@/lib/types/models';
+import { ActivityAction, TaskStatus } from '@/lib/types/models';
 import { handleError, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { loadProtocolContent } from '@/lib/api-helpers/video-protocol';
@@ -64,6 +65,30 @@ export async function POST(
             await VideoProtocolModel.update(protocol.numeric_id, { status: 'completed' });
           }
         }
+      }
+
+      // Stage and task are ONE logical piece of work: when the stage is
+      // completed directly (Owner/Manager confirm), mirror the same completion
+      // onto the linked assigned task so both sides stay in sync. Only the
+      // completion metadata changes - the assignee is preserved and no new
+      // task is ever created here.
+      const linkedTasks = await TaskModel.findAll({
+        video_stage_id: stage.numeric_id,
+      } as any);
+      for (const task of linkedTasks) {
+        if (
+          task.status === TaskStatus.COMPLETED ||
+          task.status === TaskStatus.CANCELLED
+        ) {
+          continue;
+        }
+        const taskUpdate: any = {
+          status: TaskStatus.COMPLETED,
+          completed_at: new Date(),
+          drive_link: drive_link || task.drive_link,
+          completion_notes: completion_notes || task.completion_notes,
+        };
+        await TaskModel.update(task.numeric_id, taskUpdate);
       }
 
       // Log activity

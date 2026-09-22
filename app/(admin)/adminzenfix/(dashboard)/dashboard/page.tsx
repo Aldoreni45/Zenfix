@@ -64,7 +64,7 @@ export default function DashboardPage() {
     }
   }, [initialized, isAuthenticated, user?.role, router]);
 
-  const userRole = user?.role || 'employee';
+  const userRole = user?.role;
 
   const handleRefresh = async () => {
     setRefreshing(true);

@@ -272,14 +272,18 @@ export function useAuth() {
   return context;
 }
 
-export function useUserRole() {
+export function useUserRole(): 'owner' | 'manager' | 'employee' | null {
   const { user, initialized } = useAuth();
   if (user?.role) return user.role;
   // Only trust the sessionStorage fallback after the auth bootstrap finishes.
   // Reading it during SSR or the first client render would diverge from the
   // server (no storage server-side) and break React hydration.
   const savedRole = initialized ? getSavedUserRole() : null;
-  return (savedRole as 'owner' | 'manager' | 'employee') || 'employee';
+  // Never assume a default role while auth is still loading: returning
+  // 'employee' here is what made Owner/Manager sessions briefly render the
+  // Employee UI after a refresh (before /api/users/me resolved).
+  if (savedRole) return savedRole as 'owner' | 'manager' | 'employee';
+  return null;
 }
 
 export function useIsOwner() {

@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { useAuth, useUserRole, useTaskHistorySummary, useTaskHistoryUsers, useTaskHistoryDaily, useTaskHistoryTasks } from '@/lib/hooks';
+import { useAuth, useUserRole, useTaskHistorySummary, useTaskHistoryUsers, useTaskHistoryDaily, useTaskHistoryDailyDetail, useTaskHistoryTasks } from '@/lib/hooks';
 
 const TOOLTIP_STYLE = {
   backgroundColor: 'rgba(15,23,42,0.95)',
@@ -65,6 +65,7 @@ export default function TaskHistoryPage() {
   const [search, setSearch] = useState('');
   const [tablePage, setTablePage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const dateParams = useMemo(() => {
     if (preset === 'all') return 'all=1';
@@ -88,6 +89,7 @@ export default function TaskHistoryPage() {
 
   const { data: summary, loading: summaryLoading, refetch: refetchSummary } = useTaskHistorySummary({ params: dateParams + userParam, enabled: isOwner });
   const { data: dailyRows, loading: dailyLoading, refetch: refetchDaily } = useTaskHistoryDaily({ params: dateParams + userParam, enabled: isOwner });
+  const { data: dayDetail, loading: dayLoading, error: dayError, refetch: refetchDay } = useTaskHistoryDailyDetail(selectedDate, isOwner);
   const { data: team, loading: teamLoading, refetch: refetchTeam } = useTaskHistoryUsers({ params: dateParams + userParam, enabled: isOwner });
   const {
     data: pageData, loading: tableLoading, refetch: refetchTable,
@@ -351,8 +353,13 @@ export default function TaskHistoryPage() {
                 </thead>
                 <tbody>
                   {(dailyRows || []).slice(-15).reverse().map((row: any) => (
-                    <tr key={row.date} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                      <td className="py-2.5 pr-4 text-white">{row.date}</td>
+                    <tr
+                      key={row.date}
+                      onClick={() => setSelectedDate(row.date)}
+                      title="Click to view tasks for this date"
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                      <td className="py-2.5 pr-4 text-white font-medium hover:text-cyan-300 transition-colors">{row.date}</td>
                       <td className="py-2.5 pr-4 text-white font-medium">{row.total}</td>
                       <td className="py-2.5 pr-4 text-green-400">{row.completed}</td>
                       <td className="py-2.5 pr-4 text-yellow-400">{row.pending}</td>
@@ -540,6 +547,102 @@ export default function TaskHistoryPage() {
             )}
           </div>
         </>
+      )}
+
+      {selectedDate && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 backdrop-blur-sm p-4 sm:p-8" onClick={() => setSelectedDate(null)}>
+          <div
+            className="w-full max-w-3xl bg-slate-900 border border-white/10 rounded-2xl shadow-2xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 p-5">
+              <div>
+                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-cyan-400" />
+                  Task Details — {selectedDate}
+                </h3>
+                <p className="text-sm text-slate-400 mt-0.5">{dayDetail ? `${dayDetail.total} task${dayDetail.total === 1 ? '' : 's'} on this date` : 'Loading…'}</p>
+              </div>
+              <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 flex-shrink-0" onClick={() => setSelectedDate(null)}>
+                Close
+              </Button>
+            </div>
+
+            <div className="p-5 max-h-[70vh] overflow-y-auto">
+              {dayLoading ? (
+                <div className="flex items-center justify-center h-40">
+                  <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+                </div>
+              ) : dayError ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-4">
+                  <AlertTriangle className="h-10 w-10 text-red-400" />
+                  <p className="text-slate-400 text-sm">{dayError}</p>
+                  <Button variant="outline" size="sm" className="border-white/10 text-white hover:bg-white/5" onClick={() => refetchDay()}>
+                    Retry
+                  </Button>
+                </div>
+              ) : dayDetail && (
+                <div className="space-y-5">
+                  {[
+                    { key: 'completed', label: 'Completed', color: 'text-green-400', badge: 'bg-green-500/10 text-green-400 border-green-500/20' },
+                    { key: 'pending', label: 'Pending', color: 'text-yellow-400', badge: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
+                    { key: 'in_progress', label: 'In Progress', color: 'text-blue-400', badge: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+                    { key: 'overdue', label: 'Overdue', color: 'text-red-400', badge: 'bg-red-500/10 text-red-400 border-red-500/20' },
+                    { key: 'rejected', label: 'Rejected', color: 'text-orange-400', badge: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
+                    { key: 'cancelled', label: 'Cancelled', color: 'text-slate-400', badge: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
+                  ].map((section) => {
+                    const tasks = dayDetail.groups?.[section.key] || [];
+                    return (
+                      <div key={section.key}>
+                        <h4 className={cn('text-sm font-semibold mb-2 flex items-center gap-2', section.color)}>
+                          <span className={cn('px-2 py-0.5 rounded-full text-xs border', section.badge)}>{tasks.length}</span>
+                          {section.label}
+                        </h4>
+                        {tasks.length === 0 ? (
+                          <p className="text-slate-600 text-sm px-1">None</p>
+                        ) : (
+                          <div className="overflow-x-auto rounded-xl border border-white/5">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-white/5 text-left text-xs text-slate-500 uppercase bg-white/5">
+                                  <th className="py-2.5 px-3">Task</th>
+                                  <th className="py-2.5 px-3">Assignee</th>
+                                  <th className="py-2.5 px-3">Status</th>
+                                  <th className="py-2.5 px-3">Due Date</th>
+                                  <th className="py-2.5 px-3">Completed At</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {tasks.map((t: any) => (
+                                  <tr key={t.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                    <td className="py-2.5 px-3">
+                                      <Link href={`/adminzenfix/task-history/tasks/${t.id}`} className="text-white font-medium hover:text-cyan-300 transition-colors">
+                                        {t.title}
+                                      </Link>
+                                      <p className="text-xs text-slate-500">{t.task_id}</p>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-slate-400">{t.assigned_to_name || '—'}</td>
+                                    <td className="py-2.5 px-3">
+                                      <span className={cn('px-2 py-0.5 rounded-full text-xs capitalize border', STATUS_BADGE[t.status] || STATUS_BADGE.overdue)}>
+                                        {t.status_name || t.status}
+                                      </span>
+                                    </td>
+                                    <td className="py-2.5 px-3 text-slate-400">{t.due_date || '—'}</td>
+                                    <td className="py-2.5 px-3 text-slate-400">{t.completed_at ? new Date(t.completed_at).toLocaleString() : '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

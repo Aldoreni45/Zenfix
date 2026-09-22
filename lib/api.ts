@@ -554,6 +554,7 @@ export const apiEndpoints = {
   taskHistoryUsers: '/task-history/users',
   taskHistoryUserDetail: (id: number) => `/task-history/users/${id}`,
   taskHistoryDaily: '/task-history/daily',
+  taskHistoryDailyDetail: (date: string) => `/task-history/daily/${date}`,
   taskHistoryTasks: '/task-history/tasks',
   taskHistoryTaskDetail: (id: number) => `/task-history/tasks/${id}`,
   
