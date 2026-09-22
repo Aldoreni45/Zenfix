@@ -346,6 +346,58 @@ export async function loadProtocolContent(protocol: VideoProtocolDocument) {
 }
 
 /**
+ * Aggregates video-production pipeline status across every protocol so the
+ * owner/manager dashboard reflects real work done in the protocol workflow
+ * (rather than the separately-managed zf_videos collection).
+ */
+export async function getPipelineVideoStats(): Promise<{
+  total: number;
+  posted: number;
+  in_progress: number;
+  not_started: number;
+  waiting_approval: number;
+}> {
+  const protocols = await VideoProtocolModel.findAll();
+  let total = 0;
+  let posted = 0;
+  let inProgress = 0;
+  let notStarted = 0;
+  let waitingApproval = 0;
+
+  for (const protocol of protocols) {
+    const records = await VideoRecordModel.findByProtocol(protocol.numeric_id);
+    if (records.length === 0) continue;
+
+    const recordIds = records.map((r) => r.numeric_id);
+    const stageDocs = await VideoStageModel.findAll({ video_record_id: { $in: recordIds } } as any);
+
+    const stagesByRecord = new Map<number, VideoStageDocument[]>();
+    stageDocs.forEach((s) => {
+      const list = stagesByRecord.get(s.video_record_id) || [];
+      list.push(s);
+      stagesByRecord.set(s.video_record_id, list);
+    });
+
+    records.forEach((record) => {
+      const stages = stagesByRecord.get(record.numeric_id) || [];
+      const status = computeCurrentStatus(stages);
+      total += 1;
+      if (status === 'posted') posted += 1;
+      else if (status === 'in_progress') inProgress += 1;
+      else notStarted += 1;
+
+      // "Waiting Approval" = a video currently sitting in the Client Approval
+      // stage, waiting for the client to approve.
+      if (stages.some((s) => s.stage_type === 'client_approval' && s.status === 'in_progress')) {
+        waitingApproval += 1;
+      }
+    });
+  }
+
+  return { total, posted, in_progress: inProgress, not_started: notStarted, waiting_approval: waitingApproval };
+}
+
+/**
  * Full protocol payload matching the VideoProtocolDashboard frontend type.
  */
 export async function buildProtocolDashboard(protocol: VideoProtocolDocument): Promise<any> {

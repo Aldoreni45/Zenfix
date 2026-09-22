@@ -8,6 +8,7 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { handleError, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
+import { loadProtocolContent } from '@/lib/api-helpers/video-protocol';
 
 export async function POST(
   request: NextRequest,
@@ -59,6 +60,10 @@ export async function POST(
         const protocol = await VideoProtocolModel.findByNumericId(video.protocol_id);
         if (protocol && protocol.status === 'completed') {
           await VideoProtocolModel.update(protocol.numeric_id, { status: 'active' });
+        }
+        // Refresh persisted aggregates so list/dashboard views reflect the change
+        if (protocol) {
+          await loadProtocolContent(protocol);
         }
       }
 

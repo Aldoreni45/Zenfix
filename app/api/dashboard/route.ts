@@ -7,8 +7,9 @@ import { VideoModel } from '@/lib/mongodb/models/video';
 import { NotificationModel } from '@/lib/mongodb/models/notification';
 import { ApprovalModel } from '@/lib/mongodb/models/approval';
 import { MonthlyTargetModel } from '@/lib/mongodb/models/monthly-target';
-import { UserRole, TaskStatus, VideoStage, ApprovalStatus } from '@/lib/types/models';
+import { UserRole, TaskStatus, ApprovalStatus } from '@/lib/types/models';
 import { handleError } from '@/lib/api-helpers/error-handler';
+import { getPipelineVideoStats } from '@/lib/api-helpers/video-protocol';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -49,9 +50,25 @@ async function handler(request: NextRequest, user: any) {
       pending_tasks: pendingTasks.length,
       overdue_tasks: overdueTasks.length,
       unread_notifications: unreadNotifications,
+      waiting_approval: 0,
+      videos_completed: 0,
+      videos_posted: 0,
+      videos_remaining: 0,
     };
 
     // Role-specific data
+    const currentMonth = now.getUTCMonth() + 1;
+    const currentYear = now.getUTCFullYear();
+    const monthTargets = await MonthlyTargetModel.findAll({ month: currentMonth, year: currentYear });
+    const pipeline = await getPipelineVideoStats();
+
+    // Video KPIs derive from the video-protocol pipeline (zf_video_records /
+    // zf_video_stages) so work done there immediately shows on the dashboard.
+    response.videos_completed = pipeline.posted;
+    response.videos_posted = pipeline.posted;
+    response.videos_remaining = Math.max(0, pipeline.total - pipeline.posted);
+    response.waiting_approval = pipeline.waiting_approval;
+
     if (user.role === UserRole.OWNER) {
       const totalUsers = await UserModel.findAll();
       const managers = totalUsers.filter(u => u.role === UserRole.MANAGER).length;
@@ -60,10 +77,8 @@ async function handler(request: NextRequest, user: any) {
       const activeClients = totalClients.filter(c => c.status === 'active').length;
       const allTasks = await TaskModel.findAll();
       const pendingApprovals = await ApprovalModel.findAll({ status: ApprovalStatus.PENDING });
-      const allVideos = await VideoModel.findAll();
-      const posted = allVideos.filter(v => v.status === VideoStage.POSTED).length;
-      const inProgress = allVideos.filter(v => v.status === VideoStage.EDITING).length;
-      const waiting = allVideos.filter(v => v.status === VideoStage.INTERNAL_REVIEW || v.status === VideoStage.CLIENT_REVIEW).length;
+      const totalMonthlyTarget = monthTargets.reduce((sum, t) => sum + (t.target_videos || 0), 0)
+        || totalClients.reduce((sum, c) => sum + (c.monthly_video_target || 0), 0);
 
       response = {
         ...response,
@@ -71,36 +86,42 @@ async function handler(request: NextRequest, user: any) {
         managers,
         employees,
         total_clients: totalClients.length,
-        activeClients,
+        active_clients: activeClients,
+        total_monthly_target: totalMonthlyTarget,
         tasks: allTasks.length,
         pending_approvals: pendingApprovals.length,
         video_workflow: {
-          total: allVideos.length,
-          approved: allVideos.filter(v => v.status === VideoStage.APPROVED).length,
-          posted,
-          waiting,
+          total: pipeline.total,
+          approved: pipeline.posted,
+          posted: pipeline.posted,
+          waiting: pipeline.waiting_approval,
         },
       };
     } else if (user.role === UserRole.MANAGER) {
       const assignedClients = await ClientModel.findAll({ assigned_manager_id: user.userId });
+      const activeClients = assignedClients.filter(c => c.status === 'active').length;
+      const assignedIds = new Set(assignedClients.map(c => c.numeric_id as number));
       const teamMembers = await UserModel.findAll({ reports_to_id: user.userId });
       const allTasks = await TaskModel.findAll();
       const pendingApprovals = await ApprovalModel.findAll({ status: ApprovalStatus.PENDING });
-      const allVideos = await VideoModel.findAll();
-      const posted = allVideos.filter(v => v.status === VideoStage.POSTED).length;
-      const inProgress = allVideos.filter(v => v.status === VideoStage.EDITING).length;
-      const waiting = allVideos.filter(v => v.status === VideoStage.INTERNAL_REVIEW || v.status === VideoStage.CLIENT_REVIEW).length;
+      const totalMonthlyTarget = monthTargets
+        .filter(t => assignedIds.has(t.client_id as number))
+        .reduce((sum, t) => sum + (t.target_videos || 0), 0)
+        || assignedClients.reduce((sum, c) => sum + (c.monthly_video_target || 0), 0);
 
       response = {
         ...response,
         assigned_clients: assignedClients.length,
+        total_clients: assignedClients.length,
+        active_clients: activeClients,
+        total_monthly_target: totalMonthlyTarget,
         team_members: teamMembers.length,
         approvals: pendingApprovals.length,
         workflow_statistics: {
-          total: allVideos.length,
-          approved: allVideos.filter(v => v.status === VideoStage.APPROVED).length,
-          posted,
-          waiting,
+          total: pipeline.total,
+          approved: pipeline.posted,
+          posted: pipeline.posted,
+          waiting: pipeline.waiting_approval,
         },
         workload: {
           total: allTasks.filter(t => t.assigned_to_id && teamMembers.map(m => m.numeric_id).includes(t.assigned_to_id)).length,

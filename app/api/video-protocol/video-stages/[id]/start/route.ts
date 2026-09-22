@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VideoStageModel } from '@/lib/mongodb/models/video-protocol';
+import { VideoRecordModel } from '@/lib/mongodb/models/video-protocol';
+import { VideoProtocolModel } from '@/lib/mongodb/models/video-protocol';
 import { requireAuth } from '@/lib/auth/middleware';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { handleError, handleForbidden } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
+import { loadProtocolContent } from '@/lib/api-helpers/video-protocol';
 
 export async function POST(
   request: NextRequest,
@@ -43,6 +46,15 @@ export async function POST(
         started_at: new Date(),
         ...body,
       });
+
+      // Refresh persisted protocol aggregates so list/dashboard views update.
+      const video = await VideoRecordModel.findByNumericId(stage.video_record_id);
+      if (video) {
+        const protocol = await VideoProtocolModel.findByNumericId(video.protocol_id);
+        if (protocol) {
+          await loadProtocolContent(protocol);
+        }
+      }
 
       // Log activity
       await logActivity({

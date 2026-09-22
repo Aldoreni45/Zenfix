@@ -84,8 +84,9 @@ export default function DashboardPage() {
   const loading = authLoading || dashboardLoading || todayLoading || pendingLoading || overdueLoading || pendingPreviousLoading || notificationsLoading || countLoading || activityLoading;
 
   // Computed stats from dashboard data
-  const stats = dashboardData || {
+  const stats = {
     total_clients: 0,
+    active_clients: 0,
     total_users: 0,
     total_monthly_target: 0,
     videos_completed: 0,
@@ -95,6 +96,7 @@ export default function DashboardPage() {
     overdue_tasks: 0,
     waiting_approval: 0,
     client_progress: [],
+    ...dashboardData,
   };
 
   // Chart data
@@ -251,7 +253,7 @@ export default function DashboardPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Clients', value: stats.total_clients, icon: UsersIcon, color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20', sub: 'Active clients' },
+          { label: 'Total Clients', value: stats.total_clients, icon: UsersIcon, color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20', sub: `${stats.active_clients} active clients` },
           { label: 'Videos Completed', value: stats.videos_completed, icon: Video, color: 'text-green-400 bg-green-500/10 border-green-500/20', sub: `${completionRate}% rate` },
           { label: 'Pending Tasks', value: pendingTasks?.length || stats.pending_tasks || 0, icon: Clock, color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20', sub: 'In progress / waiting' },
           { label: 'Overdue Tasks', value: overdueTasks?.length || stats.overdue_tasks || 0, icon: AlertCircle, color: 'text-red-400 bg-red-500/10 border-red-500/20', sub: 'Past deadline' },

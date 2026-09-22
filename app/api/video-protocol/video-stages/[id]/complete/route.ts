@@ -7,6 +7,7 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { handleError, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
+import { loadProtocolContent } from '@/lib/api-helpers/video-protocol';
 
 export async function POST(
   request: NextRequest,
@@ -46,19 +47,20 @@ export async function POST(
 
       await VideoStageModel.update(stageId, updateData);
 
-      // Django: Check if all videos in protocol are posted and mark protocol as completed
+      // Django: Refresh persisted aggregates (video_status_counts,
+      // workflow_progress, etc.) so list/dashboard views show current progress,
+      // and mark the protocol completed once every video has been fully posted.
       const video = await VideoRecordModel.findByNumericId(stage.video_record_id);
       if (video) {
         const protocol = await VideoProtocolModel.findByNumericId(video.protocol_id);
         if (protocol) {
-          const allVideos = await VideoRecordModel.findAll({ protocol_id: protocol.numeric_id });
-          const postedStages = await VideoStageModel.findAll({
-            video_record_id: { $in: allVideos.map(v => v.numeric_id) },
-            stage_type: 'instagram_post',
-            status: 'completed',
-          } as any);
-          
-          if (postedStages.length >= allVideos.length && allVideos.length > 0) {
+          await loadProtocolContent(protocol);
+          const freshProtocol = await VideoProtocolModel.findByNumericId(protocol.numeric_id);
+          if (
+            freshProtocol &&
+            protocol.target_videos > 0 &&
+            (freshProtocol.video_status_counts?.posted || 0) >= protocol.target_videos
+          ) {
             await VideoProtocolModel.update(protocol.numeric_id, { status: 'completed' });
           }
         }

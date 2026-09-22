@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { VideoStageModel } from '@/lib/mongodb/models/video-protocol';
+import { VideoStageModel, VideoRecordModel, VideoProtocolModel } from '@/lib/mongodb/models/video-protocol';
 import { UserModel } from '@/lib/mongodb/models/user';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { NotificationModel } from '@/lib/mongodb/models/notification';
@@ -8,6 +8,7 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { handleError, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
+import { loadProtocolContent } from '@/lib/api-helpers/video-protocol';
 import { parseDueDateUTC } from '@/lib/date-utils';
 
 const MONTHS = ['', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -64,8 +65,8 @@ export async function POST(
       await VideoStageModel.update(stageId, updateData);
 
       // Django: Auto-create task for the assigned user
-      const video = await (await import('@/lib/mongodb/models/video-protocol')).VideoRecordModel.findByNumericId(stage.video_record_id);
-      const protocol = await (await import('@/lib/mongodb/models/video-protocol')).VideoProtocolModel.findByNumericId(video?.protocol_id || 0);
+      const video = await VideoRecordModel.findByNumericId(stage.video_record_id);
+      const protocol = await VideoProtocolModel.findByNumericId(video?.protocol_id || 0);
       const client = protocol ? await (await import('@/lib/mongodb/models/client')).ClientModel.findByNumericId(protocol.client_id) : null;
 
       if (video && protocol && client) {
@@ -102,6 +103,11 @@ export async function POST(
           related_object_id: task.numeric_id.toString(),
           priority: 'medium',
         });
+      }
+
+      // Refresh persisted protocol aggregates so list/dashboard views update
+      if (video && protocol) {
+        await loadProtocolContent(protocol);
       }
 
       // Log activity
