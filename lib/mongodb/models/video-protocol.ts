@@ -4,7 +4,7 @@ export interface VideoStageDocument {
   _id?: any;
   numeric_id: number;
   video_record_id: number;
-  stage_type: 'shoot' | 'edit' | 'review' | 'client_approval' | 'instagram_post';
+  stage_type: 'pre_shoot_content' | 'shoot' | 'edit' | 'review' | 'client_approval' | 'instagram_post';
   stage_display: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'blocked' | 'rejected';
   status_display: string;

@@ -5,15 +5,15 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth, useUserRole } from '@/lib/auth-context';
-import { 
-  LayoutDashboard, 
-  CheckSquare, 
+import {
+  LayoutDashboard,
+  CheckSquare,
   Calendar,
   KanbanSquare,
-  Users, 
-  BarChart3, 
+  Users,
+  BarChart3,
   TrendingUp,
-  Settings, 
+  Settings,
   LogOut,
   Menu,
   X,
@@ -25,7 +25,8 @@ import {
   Video,
   FileText,
   History,
-  Loader2
+  Loader2,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,7 @@ const managerNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
   { name: 'Clients', href: '/adminzenfix/clients', icon: Building2 },
   { name: 'Video Protocol', href: '/adminzenfix/video-protocol', icon: Video },
+  { name: 'Accounts', href: '/adminzenfix/accounts', icon: DollarSign },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Reports', href: '/adminzenfix/reports', icon: BarChart3 },
@@ -52,6 +54,7 @@ const ownerNavigation = [
   { name: 'Dashboard', href: '/adminzenfix/dashboard', icon: LayoutDashboard },
   { name: 'Clients', href: '/adminzenfix/clients', icon: Building2 },
   { name: 'Video Protocol', href: '/adminzenfix/video-protocol', icon: Video },
+  { name: 'Accounts', href: '/adminzenfix/accounts', icon: DollarSign },
   { name: 'Users', href: '/adminzenfix/users', icon: Users },
   { name: 'Tasks', href: '/adminzenfix/tasks', icon: CheckSquare },
   { name: 'Task History', href: '/adminzenfix/task-history', icon: History },

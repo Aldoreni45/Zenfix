@@ -557,6 +557,11 @@ export const apiEndpoints = {
   taskHistoryDailyDetail: (date: string) => `/task-history/daily/${date}`,
   taskHistoryTasks: '/task-history/tasks',
   taskHistoryTaskDetail: (id: number) => `/task-history/tasks/${id}`,
+
+  // Spending/Accounts
+  spending: '/spending',
+  spendingItem: (id: number) => `/spending/${id}`,
+  spendingStats: '/spending/stats',
   
   // Notifications
   notifications: '/notifications',

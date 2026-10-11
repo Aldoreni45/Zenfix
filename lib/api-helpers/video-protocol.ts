@@ -10,9 +10,10 @@ import { UserModel, UserDocument } from '@/lib/mongodb/models/user';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { isOverdueByDate, toDateOnlyISO } from '@/lib/date-utils';
 
-const STAGE_ORDER = ['shoot', 'edit', 'review', 'client_approval', 'instagram_post'] as const;
+const STAGE_ORDER = ['pre_shoot_content', 'shoot', 'edit', 'review', 'client_approval', 'instagram_post'] as const;
 
 const STAGE_DISPLAY_NAMES: Record<string, string> = {
+  pre_shoot_content: 'Pre-Shoot Content',
   shoot: 'Shoot Video',
   edit: 'Edit Video',
   review: 'Review Video',
@@ -54,9 +55,8 @@ function computeCurrentStatus(stages: VideoStageDocument[]): string {
 }
 
 function isStageLocked(stage: VideoStageDocument, prevCompleted: boolean): boolean {
-  if (stage.status === 'completed' || stage.status === 'in_progress') return false;
-  if (stageOrderIndex(stage.stage_type) === 0) return false;
-  return !prevCompleted;
+  // All stages are now unlocked - no dependencies
+  return false;
 }
 
 function isStageOverdue(stage: VideoStageDocument): boolean {
@@ -282,8 +282,7 @@ function buildVideoSummaries(
 
     const serializedStages = stages.map((s, i) => {
       const ser = serializeStage(s, usersById, tasksByStageId);
-      const prevSibling = i > 0 ? stages[i - 1] : null;
-      ser.is_locked = isStageLocked(s, prevSibling ? prevSibling.status === 'completed' : true);
+      ser.is_locked = false; // All stages unlocked
       ser.is_overdue = isStageOverdue(s);
       return ser;
     });

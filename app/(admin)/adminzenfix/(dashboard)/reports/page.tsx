@@ -29,6 +29,7 @@ import {
   Loader2,
   AlertCircle,
   FileDown,
+  DollarSign,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,7 @@ export default function ReportsPage() {
   const [error, setError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [spendingStats, setSpendingStats] = useState<any>(null);
   const [activeChart, setActiveChart] = useState<'bar' | 'line' | 'area'>('bar');
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
 
@@ -65,9 +67,10 @@ export default function ReportsPage() {
     setLoading(true);
     setError(null);
 
-    const [tasksRes, employeesRes] = await Promise.all([
+    const [tasksRes, employeesRes, spendingRes] = await Promise.all([
       api.get<any>(apiEndpoints.tasks),
       api.get<any>(apiEndpoints.employees),
+      api.get<any>(apiEndpoints.spendingStats),
     ]);
 
     if (tasksRes.error) {
@@ -80,6 +83,12 @@ export default function ReportsPage() {
       setError(extractApiErrorMessage(employeesRes));
     } else if (employeesRes.data) {
       setEmployees(employeesRes.data.results || employeesRes.data || []);
+    }
+
+    if (spendingRes.error) {
+      console.error('Spending stats error:', spendingRes.error);
+    } else if (spendingRes.data) {
+      setSpendingStats(spendingRes.data);
     }
 
     setLoading(false);
@@ -117,11 +126,11 @@ export default function ReportsPage() {
   }));
 
   const byDept = new Map<string, { assigned: number; completed: number }>();
-  employees.forEach((e: any) => {
-    const dept = e.department_name || 'Unassigned';
+  tasks.forEach((t: any) => {
+    const dept = t.department_name || 'Unassigned';
     const entry = byDept.get(dept) || { assigned: 0, completed: 0 };
-    entry.assigned += e.assigned_tasks_count || 0;
-    entry.completed += e.completed_tasks_count || 0;
+    entry.assigned += 1;
+    if (t.status === 'completed') entry.completed += 1;
     byDept.set(dept, entry);
   });
   const deptData = [...byDept.entries()].map(([name, v]) => ({
@@ -145,6 +154,7 @@ export default function ReportsPage() {
   const avgEfficiency = efficiencyData.length
     ? Math.round(efficiencyData.reduce((s: number, i: any) => s + i.efficiency, 0) / efficiencyData.length)
     : 0;
+  const totalSpending = spendingStats?.total_spending || 0;
 
   // ── Export CSV ──────────────────────────────────────────────────────────────
   const handleExportCSV = () => {
@@ -309,7 +319,7 @@ export default function ReportsPage() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           {
             label: 'Total Tasks',
@@ -331,6 +341,13 @@ export default function ReportsPage() {
             sub: `${totalTasks > 0 ? Math.round((pendingTasks / totalTasks) * 100) : 0}% pending`,
             icon: Clock,
             color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+          },
+          {
+            label: 'Total Spending',
+            value: `$${totalSpending.toFixed(2)}`,
+            sub: 'All expenses',
+            icon: DollarSign,
+            color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
           },
           {
             label: 'Team Efficiency',
