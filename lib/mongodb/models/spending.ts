@@ -79,15 +79,29 @@ export class SpendingModel {
     const collection = await this.getCollection();
     const result = await collection.findOneAndUpdate(
       { numeric_id },
-      { 
-        $set: { 
-          ...data, 
-          updated_at: new Date() 
-        } 
+      {
+        $set: {
+          ...data,
+          updated_at: new Date()
+        }
       },
       { returnDocument: 'after' }
     );
     return result;
+  }
+
+  static async updateMany(filters: Partial<SpendingDocument>, data: Partial<SpendingDocument>): Promise<{ modifiedCount: number }> {
+    const collection = await this.getCollection();
+    const result = await collection.updateMany(
+      filters,
+      {
+        $set: {
+          ...data,
+          updated_at: new Date()
+        }
+      }
+    );
+    return { modifiedCount: result.modifiedCount };
   }
 
   static async delete(numeric_id: number): Promise<boolean> {

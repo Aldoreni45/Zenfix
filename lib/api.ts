@@ -562,6 +562,23 @@ export const apiEndpoints = {
   spending: '/spending',
   spendingItem: (id: number) => `/spending/${id}`,
   spendingStats: '/spending/stats',
+  approveEmployeeSpending: '/spending/approve-employee',
+
+  // Employee Payments
+  employeePayments: '/employee-payments',
+  employeePaymentItem: (id: number) => `/employee-payments/${id}`,
+  employeePaymentSummary: '/employee-payments/summary',
+
+  // Income
+  income: '/income',
+  incomeItem: (id: number) => `/income/${id}`,
+
+  // Salary
+  salary: '/salary',
+  salaryItem: (id: number) => `/salary/${id}`,
+
+  // Tally/Profit
+  tally: '/tally',
   
   // Notifications
   notifications: '/notifications',
