@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireOwner } from '@/lib/auth/middleware';
 import { EmployeePaymentModel } from '@/lib/mongodb/models/employee-payment';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireAuth(async (req, user) => {
     try {
-      const payment = await EmployeePaymentModel.findByNumericId(Number(params.id));
+      const payment = await EmployeePaymentModel.findByNumericId(Number(id));
       
       if (!payment) {
         return NextResponse.json(
@@ -25,13 +26,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwner(async (req, user) => {
     try {
       const body = await request.json();
       const { amount_paid, notes, status } = body;
 
-      const existingPayment = await EmployeePaymentModel.findByNumericId(Number(params.id));
+      const existingPayment = await EmployeePaymentModel.findByNumericId(Number(id));
       if (!existingPayment) {
         return NextResponse.json(
           { error: 'Employee payment not found' },
@@ -54,7 +56,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       if (notes !== undefined) updateData.notes = notes;
       if (status !== undefined) updateData.status = status;
 
-      const updatedPayment = await EmployeePaymentModel.update(Number(params.id), updateData);
+      const updatedPayment = await EmployeePaymentModel.update(Number(id), updateData);
       return NextResponse.json(updatedPayment);
     } catch (error) {
       console.error('Error updating employee payment:', error);
@@ -66,10 +68,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwner(async (req, user) => {
     try {
-      const deleted = await EmployeePaymentModel.delete(Number(params.id));
+      const deleted = await EmployeePaymentModel.delete(Number(id));
       
       if (!deleted) {
         return NextResponse.json(

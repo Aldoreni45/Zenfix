@@ -30,6 +30,9 @@ import {
   AlertCircle,
   FileDown,
   DollarSign,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -62,6 +65,8 @@ export default function ReportsPage() {
   const [spendingStats, setSpendingStats] = useState<any>(null);
   const [activeChart, setActiveChart] = useState<'bar' | 'line' | 'area'>('bar');
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
@@ -125,19 +130,15 @@ export default function ReportsPage() {
     efficiency: v.total > 0 ? Math.round((v.completed / v.total) * 100) : 0,
   }));
 
-  const byDept = new Map<string, { assigned: number; completed: number }>();
+  const byPriority = new Map<string, number>();
   tasks.forEach((t: any) => {
-    const dept = t.department_name || 'Unassigned';
-    const entry = byDept.get(dept) || { assigned: 0, completed: 0 };
-    entry.assigned += 1;
-    if (t.status === 'completed') entry.completed += 1;
-    byDept.set(dept, entry);
+    const priority = t.priority || 'unknown';
+    byPriority.set(priority, (byPriority.get(priority) || 0) + 1);
   });
-  const deptData = [...byDept.entries()].map(([name, v]) => ({
-    name,
-    total: v.assigned,
-    completed: v.completed,
-    efficiency: v.assigned > 0 ? Math.round((v.completed / v.assigned) * 100) : 0,
+  const priorityData = [...byPriority.entries()].map(([name, value]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    value,
+    fill: name === 'urgent' ? '#EF4444' : name === 'high' ? '#F97316' : name === 'medium' ? '#F59E0B' : '#10B981',
   }));
 
   const trendCounts = new Array(7).fill(0);
@@ -147,6 +148,73 @@ export default function ReportsPage() {
       trendCounts[new Date(t.completed_at).getDay()] += 1;
     });
   const trendData = DAY_NAMES.map((day, i) => ({ name: day, completed: trendCounts[i] }));
+
+  // Employee task stats for selected date - includes all users (employees and managers)
+  const getEmployeeStatsForDate = (date: Date | null) => {
+    if (!date) return [];
+    
+    const dateStr = date.toISOString().split('T')[0];
+    const userStats = new Map<string, { completed: number; pending: number; inProgress: number }>();
+    
+    tasks.forEach((t: any) => {
+      if (t.due_date && t.due_date.startsWith(dateStr)) {
+        const name = t.assigned_to_name || 'Unassigned';
+        const stats = userStats.get(name) || { completed: 0, pending: 0, inProgress: 0 };
+        
+        if (t.status === 'completed') stats.completed++;
+        else if (t.status === 'in_progress') stats.inProgress++;
+        else stats.pending++;
+        
+        userStats.set(name, stats);
+      }
+    });
+    
+    return [...userStats.entries()].map(([name, stats]) => ({
+      name,
+      completed: stats.completed,
+      pending: stats.pending,
+      inProgress: stats.inProgress,
+      total: stats.completed + stats.pending + stats.inProgress,
+    }));
+  };
+
+  const employeeDateStats = getEmployeeStatsForDate(selectedDate);
+
+  // Calendar helpers
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+    
+    const calendarDays = [];
+    
+    for (let i = firstDay - 1; i >= 0; i--) {
+      calendarDays.push({ day: daysInPrevMonth - i, isCurrentMonth: false });
+    }
+    
+    for (let i = 1; i <= daysInMonth; i++) {
+      calendarDays.push({ day: i, isCurrentMonth: true });
+    }
+    
+    const remainingDays = 42 - calendarDays.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      calendarDays.push({ day: i, isCurrentMonth: false });
+    }
+    
+    return calendarDays;
+  };
+
+  const getTaskCountForDay = (day: number, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return 0;
+    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+    const dateStr = date.toISOString().split('T')[0];
+    return tasks.filter((t: any) => t.due_date && t.due_date.startsWith(dateStr)).length;
+  };
+
+  const calendarDays = getDaysInMonth(currentMonth);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
@@ -344,7 +412,7 @@ export default function ReportsPage() {
           },
           {
             label: 'Total Spending',
-            value: `$${totalSpending.toFixed(2)}`,
+            value: `₹${totalSpending.toFixed(2)}`,
             sub: 'All expenses',
             icon: DollarSign,
             color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
@@ -468,28 +536,155 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* ── Calendar & Employee Stats ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Calendar */}
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-cyan-400" />
+              Task Calendar
+            </h3>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentMonth(prev => {
+                  const newDate = new Date(prev);
+                  newDate.setMonth(prev.getMonth() - 1);
+                  return newDate;
+                })}
+                className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4 text-slate-400" />
+              </button>
+              <span className="text-white font-medium min-w-[140px] text-center">
+                {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+              </span>
+              <button
+                onClick={() => setCurrentMonth(prev => {
+                  const newDate = new Date(prev);
+                  newDate.setMonth(prev.getMonth() + 1);
+                  return newDate;
+                })}
+                className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <ChevronRight className="h-4 w-4 text-slate-400" />
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {DAY_NAMES.map((day) => (
+              <div key={day} className="p-2 text-center text-xs font-medium text-slate-400">
+                {day}
+              </div>
+            ))}
+            {calendarDays.map((calendarDay, index) => {
+              const taskCount = getTaskCountForDay(calendarDay.day, calendarDay.isCurrentMonth);
+              const isSelected = selectedDate && 
+                calendarDay.isCurrentMonth &&
+                selectedDate.getDate() === calendarDay.day &&
+                selectedDate.getMonth() === currentMonth.getMonth() &&
+                selectedDate.getFullYear() === currentMonth.getFullYear();
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    if (calendarDay.isCurrentMonth) {
+                      const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), calendarDay.day);
+                      setSelectedDate(selectedDate && selectedDate.getTime() === newDate.getTime() ? null : newDate);
+                    }
+                  }}
+                  className={cn(
+                    'min-h-[60px] p-2 border border-white/5 rounded-lg transition-all relative',
+                    !calendarDay.isCurrentMonth && 'bg-slate-950/30 opacity-50',
+                    calendarDay.isCurrentMonth && 'hover:bg-white/5 cursor-pointer',
+                    isSelected && 'bg-cyan-500/20 border-cyan-500/30'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'text-xs font-medium',
+                      calendarDay.isCurrentMonth ? 'text-white' : 'text-slate-600'
+                    )}
+                  >
+                    {calendarDay.day}
+                  </span>
+                  {taskCount > 0 && (
+                    <div className="absolute bottom-1 right-1 flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-cyan-400" />
+                      <span className="text-[10px] text-cyan-400">{taskCount}</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Employee Stats for Selected Date */}
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+          <h3 className="text-lg font-semibold text-white mb-6">
+            {selectedDate 
+              ? `Employee Tasks - ${selectedDate.toLocaleDateString()}`
+              : 'Select a date to view employee tasks'}
+          </h3>
+          {!selectedDate ? (
+            <div className="h-[280px] flex items-center justify-center">
+              <p className="text-slate-500">Click on a date in the calendar to view employee task stats</p>
+            </div>
+          ) : employeeDateStats.length === 0 ? (
+            <div className="h-[280px] flex items-center justify-center">
+              <p className="text-slate-500">No tasks found for this date</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={employeeDateStats} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <XAxis type="number" stroke="#64748b" tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 11 }} width={100} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend />
+                <Bar dataKey="completed" stackId="a" fill="#10B981" name="Completed" radius={[0, 0, 0, 4]} />
+                <Bar dataKey="inProgress" stackId="a" fill="#3B82F6" name="In Progress" />
+                <Bar dataKey="pending" stackId="a" fill="#F59E0B" name="Pending" radius={[4, 0, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
       {/* ── Charts Row 2 ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Department Tasks */}
+        {/* Tasks by Priority */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-6">Tasks by Department</h3>
-          {deptData.length === 0 ? (
+          <h3 className="text-lg font-semibold text-white mb-6">Tasks by Priority</h3>
+          {priorityData.length === 0 ? (
             <div className="h-[250px] flex items-center justify-center">
-              <p className="text-slate-500">No department data</p>
+              <p className="text-slate-500">No priority data</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={deptData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" stroke="#64748b" tick={{ fontSize: 12 }} />
-                <YAxis type="category" dataKey="name" stroke="#64748b" tick={{ fontSize: 12 }} width={80} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="total" radius={[0, 4, 4, 0]} name="Tasks">
-                  {deptData.map((d: any, i: number) => (
-                    <Cell key={d.name} fill={COLORS[i % COLORS.length]} />
+              <PieChart>
+                <Pie
+                  data={priorityData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {priorityData.map((entry: any, index: number) => (
+                    <Cell key={entry.name} fill={entry.fill} />
                   ))}
-                </Bar>
-              </BarChart>
+                </Pie>
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend
+                  formatter={(value) => (
+                    <span style={{ color: '#94a3b8', fontSize: 12 }}>{value}</span>
+                  )}
+                />
+              </PieChart>
             </ResponsiveContainer>
           )}
         </div>

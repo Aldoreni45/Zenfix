@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(request.url);
       const startDate = searchParams.get('start_date');
       const endDate = searchParams.get('end_date');
+      const year = searchParams.get('year');
+      const month = searchParams.get('month');
 
       // Role-based filtering - managers see all spendings they can access
       const filters: any = {};
@@ -16,7 +18,17 @@ export async function GET(request: NextRequest) {
       // Only owners see all company-wide spendings
       // For now, both managers and owners see all spendings
 
-      if (startDate || endDate) {
+      if (year && month) {
+        // Filter by year and month
+        const monthNum = parseInt(month);
+        const yearNum = parseInt(year);
+        const startOfMonth = new Date(yearNum, monthNum - 1, 1);
+        const endOfMonth = new Date(yearNum, monthNum, 0);
+        filters.date = {
+          $gte: startOfMonth,
+          $lte: endOfMonth,
+        };
+      } else if (startDate || endDate) {
         filters.date = {};
         if (startDate) filters.date.$gte = new Date(startDate);
         if (endDate) filters.date.$lte = new Date(endDate);
@@ -36,6 +48,17 @@ export async function GET(request: NextRequest) {
       const approvedTotal = await SpendingModel.getTotalSpending({ ...filters, status: 'approved' });
       const rejectedTotal = await SpendingModel.getTotalSpending({ ...filters, status: 'rejected' });
 
+      // Get spending breakdown by category
+      const spendings = await SpendingModel.findAll(filters);
+      const breakdown = new Map<string, { amount: number; count: number }>();
+      spendings.forEach((s: any) => {
+        const category = s.category || 'Uncategorized';
+        const entry = breakdown.get(category) || { amount: 0, count: 0 };
+        entry.amount += s.amount;
+        entry.count += 1;
+        breakdown.set(category, entry);
+      });
+
       return NextResponse.json({
         total_spending: totalSpending,
         spending_by_client: spendingByClient,
@@ -45,6 +68,11 @@ export async function GET(request: NextRequest) {
           approved: approvedTotal,
           rejected: rejectedTotal,
         },
+        breakdown: [...breakdown.entries()].map(([category, data]) => ({
+          category,
+          amount: data.amount,
+          count: data.count,
+        })),
       });
     } catch (error) {
       console.error('Error fetching spending stats:', error);

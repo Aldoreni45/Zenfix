@@ -9,10 +9,17 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(request.url);
       const employeeId = searchParams.get('employee_id');
       const month = searchParams.get('month');
+      const year = searchParams.get('year');
 
       const filters: any = {};
       if (employeeId) filters.employee_id = Number(employeeId);
-      if (month) filters.month = month;
+      
+      if (year && month) {
+        // Filter by year and month (month format: YYYY-MM)
+        filters.month = `${year}-${month.padStart(2, '0')}`;
+      } else if (month) {
+        filters.month = month;
+      }
 
       const salaries = await SalaryModel.findAll(filters);
       
@@ -31,7 +38,13 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      return NextResponse.json(enrichedSalaries);
+      // Calculate total salary
+      const totalSalary = salaries.reduce((sum, salary) => sum + salary.amount, 0);
+
+      return NextResponse.json({
+        data: enrichedSalaries,
+        total_salary: totalSalary,
+      });
     } catch (error) {
       console.error('Error fetching salaries:', error);
       return NextResponse.json(

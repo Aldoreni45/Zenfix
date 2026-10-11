@@ -100,6 +100,13 @@ export function useInProgressTasks() {
   return useApi<any[]>(endpoint, []);
 }
 
+// Completed tasks hook
+export function useCompletedTasks() {
+  const localDate = getLocalTodayDateString();
+  const endpoint = localDate ? `${apiEndpoints.completedTasks}?date=${localDate}` : apiEndpoints.completedTasks;
+  return useApi<any[]>(endpoint, []);
+}
+
 // Upcoming tasks hook
 export function useUpcomingTasks(days: number = 7) {
   const localDate = getLocalTodayDateString();

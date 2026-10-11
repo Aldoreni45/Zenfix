@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useAuth, useDashboard, useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useUnreadNotifications, useNotificationCount, useMyActivityLogs, getRoleLandingPage } from '@/lib/hooks';
+import { useAuth, useDashboard, useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useUnreadNotifications, useNotificationCount, useMyActivityLogs, useCompletedTasks, getRoleLandingPage } from '@/lib/hooks';
 import { api, apiEndpoints } from '@/lib/api';
 import { formatDueDate, parseDueDate } from '@/lib/date-utils';
 
@@ -43,6 +43,7 @@ export default function DashboardPage() {
   const { data: notifications, loading: notificationsLoading } = useUnreadNotifications();
   const { data: notificationCount, loading: countLoading } = useNotificationCount();
   const { data: activityLogs, loading: activityLoading } = useMyActivityLogs();
+  const { data: completedTasks, loading: completedLoading } = useCompletedTasks();
 
   const [refreshing, setRefreshing] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -81,7 +82,7 @@ export default function DashboardPage() {
     }
   };
 
-  const loading = authLoading || dashboardLoading || todayLoading || pendingLoading || overdueLoading || pendingPreviousLoading || notificationsLoading || countLoading || activityLoading;
+  const loading = authLoading || dashboardLoading || todayLoading || pendingLoading || overdueLoading || pendingPreviousLoading || notificationsLoading || countLoading || activityLoading || completedLoading;
 
   // Computed stats from dashboard data
   const stats = {
@@ -99,14 +100,40 @@ export default function DashboardPage() {
     ...dashboardData,
   };
 
-  // Chart data
-  const trendData = DOW.map((day) => {
-    return { day, completed: 0 };
-  });
-
-  // Count tasks by actual status from task data
+  // Count tasks by actual status from task data (deduplicated by ID)
   const allTasks = [...(todayTasks || []), ...(pendingTasks || []), ...(overdueTasks || [])];
-  const taskStatusCounts = allTasks.reduce((acc, task) => {
+
+  // Chart data - Weekly completion trend based on actual completed tasks
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - now.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 7);
+  
+  // Count completed tasks by day of week from completedTasks
+  const completedByDay = new Array(7).fill(0);
+  (completedTasks || []).forEach(task => {
+    if (task.completed_at) {
+      const completedDate = new Date(task.completed_at);
+      if (completedDate >= startOfWeek && completedDate < endOfWeek) {
+        const dayOfWeek = completedDate.getDay();
+        completedByDay[dayOfWeek]++;
+      }
+    }
+  });
+  
+  const trendData = DOW.map((day, index) => {
+    return { day, completed: completedByDay[index] };
+  });
+  const uniqueTasks = new Map();
+  allTasks.forEach(task => {
+    uniqueTasks.set(task.id, task);
+  });
+  const deduplicatedTasks = Array.from(uniqueTasks.values());
+  
+  const taskStatusCounts = deduplicatedTasks.reduce((acc, task) => {
     const status = task.status?.toLowerCase() || 'pending';
     if (task.is_overdue && status !== 'completed') {
       acc.overdue++;

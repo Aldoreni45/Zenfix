@@ -9,10 +9,24 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(request.url);
       const clientId = searchParams.get('client_id');
       const status = searchParams.get('status');
+      const year = searchParams.get('year');
+      const month = searchParams.get('month');
 
       const filters: any = {};
       if (clientId) filters.client_id = Number(clientId);
       if (status) filters.status = status;
+
+      if (year && month) {
+        // Filter by year and month
+        const monthNum = parseInt(month);
+        const yearNum = parseInt(year);
+        const startOfMonth = new Date(yearNum, monthNum - 1, 1);
+        const endOfMonth = new Date(yearNum, monthNum, 0);
+        filters.income_date = {
+          $gte: startOfMonth,
+          $lte: endOfMonth,
+        };
+      }
 
       const income = await IncomeModel.findAll(filters);
       
@@ -30,7 +44,26 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      return NextResponse.json(enrichedIncome);
+      // Calculate total income and breakdown by category
+      const totalIncome = income.reduce((sum, inc) => sum + inc.amount, 0);
+      const breakdown = new Map<string, { amount: number; count: number }>();
+      income.forEach((inc: any) => {
+        const category = inc.category || 'Uncategorized';
+        const entry = breakdown.get(category) || { amount: 0, count: 0 };
+        entry.amount += inc.amount;
+        entry.count += 1;
+        breakdown.set(category, entry);
+      });
+
+      return NextResponse.json({
+        data: enrichedIncome,
+        total_income: totalIncome,
+        breakdown: [...breakdown.entries()].map(([category, data]) => ({
+          source: category,
+          amount: data.amount,
+          count: data.count,
+        })),
+      });
     } catch (error) {
       console.error('Error fetching income:', error);
       return NextResponse.json(

@@ -8,11 +8,15 @@ import {
   Users,
   Crown,
   Loader2,
+  Ban,
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUsers, useIsOwner } from '@/lib/hooks';
+import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -32,6 +36,28 @@ export default function UsersPage() {
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
+
+  const handleToggleStatus = async (userId: number, currentStatus: string) => {
+    if (!isOwner) return;
+    
+    setUpdatingStatus(userId);
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const res = await api.patch(`${apiEndpoints.user(userId)}/status`, { status: newStatus });
+      
+      if (res.error) {
+        toast.error(extractApiErrorMessage(res));
+      } else {
+        toast.success(`User ${newStatus === 'active' ? 'unblocked' : 'blocked'} successfully`);
+        refetch();
+      }
+    } catch (err) {
+      toast.error('Failed to update user status');
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
 
   const users = (allUsers || []).filter((u: any) => {
     const matchesRole = filter === 'all' || u.role === filter;
@@ -156,12 +182,13 @@ export default function UsersPage() {
                 <th className="text-left p-4 text-sm font-medium text-gray-400">Department</th>
                 <th className="text-left p-4 text-sm font-medium text-gray-400">Status</th>
                 <th className="text-left p-4 text-sm font-medium text-gray-400">Last Login</th>
+                {isOwner && <th className="text-left p-4 text-sm font-medium text-gray-400">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {(!error && users.length === 0) ? (
                 <tr>
-                  <td colSpan={5} className="p-12 text-center text-gray-400">
+                  <td colSpan={isOwner ? 6 : 5} className="p-12 text-center text-gray-400">
                     No users found
                   </td>
                 </tr>
@@ -195,6 +222,28 @@ export default function UsersPage() {
                     <td className="p-4 text-gray-400 text-sm">
                       {u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Never'}
                     </td>
+                    {isOwner && (
+                      <td className="p-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleStatus(u.id, u.status)}
+                          disabled={updatingStatus === u.id || u.role === 'owner'}
+                          className={cn(
+                            'h-8 w-8 p-0',
+                            u.status === 'active' ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10' : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
+                          )}
+                        >
+                          {updatingStatus === u.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : u.status === 'active' ? (
+                            <Ban className="h-4 w-4" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

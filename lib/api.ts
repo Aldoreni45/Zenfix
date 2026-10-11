@@ -516,6 +516,7 @@ export const apiEndpoints = {
   overdueTasks: '/tasks/overdue',
   todayTasks: '/tasks/today',
   inProgressTasks: '/tasks/in-progress',
+  completedTasks: '/tasks/completed',
   upcomingTasks: '/tasks/upcoming',
   pendingPreviousTasks: '/tasks/pending_previous',
   bulkCreateTasks: '/tasks/bulk-create',
