@@ -20,11 +20,16 @@ export async function GET(request: NextRequest) {
         // Filter by year and month
         const monthNum = parseInt(month);
         const yearNum = parseInt(year);
-        const startOfMonth = new Date(yearNum, monthNum - 1, 1);
-        const endOfMonth = new Date(yearNum, monthNum, 0);
+        // Cover both UTC and local month boundaries to avoid timezone truncation
+        const startOfMonthUTC = new Date(Date.UTC(yearNum, monthNum - 1, 1, 0, 0, 0, 0));
+        const endOfMonthUTC = new Date(Date.UTC(yearNum, monthNum, 0, 23, 59, 59, 999));
+        const startOfMonthLocal = new Date(yearNum, monthNum - 1, 1, 0, 0, 0, 0);
+        const endOfMonthLocal = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
+        const minStart = startOfMonthUTC < startOfMonthLocal ? startOfMonthUTC : startOfMonthLocal;
+        const maxEnd = endOfMonthUTC > endOfMonthLocal ? endOfMonthUTC : endOfMonthLocal;
         filters.income_date = {
-          $gte: startOfMonth,
-          $lte: endOfMonth,
+          $gte: minStart,
+          $lte: maxEnd,
         };
       }
 
@@ -109,7 +114,7 @@ export async function POST(request: NextRequest) {
         invoice_number: invoice_number || '',
         notes: notes || '',
         created_by: user.userId,
-        created_by_name: `${user.first_name} ${user.last_name}`,
+        created_by_name: user.username || String(user.userId),
       });
 
       return NextResponse.json(income, { status: 201 });

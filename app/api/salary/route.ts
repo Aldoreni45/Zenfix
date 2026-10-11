@@ -16,9 +16,9 @@ export async function GET(request: NextRequest) {
       
       if (year && month) {
         // Filter by year and month (month format: YYYY-MM)
-        filters.month = `${year}-${month.padStart(2, '0')}`;
+        filters.month = `${year}-${String(month).padStart(2, '0')}`;
       } else if (month) {
-        filters.month = month;
+        filters.month = month.includes('-') ? month : `${new Date().getFullYear()}-${String(month).padStart(2, '0')}`;
       }
 
       const salaries = await SalaryModel.findAll(filters);

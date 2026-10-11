@@ -9,58 +9,119 @@ import {
   ChevronRight,
   Wallet,
   ArrowUpRight,
-  ArrowDownRight,
   Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useIsOwner } from '@/lib/hooks';
 
-const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+interface FinancialBreakdownItem {
+  category?: string;
+  source?: string;
+  amount: number;
+  count: number;
+}
+
+interface FinancialDataState {
+  spending: { total_spending: number; breakdown: FinancialBreakdownItem[] } | null;
+  income: { total_income: number; breakdown: FinancialBreakdownItem[] } | null;
+  salary: { total_salary: number; salaries: any[] } | null;
+}
 
 export default function BusinessIntelligencePage() {
   const isOwner = useIsOwner();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  const [spendingData, setSpendingData] = useState<any>(null);
-  const [incomeData, setIncomeData] = useState<any>(null);
-  const [salaryData, setSalaryData] = useState<any>(null);
+
+  const [spendingData, setSpendingData] = useState<{ total_spending: number; breakdown: FinancialBreakdownItem[] } | null>(null);
+  const [incomeData, setIncomeData] = useState<{ total_income: number; breakdown: FinancialBreakdownItem[] } | null>(null);
+  const [salaryData, setSalaryData] = useState<{ total_salary: number; salaries: any[] } | null>(null);
 
   const fetchFinancialData = async () => {
     if (!isOwner) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth() + 1;
-    
+
     try {
       const [spendingRes, incomeRes, salaryRes] = await Promise.all([
-        api.get(`${apiEndpoints.spendingStats}?year=${year}&month=${month}`),
-        api.get(`${apiEndpoints.income}?year=${year}&month=${month}`),
-        api.get(`${apiEndpoints.salary}?year=${year}&month=${month}`),
+        api.get<any>(`${apiEndpoints.spendingStats}?year=${year}&month=${month}`),
+        api.get<any>(`${apiEndpoints.income}?year=${year}&month=${month}`),
+        api.get<any>(`${apiEndpoints.salary}?year=${year}&month=${month}`),
       ]);
 
       if (spendingRes.error) {
         setError(extractApiErrorMessage(spendingRes));
       } else {
-        setSpendingData(spendingRes);
+        const rawSpending = spendingRes.data ?? spendingRes;
+        const total = typeof rawSpending?.total_spending === 'number'
+          ? rawSpending.total_spending
+          : (Array.isArray(rawSpending) ? rawSpending.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0) : 0);
+        const breakdown = Array.isArray(rawSpending?.breakdown) ? rawSpending.breakdown : [];
+        setSpendingData({
+          total_spending: total,
+          breakdown,
+        });
       }
 
       if (incomeRes.error) {
         setError(extractApiErrorMessage(incomeRes));
       } else {
-        setIncomeData(incomeRes);
+        const rawIncome = incomeRes.data ?? incomeRes;
+        const incomeList: any[] = Array.isArray(rawIncome)
+          ? rawIncome
+          : (Array.isArray(rawIncome?.data) ? rawIncome.data : []);
+        const total = typeof rawIncome?.total_income === 'number'
+          ? rawIncome.total_income
+          : incomeList.reduce((sum: number, inc: any) => sum + (Number(inc.amount) || 0), 0);
+
+        let breakdown = Array.isArray(rawIncome?.breakdown) ? rawIncome.breakdown : null;
+        if (!breakdown || breakdown.length === 0) {
+          const breakdownMap = new Map<string, { amount: number; count: number }>();
+          incomeList.forEach((inc: any) => {
+            const category = inc.category || inc.source || 'Uncategorized';
+            const entry = breakdownMap.get(category) || { amount: 0, count: 0 };
+            entry.amount += Number(inc.amount) || 0;
+            entry.count += 1;
+            breakdownMap.set(category, entry);
+          });
+          breakdown = [...breakdownMap.entries()].map(([source, data]) => ({
+            source,
+            amount: data.amount,
+            count: data.count,
+          }));
+        }
+
+        setIncomeData({
+          total_income: total,
+          breakdown,
+        });
       }
 
       if (salaryRes.error) {
         setError(extractApiErrorMessage(salaryRes));
       } else {
-        setSalaryData(salaryRes);
+        const rawSalary = salaryRes.data ?? salaryRes;
+        const salaryList: any[] = Array.isArray(rawSalary)
+          ? rawSalary
+          : (Array.isArray(rawSalary?.data) ? rawSalary.data : []);
+        const total = typeof rawSalary?.total_salary === 'number'
+          ? rawSalary.total_salary
+          : salaryList.reduce((sum: number, s: any) => sum + (Number(s.amount) || 0), 0);
+
+        setSalaryData({
+          total_salary: total,
+          salaries: salaryList,
+        });
       }
     } catch (err) {
       setError('Failed to load financial data');
@@ -105,12 +166,9 @@ export default function BusinessIntelligencePage() {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCurrentMonth(prev => {
-                const newDate = new Date(prev);
-                newDate.setMonth(prev.getMonth() - 1);
-                return newDate;
-              })}
-              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+              onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+              className="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+              title="Previous Month"
             >
               <ChevronLeft className="h-4 w-4 text-slate-400" />
             </button>
@@ -118,12 +176,9 @@ export default function BusinessIntelligencePage() {
               {MONTH_NAMES[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </span>
             <button
-              onClick={() => setCurrentMonth(prev => {
-                const newDate = new Date(prev);
-                newDate.setMonth(prev.getMonth() + 1);
-                return newDate;
-              })}
-              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+              onClick={() => setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+              className="p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+              title="Next Month"
             >
               <ChevronRight className="h-4 w-4 text-slate-400" />
             </button>
@@ -213,7 +268,7 @@ export default function BusinessIntelligencePage() {
           </div>
 
           {/* Detailed Breakdown */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Spending Breakdown */}
             <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-white mb-4">Spending Breakdown</h3>
@@ -225,7 +280,7 @@ export default function BusinessIntelligencePage() {
                         <p className="text-white font-medium">{item.category || 'Uncategorized'}</p>
                         <p className="text-sm text-gray-400">{item.count || 0} transactions</p>
                       </div>
-                      <p className="text-white font-semibold">₹{item.amount?.toLocaleString('en-IN') || 0}</p>
+                      <p className="text-white font-semibold">₹{(item.amount || 0).toLocaleString('en-IN')}</p>
                     </div>
                   ))}
                 </div>
@@ -242,15 +297,35 @@ export default function BusinessIntelligencePage() {
                   {incomeData.breakdown.map((item: any, index: number) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
                       <div>
-                        <p className="text-white font-medium">{item.source || 'Uncategorized'}</p>
+                        <p className="text-white font-medium">{item.source || item.category || 'Uncategorized'}</p>
                         <p className="text-sm text-gray-400">{item.count || 0} transactions</p>
                       </div>
-                      <p className="text-white font-semibold">₹{item.amount?.toLocaleString('en-IN') || 0}</p>
+                      <p className="text-white font-semibold">₹{(item.amount || 0).toLocaleString('en-IN')}</p>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-gray-400 text-sm">No income data available for this month</p>
+              )}
+            </div>
+
+            {/* Payroll Breakdown */}
+            <div className="bg-slate-900/50 border border-white/10 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">Payroll Breakdown</h3>
+              {salaryData?.salaries && salaryData.salaries.length > 0 ? (
+                <div className="space-y-3">
+                  {salaryData.salaries.map((item: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                      <div>
+                        <p className="text-white font-medium">{item.employee_name || 'Employee'}</p>
+                        <p className="text-sm text-gray-400 capitalize">{item.status || 'Paid'}</p>
+                      </div>
+                      <p className="text-white font-semibold">₹{(item.amount || 0).toLocaleString('en-IN')}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-400 text-sm">No payroll data available for this month</p>
               )}
             </div>
           </div>
