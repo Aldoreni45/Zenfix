@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireOwner } from '@/lib/auth/middleware';
 import { SalaryModel } from '@/lib/mongodb/models/salary';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireAuth(async (req, user) => {
     try {
-      const salary = await SalaryModel.findByNumericId(Number(params.id));
+      const salary = await SalaryModel.findByNumericId(Number(id));
       
       if (!salary) {
         return NextResponse.json(
@@ -25,7 +26,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwner(async (req, user) => {
     try {
       const body = await request.json();
@@ -41,7 +43,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       }
       if (notes !== undefined) updateData.notes = notes;
 
-      const updatedSalary = await SalaryModel.update(Number(params.id), updateData);
+      const updatedSalary = await SalaryModel.update(Number(id), updateData);
       return NextResponse.json(updatedSalary);
     } catch (error) {
       console.error('Error updating salary:', error);
@@ -53,10 +55,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwner(async (req, user) => {
     try {
-      const deleted = await SalaryModel.delete(Number(params.id));
+      const deleted = await SalaryModel.delete(Number(id));
       
       if (!deleted) {
         return NextResponse.json(

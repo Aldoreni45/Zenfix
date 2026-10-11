@@ -75,7 +75,7 @@ async function seed() {
     
     for (const sequence of counterSequences) {
       await db.collection('zenfix_sequences').insertOne({
-        _id: sequence,
+        _id: sequence as any,
         value: 0
       });
     }

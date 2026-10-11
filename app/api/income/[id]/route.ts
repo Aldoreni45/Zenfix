@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireOwner } from '@/lib/auth/middleware';
 import { IncomeModel } from '@/lib/mongodb/models/income';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireAuth(async (req, user) => {
     try {
-      const income = await IncomeModel.findByNumericId(Number(params.id));
+      const income = await IncomeModel.findByNumericId(Number(id));
       
       if (!income) {
         return NextResponse.json(
@@ -25,7 +26,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwner(async (req, user) => {
     try {
       const body = await request.json();
@@ -46,7 +48,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       if (invoice_number !== undefined) updateData.invoice_number = invoice_number;
       if (notes !== undefined) updateData.notes = notes;
 
-      const updatedIncome = await IncomeModel.update(Number(params.id), updateData);
+      const updatedIncome = await IncomeModel.update(Number(id), updateData);
       return NextResponse.json(updatedIncome);
     } catch (error) {
       console.error('Error updating income:', error);
@@ -58,10 +60,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwner(async (req, user) => {
     try {
-      const deleted = await IncomeModel.delete(Number(params.id));
+      const deleted = await IncomeModel.delete(Number(id));
       
       if (!deleted) {
         return NextResponse.json(

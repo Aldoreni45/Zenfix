@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       if (amount_paid > 0 && amount_pending > 0) status = 'partial';
       if (amount_pending <= 0) status = 'completed';
 
+      const creator = await UserModel.findByNumericId(user.userId);
       const payment = await EmployeePaymentModel.create({
         employee_id: Number(employee_id),
         employee_name: `${employee.first_name} ${employee.last_name}`,
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
         status,
         notes: notes || '',
         created_by: user.userId,
-        created_by_name: `${user.first_name} ${user.last_name}`,
+        created_by_name: creator ? `${creator.first_name} ${creator.last_name}`.trim() || creator.username : user.username,
       });
 
       return NextResponse.json(payment, { status: 201 });

@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const creator = await UserModel.findByNumericId(user.userId);
       const spending = await SpendingModel.create({
         client_id,
         client_name: client.name,
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
         location: location || '',
         date: new Date(date),
         created_by: user.userId,
-        created_by_name: `${user.first_name} ${user.last_name}`,
+        created_by_name: creator ? `${creator.first_name} ${creator.last_name}`.trim() || creator.username : user.username,
         notes: notes || '',
         receipt_url: receipt_url || '',
         status: 'pending',

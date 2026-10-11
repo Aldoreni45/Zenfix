@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, requireOwner } from '@/lib/auth/middleware';
+import { requireAuth, requireOwner, requireOwnerOrManager } from '@/lib/auth/middleware';
 import { SpendingModel } from '@/lib/mongodb/models/spending';
 import { UserModel } from '@/lib/mongodb/models/user';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireAuth(async (req, user) => {
     try {
-      const numeric_id = Number(params.id);
+      const numeric_id = Number(id);
       const spending = await SpendingModel.findByNumericId(numeric_id);
 
       if (!spending) {
@@ -42,10 +43,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwnerOrManager(async (req, user) => {
     try {
-      const numeric_id = Number(params.id);
+      const numeric_id = Number(id);
       const spending = await SpendingModel.findByNumericId(numeric_id);
 
       if (!spending) {
@@ -88,10 +90,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   })(request);
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   return requireOwner(async (req, user) => {
     try {
-      const numeric_id = Number(params.id);
+      const numeric_id = Number(id);
       const spending = await SpendingModel.findByNumericId(numeric_id);
 
       if (!spending) {
