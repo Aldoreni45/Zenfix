@@ -104,11 +104,27 @@ export default function DashboardPage() {
     return { day, completed: 0 };
   });
 
+  // Count tasks by actual status from task data
+  const allTasks = [...(todayTasks || []), ...(pendingTasks || []), ...(overdueTasks || [])];
+  const taskStatusCounts = allTasks.reduce((acc, task) => {
+    const status = task.status?.toLowerCase() || 'pending';
+    if (task.is_overdue && status !== 'completed') {
+      acc.overdue++;
+    } else if (status === 'completed') {
+      acc.completed++;
+    } else if (status === 'in_progress') {
+      acc.inProgress++;
+    } else {
+      acc.pending++;
+    }
+    return acc;
+  }, { completed: 0, inProgress: 0, pending: 0, overdue: 0 });
+
   const statusPieData = [
-    { name: 'Completed', value: stats.videos_completed || 0 },
-    { name: 'In Progress', value: stats.pending_tasks || 0 },
-    { name: 'Pending', value: pendingTasks?.length || 0 },
-    { name: 'Overdue', value: stats.overdue_tasks || 0 },
+    { name: 'Completed', value: taskStatusCounts.completed },
+    { name: 'In Progress', value: taskStatusCounts.inProgress },
+    { name: 'Pending', value: taskStatusCounts.pending },
+    { name: 'Overdue', value: taskStatusCounts.overdue },
   ];
 
   const PIE_COLORS = ['#10B981','#3B82F6','#F59E0B','#EF4444','#8B5CF6'];

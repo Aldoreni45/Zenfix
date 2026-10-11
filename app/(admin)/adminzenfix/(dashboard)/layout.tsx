@@ -60,7 +60,6 @@ const ownerNavigation = [
   { name: 'Task History', href: '/adminzenfix/task-history', icon: History },
   { name: 'Calendar', href: '/adminzenfix/calendar', icon: Calendar },
   { name: 'Reports', href: '/adminzenfix/reports', icon: BarChart3 },
-  { name: 'Analytics', href: '/adminzenfix/analytics', icon: TrendingUp },
   { name: 'Activity Logs', href: '/adminzenfix/activity-logs', icon: Bell },
   { name: 'Settings', href: '/adminzenfix/settings', icon: Settings },
   { name: 'Notifications', href: '/adminzenfix/notifications', icon: Bell },

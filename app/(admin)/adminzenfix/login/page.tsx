@@ -163,7 +163,7 @@ function LoginForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setCredentials({ username: 'admin', password: 'admin123' })}
+                onClick={() => setCredentials({ username: 'owner', password: 'password123' })}
                 className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
               >
                 Owner
@@ -172,7 +172,7 @@ function LoginForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setCredentials({ username: 'manager', password: 'manager123' })}
+                onClick={() => setCredentials({ username: 'manager1', password: 'password123' })}
                 className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
               >
                 Manager
@@ -181,7 +181,7 @@ function LoginForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setCredentials({ username: 'employee', password: 'employee123' })}
+                onClick={() => setCredentials({ username: 'employee1', password: 'password123' })}
                 className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
               >
                 Employee

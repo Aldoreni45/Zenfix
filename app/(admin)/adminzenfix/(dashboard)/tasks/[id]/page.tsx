@@ -231,15 +231,15 @@ export default function TaskDetailPage() {
   const isOverdue = task.is_overdue;
   const status = String(task.status || '').toLowerCase();
   const isOpen = ['pending', 'assigned', 'in_progress', 'blocked', 'submitted', 'rejected'].includes(status);
+  const isVideoTask = Boolean(task.video_stage_id);
+  const isLockedStatus = status === 'completed' || status === 'cancelled';
   // ONLY the assigned employee can start and complete tasks
   const canStart = isAssignee && isOpen && ['pending', 'assigned', 'rejected'].includes(status);
   const canComplete = isAssignee && isOpen && ['pending', 'assigned', 'in_progress', 'submitted', 'rejected'].includes(status);
   const canCarryForward = canManage && isOpen;
-  const canReject = canManage && ['in_progress', 'completed', 'waiting_approval', 'submitted'].includes(status);
-  const isVideoTask = Boolean(task.video_stage_id);
-  const isLockedStatus = status === 'completed' || status === 'cancelled';
+  const canReject = canManage && !isVideoTask && ['in_progress', 'waiting_approval', 'submitted'].includes(status);
   const canReassign = canManage && !isVideoTask && !isLockedStatus;
-  const canDelete = canManage && !isVideoTask;
+  const canDelete = canManage && !isVideoTask && !isLockedStatus;
   const dueDateStatus = getDueDateStatus(task.due_date);
 
   return (

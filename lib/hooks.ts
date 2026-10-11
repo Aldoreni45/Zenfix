@@ -93,6 +93,13 @@ export function useTodayTasks() {
   return useApi<any[]>(endpoint, []);
 }
 
+// In-progress tasks hook
+export function useInProgressTasks() {
+  const localDate = getLocalTodayDateString();
+  const endpoint = localDate ? `${apiEndpoints.inProgressTasks}?date=${localDate}` : apiEndpoints.inProgressTasks;
+  return useApi<any[]>(endpoint, []);
+}
+
 // Upcoming tasks hook
 export function useUpcomingTasks(days: number = 7) {
   const localDate = getLocalTodayDateString();

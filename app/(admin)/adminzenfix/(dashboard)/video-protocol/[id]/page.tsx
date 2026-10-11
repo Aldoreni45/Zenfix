@@ -127,7 +127,7 @@ function StageBar({ stage, onAction, canManage, onShowDetails }: { stage: VideoS
   );
 }
 
-function VideoCard({ video, users, onAction, canManage }: { video: VideoRecord; users: any[]; onAction: (action: string, stageId: number, data?: any) => void; canManage: boolean }) {
+function VideoCard({ video, users, onAction, canManage, onRenameVideo }: { video: VideoRecord; users: any[]; onAction: (action: string, stageId: number, data?: any) => void; canManage: boolean; onRenameVideo: (videoId: number, newName: string) => void }) {
   const [expanded, setExpanded] = useState(video.current_status !== 'posted');
   const [showAssign, setShowAssign] = useState<number | null>(null);
   const [selectedUser, setSelectedUser] = useState('');
@@ -139,6 +139,8 @@ function VideoCard({ video, users, onAction, canManage }: { video: VideoRecord; 
   const [completeNotes, setCompleteNotes] = useState('');
   const [completeDriveLink, setCompleteDriveLink] = useState('');
   const [showStageDetails, setShowStageDetails] = useState<number | null>(null);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [videoName, setVideoName] = useState(video.title || `Video ${String(video.video_number).padStart(2, '0')}`);
 
   const statusCfg = STATUS_CONFIG[video.current_status] || STATUS_CONFIG.not_started;
   const completedCount = video.stages.filter((s) => s.status === 'completed').length;
@@ -176,6 +178,13 @@ function VideoCard({ video, users, onAction, canManage }: { video: VideoRecord; 
     setShowStageDetails(stageId);
   };
 
+  const handleRenameVideo = () => {
+    if (videoName.trim()) {
+      onRenameVideo(video.id, videoName.trim());
+      setIsEditingName(false);
+    }
+  };
+
   return (
     <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden">
       <div
@@ -195,8 +204,45 @@ function VideoCard({ video, users, onAction, canManage }: { video: VideoRecord; 
               String(video.video_number).padStart(2, '0')
             )}
           </div>
-          <div>
-            <h3 className="text-white font-semibold text-sm">Video {String(video.video_number).padStart(2, '0')}</h3>
+          <div className="flex-1 min-w-0">
+            {isEditingName && canManage ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  value={videoName}
+                  onChange={(e) => setVideoName(e.target.value)}
+                  className="h-6 text-xs bg-slate-800 border-white/10 text-white px-2"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRenameVideo();
+                    if (e.key === 'Escape') {
+                      setIsEditingName(false);
+                      setVideoName(video.title || `Video ${String(video.video_number).padStart(2, '0')}`);
+                    }
+                  }}
+                  autoFocus
+                />
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-green-400" onClick={handleRenameVideo}>
+                  Save
+                </Button>
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-slate-400" onClick={() => {
+                  setIsEditingName(false);
+                  setVideoName(video.title || `Video ${String(video.video_number).padStart(2, '0')}`);
+                }}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h3 className="text-white font-semibold text-sm truncate">{videoName}</h3>
+                {canManage && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsEditingName(true); }}
+                    className="text-[10px] text-slate-500 hover:text-cyan-400 transition-colors"
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            )}
             <p className={cn("text-xs font-medium", statusCfg.color)}>
               {statusCfg.label}
             </p>
@@ -467,6 +513,16 @@ export default function ProtocolDashboardPage() {
     await fetchDashboard(true);
   }, [fetchDashboard]);
 
+  const handleRenameVideo = useCallback(async (videoId: number, newName: string) => {
+    const res = await api.patch(`/video-protocol/video-records/${videoId}`, { title: newName });
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+    } else {
+      toast.success('Video name updated');
+      await fetchDashboard(true);
+    }
+  }, [fetchDashboard]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -611,6 +667,7 @@ export default function ProtocolDashboardPage() {
               users={users}
               onAction={handleStageAction}
               canManage={canManage}
+              onRenameVideo={handleRenameVideo}
             />
           ))}
         </div>

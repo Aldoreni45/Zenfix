@@ -4,10 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --no-turbo",
     "start": "next start",
     "lint": "eslint",
-    "seed": "node scripts/seed.mjs"
+    "seed": "node scripts/seed.mjs",
+    "seed-full": "node scripts/seed-full.mjs",
+    "clear-data": "node scripts/clear-data.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

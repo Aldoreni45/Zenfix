@@ -71,11 +71,12 @@ export async function POST(
 
       if (video && protocol && client) {
         const stageTypeDisplay = stage.stage_type || stage.stage_display || 'Stage';
-        const taskTitle = `${stageTypeDisplay} - Video ${String(video.video_number).padStart(2, '0')} (${client.name} - ${MONTHS[protocol.month - 1]} ${protocol.year})`;
+        const videoName = video.title || `Video ${String(video.video_number).padStart(2, '0')}`;
+        const taskTitle = `${stageTypeDisplay} - ${videoName} (${client.name} - ${MONTHS[protocol.month - 1]} ${protocol.year})`;
         
         const task = await TaskModel.create({
           title: taskTitle,
-          description: `Auto-created from video protocol stage: ${stageTypeDisplay} for Video ${String(video.video_number).padStart(2, '0')}`,
+          description: `Auto-created from video protocol stage: ${stageTypeDisplay} for ${videoName}`,
           client_id: protocol.client_id,
           assigned_to_id: assigned_to,
           assigned_by_id: user.userId,

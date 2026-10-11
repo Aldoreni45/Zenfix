@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight, RefreshCw, Loader2, Link2, FileText } from 'lucide-react';
+import { Plus, Search, Calendar, Clock, AlertCircle, CheckCircle, ArrowUpRight, RefreshCw, Loader2, Link2, FileText, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useMyTasks, useCanManage } from '@/lib/hooks';
+import { useTodayTasks, usePendingTasks, useOverdueTasks, usePendingPreviousTasks, useMyTasks, useCanManage, useInProgressTasks } from '@/lib/hooks';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,7 @@ export default function TasksPage() {
   const { data: overdueTasks, loading: overdueLoading, refetch: refetchOverdue } = useOverdueTasks();
   const { data: pendingPreviousTasks, loading: previousLoading, refetch: refetchPrevious } = usePendingPreviousTasks();
   const { data: myTasks, loading: myTasksLoading } = useMyTasks();
+  const { data: inProgressTasks, loading: inProgressLoading } = useInProgressTasks();
   
   const canManage = useCanManage();
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,6 +89,7 @@ export default function TasksPage() {
       case 'today': return todayTasks || [];
       case 'my': return myTasks || [];
       case 'pending': return pendingTasks || [];
+      case 'progress': return inProgressTasks || [];
       case 'overdue': 
       case 'previous':
         return (overdueTasks && overdueTasks.length > 0) ? overdueTasks : (pendingPreviousTasks || []);
@@ -135,6 +137,7 @@ export default function TasksPage() {
       case 'today': return todayLoading;
       case 'my': return myTasksLoading;
       case 'pending': return pendingLoading;
+      case 'progress': return inProgressLoading;
       case 'overdue':
       case 'previous':
         return overdueLoading || previousLoading;
@@ -226,6 +229,7 @@ export default function TasksPage() {
           { id: 'today', label: "Today's Tasks", count: todayTasks?.length || 0 },
           { id: 'my', label: 'My Tasks', count: myTasks?.length || 0 },
           { id: 'pending', label: 'Pending', count: pendingTasks?.length || 0 },
+          ...(canManage ? [{ id: 'progress', label: 'Progress', count: inProgressTasks?.length || 0 }] : []),
           { id: 'overdue', label: 'Overdue', count: overdueCount, alert: overdueCount > 0 },
         ].map((tab) => (
           <button
@@ -295,6 +299,7 @@ export default function TasksPage() {
             <p className="text-slate-500">
               {activeTab === 'overdue' ? 'No overdue tasks - great job!' :
                activeTab === 'pending' ? 'No pending tasks' :
+               activeTab === 'progress' ? 'No tasks in progress' :
                activeTab === 'today' ? 'No tasks for today' :
                'No tasks found'}
             </p>

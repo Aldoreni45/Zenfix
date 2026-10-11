@@ -7,12 +7,22 @@ import { DepartmentModel } from '@/lib/mongodb/models/department';
 import { TaskStatus } from '@/lib/types/models';
 import { formatUserName, getClientNameById, getDepartmentNameById, formatStatusName, formatPriorityName } from '@/lib/api-helpers/data-enrichment';
 import { handleError } from '@/lib/api-helpers/error-handler';
-import { isOverdueByDate, toDateOnlyISO } from '@/lib/date-utils';
+import { isOverdueByDate, parseDueDateUTC, toDateOnlyISO } from '@/lib/date-utils';
 
 async function handler(request: NextRequest, user: any) {
   try {
+    const { searchParams } = new URL(request.url);
+    const dateParam = searchParams.get('date');
+    const now = new Date();
+    const today = (dateParam && parseDueDateUTC(dateParam)) ||
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
     const filters: any = {
-      status: { $in: [TaskStatus.PENDING, TaskStatus.ASSIGNED] }
+      status: { $in: [TaskStatus.PENDING, TaskStatus.ASSIGNED] },
+      $or: [
+        { due_date: { $gte: today } },
+        { due_date: { $exists: false } }
+      ]
     };
 
     // Role-based filtering
