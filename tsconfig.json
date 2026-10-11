@@ -18,6 +18,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "next-auth/react": ["./lib/next-auth-compat.tsx"]
