@@ -158,16 +158,7 @@ function LoginForm() {
 
           <div className="mt-8 pt-6 border-t border-white/10">
             <p className="text-slate-500 text-xs text-center mb-3">Quick Login</p>
-            <div className="grid grid-cols-3 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCredentials({ username: 'owner', password: 'password123' })}
-                className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
-              >
-                Owner
-              </Button>
+            <div className="grid grid-cols-2 gap-2">
               <Button
                 type="button"
                 variant="outline"

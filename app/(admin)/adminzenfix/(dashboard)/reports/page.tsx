@@ -37,6 +37,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
+import { useIsOwner } from '@/lib/hooks';
 
 const COLORS = ['#06B6D4', '#7C3AED', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#EC4899'];
 
@@ -58,6 +59,7 @@ const tooltipStyle = {
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function ReportsPage() {
+  const isOwner = useIsOwner();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -141,11 +143,29 @@ export default function ReportsPage() {
     fill: name === 'urgent' ? '#EF4444' : name === 'high' ? '#F97316' : name === 'medium' ? '#F59E0B' : '#10B981',
   }));
 
+  // Helper: get local YYYY-MM-DD string without UTC shift (avoids IST day-off bug).
+  const localDateStr = (raw: string): string => {
+    // date-only "YYYY-MM-DD" → safe as-is; full ISO → convert via local parts
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw.split('T')[0];
+    const dt = new Date(raw);
+    const y = dt.getFullYear();
+    const mo = String(dt.getMonth() + 1).padStart(2, '0');
+    const d = String(dt.getDate()).padStart(2, '0');
+    return `${y}-${mo}-${d}`;
+  };
+
+  // Helper: local day-of-week from any date string.
+  const localDayOfWeek = (raw: string): number => {
+    const s = localDateStr(raw);
+    const [y, m, d] = s.split('-').map(Number);
+    return new Date(y, m - 1, d).getDay();
+  };
+
   const trendCounts = new Array(7).fill(0);
   tasks
     .filter((t: any) => t.status === 'completed' && t.completed_at)
     .forEach((t: any) => {
-      trendCounts[new Date(t.completed_at).getDay()] += 1;
+      trendCounts[localDayOfWeek(t.completed_at as string)] += 1;
     });
   const trendData = DAY_NAMES.map((day, i) => ({ name: day, completed: trendCounts[i] }));
 
@@ -153,7 +173,11 @@ export default function ReportsPage() {
   const getEmployeeStatsForDate = (date: Date | null) => {
     if (!date) return [];
     
-    const dateStr = date.toISOString().split('T')[0];
+    // Build local date string without UTC shift (toISOString() shifts back one day in IST).
+    const y = date.getFullYear();
+    const mo = String(date.getMonth() + 1).padStart(2, '0');
+    const dy = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${y}-${mo}-${dy}`;
     const userStats = new Map<string, { completed: number; pending: number; inProgress: number }>();
     
     tasks.forEach((t: any) => {
@@ -208,8 +232,11 @@ export default function ReportsPage() {
 
   const getTaskCountForDay = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return 0;
-    const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const dateStr = date.toISOString().split('T')[0];
+    // Build local date string without UTC shift.
+    const y = currentMonth.getFullYear();
+    const mo = String(currentMonth.getMonth() + 1).padStart(2, '0');
+    const ds = String(day).padStart(2, '0');
+    const dateStr = `${y}-${mo}-${ds}`;
     return tasks.filter((t: any) => t.due_date && t.due_date.startsWith(dateStr)).length;
   };
 
@@ -387,7 +414,7 @@ export default function ReportsPage() {
       </div>
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           {
             label: 'Total Tasks',
@@ -395,6 +422,7 @@ export default function ReportsPage() {
             sub: 'All time',
             icon: BarChart2,
             color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+            ownerOnly: false,
           },
           {
             label: 'Completed',
@@ -402,6 +430,7 @@ export default function ReportsPage() {
             sub: `${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}% rate`,
             icon: CheckCircle2,
             color: 'text-green-400 bg-green-500/10 border-green-500/20',
+            ownerOnly: false,
           },
           {
             label: 'Pending',
@@ -409,6 +438,7 @@ export default function ReportsPage() {
             sub: `${totalTasks > 0 ? Math.round((pendingTasks / totalTasks) * 100) : 0}% pending`,
             icon: Clock,
             color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
+            ownerOnly: false,
           },
           {
             label: 'Total Spending',
@@ -416,6 +446,7 @@ export default function ReportsPage() {
             sub: 'All expenses',
             icon: DollarSign,
             color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+            ownerOnly: true,
           },
           {
             label: 'Team Efficiency',
@@ -423,8 +454,9 @@ export default function ReportsPage() {
             sub: 'Average',
             icon: TrendingUp,
             color: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+            ownerOnly: false,
           },
-        ].map((card) => (
+        ].filter((card) => !card.ownerOnly || isOwner).map((card) => (
           <div
             key={card.label}
             className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 hover:border-white/20 transition-all"

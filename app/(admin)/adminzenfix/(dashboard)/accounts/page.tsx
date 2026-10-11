@@ -265,7 +265,7 @@ export default function AccountsPage() {
           <h1 className="text-2xl font-bold text-white">Accounts</h1>
           <p className="text-slate-400 mt-1">Manage spending, payments, and income</p>
         </div>
-        {isOwner && activeTab !== 'tally' && (
+        {(isOwner || (isManager && activeTab === 'spending')) && activeTab !== 'tally' && (
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
             className="bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-600 hover:to-purple-700"
@@ -280,8 +280,8 @@ export default function AccountsPage() {
       <div className="flex gap-2 border-b border-white/10 pb-4">
         {[
           { id: 'spending' as TabType, label: 'Spending', icon: DollarSign },
-          { id: 'payments' as TabType, label: 'Employee Payments', icon: Wallet },
-          { id: 'income' as TabType, label: 'Income', icon: ArrowUpCircle },
+          { id: 'payments' as TabType, label: 'Employee Payments', icon: Wallet, ownerOnly: true },
+          { id: 'income' as TabType, label: 'Income', icon: ArrowUpCircle, ownerOnly: true },
           { id: 'salary' as TabType, label: 'Salary', icon: CreditCard, ownerOnly: true },
           { id: 'tally' as TabType, label: 'Tally', icon: Calculator, ownerOnly: true },
         ].filter(tab => !tab.ownerOnly || isOwner).map((tab) => (
@@ -389,7 +389,7 @@ export default function AccountsPage() {
       )}
 
       {/* Add Form */}
-      {showAddForm && isOwner && (
+      {showAddForm && (isOwner || (isManager && activeTab === 'spending')) && (
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-white">
