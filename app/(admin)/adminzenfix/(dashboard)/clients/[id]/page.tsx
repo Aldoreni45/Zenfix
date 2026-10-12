@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useIsOwner, useIsManager } from '@/lib/hooks';
+import { isValidPhone, restrictPhoneInput, PHONE_ERROR } from '@/lib/validation';
 import { cn } from '@/lib/utils';
 
 const STATUS_OPTIONS = [
@@ -91,6 +92,10 @@ export default function ClientDetailPage() {
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error('Client name is required');
+      return;
+    }
+    if (form.phone.trim() && !isValidPhone(form.phone)) {
+      toast.error(PHONE_ERROR);
       return;
     }
     setSaving(true);
@@ -303,7 +308,7 @@ export default function ClientDetailPage() {
               <Phone className="h-3.5 w-3.5 text-slate-400" /> Phone Number
             </Label>
             {editing ? (
-              <Input value={form.phone} onChange={(e) => setField('phone', e.target.value)} className="bg-slate-800/50 border-white/10 text-white" />
+              <Input value={form.phone} onChange={(e) => setField('phone', restrictPhoneInput(e.target.value))} inputMode="numeric" maxLength={10} placeholder="10-digit number" className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500" />
             ) : (
               <p className="text-white">{client.phone || '—'}</p>
             )}

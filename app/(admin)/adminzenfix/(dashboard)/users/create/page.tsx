@@ -10,6 +10,7 @@ import { ArrowLeft, Loader2, UserPlus, Eye, EyeOff, AlertTriangle } from 'lucide
 import { api, apiEndpoints, extractApiErrorMessage, type ApiResponse } from '@/lib/api';
 import { useIsOwner } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
+import { isValidPhone, restrictPhoneInput, PHONE_ERROR } from '@/lib/validation';
 
 const ROLES = [
   { value: 'employee', label: 'Employee' },
@@ -121,6 +122,7 @@ export default function CreateUserPage() {
       errs.email = 'Please enter a valid email address';
     }
     if (!form.phone.trim()) errs.phone = 'Phone is required';
+    else if (!isValidPhone(form.phone)) errs.phone = PHONE_ERROR;
     if (!form.role) errs.role = 'Role is required';
     if (!form.password) {
       errs.password = 'Password is required';
@@ -226,8 +228,11 @@ export default function CreateUserPage() {
               <Input
                 id="phone"
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 value={form.phone}
-                onChange={(e) => setField('phone', e.target.value)}
+                onChange={(e) => setField('phone', restrictPhoneInput(e.target.value))}
+                placeholder="10-digit number"
                 required
                 autoComplete="off"
                 className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"

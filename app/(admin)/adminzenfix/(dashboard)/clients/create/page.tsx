@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useIsOwner, useIsManager } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
+import { isValidPhone, restrictPhoneInput, PHONE_ERROR } from '@/lib/validation';
 import { cn } from '@/lib/utils';
 
 const STATUS_OPTIONS = [
@@ -83,6 +84,13 @@ export default function CreateClientPage() {
     if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       setFieldErrors({ email: 'Please enter a valid email address' });
       toast.error('Invalid email address');
+      setSubmitting(false);
+      return;
+    }
+
+    if (form.phone.trim() && !isValidPhone(form.phone)) {
+      setFieldErrors({ phone: PHONE_ERROR });
+      toast.error(PHONE_ERROR);
       setSubmitting(false);
       return;
     }
@@ -208,11 +216,20 @@ export default function CreateClientPage() {
               </Label>
               <Input
                 id="phone"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 value={form.phone}
-                onChange={(e) => setField('phone', e.target.value)}
-                placeholder="+1 (555) 000-0000"
-                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
+                onChange={(e) => setField('phone', restrictPhoneInput(e.target.value))}
+                placeholder="10-digit number"
+                className={cn(
+                  'bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500',
+                  fieldErrors.phone && 'border-red-500/80 focus-visible:ring-red-500'
+                )}
               />
+              {fieldErrors.phone && (
+                <p className="text-xs text-red-400 mt-1">{fieldErrors.phone}</p>
+              )}
             </div>
 
             {/* Monthly Target */}

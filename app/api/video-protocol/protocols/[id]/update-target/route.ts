@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { VideoProtocolModel } from '@/lib/mongodb/models/video-protocol';
+import { ClientModel } from '@/lib/mongodb/models/client';
 import { requireOwnerOrManager } from '@/lib/auth/middleware';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
@@ -44,6 +45,12 @@ export async function PUT(
 
       // Django parity: reconcile video records with the new target
       await syncProtocolTarget(protocol, target_videos);
+
+      // Reflect the change on the client's monthly target so it stays in sync
+      // with the client detail page and future protocol pre-fills.
+      if (protocol.client_id) {
+        await ClientModel.update(protocol.client_id, { monthly_video_target: target_videos });
+      }
 
       // Log activity
       await logActivity({

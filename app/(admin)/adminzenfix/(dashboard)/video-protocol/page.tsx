@@ -86,6 +86,24 @@ export default function VideoProtocolPage() {
     if (res.data) setClients(Array.isArray(res.data) ? res.data : []);
   };
 
+  // Reset the form and load clients whenever the create modal is opened.
+  const openCreate = () => {
+    setSelectedClient('');
+    setTargetVideos('5');
+    setShowCreate(true);
+    fetchClients();
+  };
+
+  // Pre-fill the target from the client's monthly target (set when the client
+  // was created or edited). The user can still change it afterwards.
+  const handleSelectClient = (value: string) => {
+    setSelectedClient(value);
+    const client = clients.find((c) => String(c.numeric_id ?? c.id) === value);
+    if (client && client.monthly_video_target != null) {
+      setTargetVideos(String(client.monthly_video_target));
+    }
+  };
+
   const handleCreate = async () => {
     if (!selectedClient) { toast.error('Select a client'); return; }
     setCreating(true);
@@ -144,8 +162,8 @@ export default function VideoProtocolPage() {
           <p className="text-slate-400 text-sm mt-1">Monthly video production workflow management</p>
         </div>
         {mounted && canManage && (
-          <Button
-            onClick={() => { setShowCreate(true); fetchClients(); }}
+            <Button
+            onClick={openCreate}
             className="bg-cyan-500 hover:bg-cyan-600"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -176,7 +194,7 @@ export default function VideoProtocolPage() {
               <Label className="text-slate-200">Client</Label>
               <select
                 value={selectedClient}
-                onChange={(e) => setSelectedClient(e.target.value)}
+                onChange={(e) => handleSelectClient(e.target.value)}
                 className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white"
               >
                 <option value="" className="bg-slate-900">Select client...</option>
@@ -195,6 +213,9 @@ export default function VideoProtocolPage() {
                 onChange={(e) => setTargetVideos(e.target.value)}
                 className="bg-slate-800/50 border-white/10 text-white"
               />
+              <p className="text-xs text-slate-500">
+                Auto-filled from the client&apos;s monthly target. You can increase it if needed.
+              </p>
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" onClick={() => setShowCreate(false)} className="text-slate-400 hover:text-white">
@@ -220,7 +241,7 @@ export default function VideoProtocolPage() {
           <p className="text-slate-400">No protocols for {MONTHS[selectedMonth - 1]} {selectedYear}</p>
           {mounted && canManage && (
             <Button
-              onClick={() => { setShowCreate(true); fetchClients(); }}
+              onClick={openCreate}
               className="mt-4 bg-cyan-500 hover:bg-cyan-600"
             >
               <Plus className="h-4 w-4 mr-2" />

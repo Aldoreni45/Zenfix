@@ -70,6 +70,10 @@ export default function UsersPage() {
       (u.email || '').toLowerCase().includes(q) ||
       (u.department_name || '').toLowerCase().includes(q)
     );
+  }).sort((a: any, b: any) => {
+    // Blocked/inactive/suspended users sink to the bottom; active users stay on top.
+    const rank = (status: string) => (status === 'active' ? 0 : 1);
+    return rank(a.status) - rank(b.status);
   });
 
   const counts = {

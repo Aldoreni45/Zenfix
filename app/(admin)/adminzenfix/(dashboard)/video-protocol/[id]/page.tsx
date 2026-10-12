@@ -472,6 +472,9 @@ export default function ProtocolDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetInput, setTargetInput] = useState('');
+  const [savingTarget, setSavingTarget] = useState(false);
 
   const fetchDashboard = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -522,6 +525,47 @@ export default function ProtocolDashboardPage() {
       await fetchDashboard(true);
     }
   }, [fetchDashboard]);
+
+  const startEditTarget = () => {
+    setTargetInput(String(data?.protocol.target_videos ?? ''));
+    setEditingTarget(true);
+  };
+
+  const handleUpdateTarget = async () => {
+    const current = data?.protocol.target_videos ?? 0;
+    const newTarget = Number(targetInput);
+    if (!Number.isInteger(newTarget) || newTarget < 1) {
+      toast.error('Enter a valid target of at least 1');
+      return;
+    }
+    if (newTarget === current) {
+      setEditingTarget(false);
+      return;
+    }
+
+    const reducing = newTarget < current;
+    if (reducing && !window.confirm(
+      `Reduce target from ${current} to ${newTarget}? This removes ${current - newTarget} video(s) and their progress.`
+    )) {
+      return;
+    }
+
+    setSavingTarget(true);
+    const res = await api.put(apiEndpoints.protocolUpdateTarget(data!.protocol.id), {
+      target_videos: newTarget,
+      confirm_reduction: reducing,
+    });
+    setSavingTarget(false);
+
+    if (res.error) {
+      toast.error(extractApiErrorMessage(res));
+      return;
+    }
+
+    toast.success(`Monthly target updated to ${newTarget}`);
+    setEditingTarget(false);
+    await fetchDashboard(true);
+  };
 
   if (loading) {
     return (
@@ -581,8 +625,54 @@ export default function ProtocolDashboardPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-slate-900/50 border border-white/10 rounded-xl p-4 text-center">
-          <p className="text-3xl font-bold text-white">{counts.target}</p>
-          <p className="text-xs text-slate-400 mt-1">Monthly Target</p>
+          {editingTarget ? (
+            <div className="space-y-2">
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={targetInput}
+                onChange={(e) => setTargetInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleUpdateTarget();
+                  if (e.key === 'Escape') setEditingTarget(false);
+                }}
+                autoFocus
+                className="h-9 text-center text-lg font-bold bg-slate-800 border-white/10 text-white"
+              />
+              <div className="flex items-center justify-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleUpdateTarget}
+                  disabled={savingTarget}
+                  className="h-7 px-3 text-xs bg-cyan-500 hover:bg-cyan-600"
+                >
+                  {savingTarget ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Save'}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingTarget(false)}
+                  className="h-7 px-3 text-xs text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-3xl font-bold text-white">{counts.target}</p>
+              <p className="text-xs text-slate-400 mt-1">Monthly Target</p>
+              {canManage && (
+                <button
+                  onClick={startEditTarget}
+                  className="mt-2 inline-flex items-center gap-1 text-[10px] text-slate-500 hover:text-cyan-400 transition-colors"
+                >
+                  <Edit3 className="h-3 w-3" /> Edit
+                </button>
+              )}
+            </>
+          )}
         </div>
         <div className="bg-slate-900/50 border border-green-500/20 rounded-xl p-4 text-center">
           <p className="text-3xl font-bold text-green-400">{counts.posted}</p>

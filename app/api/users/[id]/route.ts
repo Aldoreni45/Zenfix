@@ -6,6 +6,7 @@ import { hashPassword, validatePasswordStrength } from '@/lib/auth/password';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { UserRole, UserStatus } from '@/lib/types/models';
+import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
 
 async function getHandler(request: NextRequest, user: any, id: string) {
   try {
@@ -132,7 +133,16 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
     
     if (first_name !== undefined) updateData.first_name = first_name;
     if (last_name !== undefined) updateData.last_name = last_name;
-    if (phone !== undefined) updateData.phone = phone;
+    if (phone !== undefined) {
+      const cleanPhone = normalizePhone(phone);
+      if (cleanPhone && !isValidPhone(cleanPhone)) {
+        return NextResponse.json(
+          { error: { phone: PHONE_ERROR } },
+          { status: 400 }
+        );
+      }
+      updateData.phone = cleanPhone;
+    }
     if (email !== undefined) updateData.email = email;
     if (avatar !== undefined) updateData.avatar = avatar;
     if (body.role !== undefined) updateData.role = body.role;

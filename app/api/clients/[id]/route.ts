@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/api-helpers/response-formatter';
 import { handleError, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
+import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
 
 async function getHandler(request: NextRequest, user: any, id: string) {
   try {
@@ -105,7 +106,16 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
     if (company_name !== undefined) updateData.company_name = company_name;
     if (contact_person !== undefined) updateData.contact_person = contact_person;
     if (email !== undefined) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
+    if (phone !== undefined) {
+      const cleanPhone = normalizePhone(phone);
+      if (cleanPhone && !isValidPhone(cleanPhone)) {
+        return NextResponse.json(
+          { error: { phone: PHONE_ERROR } },
+          { status: 400 }
+        );
+      }
+      updateData.phone = cleanPhone;
+    }
     if (website !== undefined) updateData.website = website;
     if (industry !== undefined) updateData.industry = industry;
     if (description !== undefined) updateData.description = description;
@@ -212,6 +222,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return requireAuth((req, user) => patchHandler(req, user, id))(request);
+}
+
+// The client edit form submits with PUT; treat it the same as PATCH.
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return requireAuth((req, user) => patchHandler(req, user, id))(request);
 }

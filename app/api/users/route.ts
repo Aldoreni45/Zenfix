@@ -7,6 +7,7 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { NotificationModel } from '@/lib/mongodb/models/notification';
 import { ActivityAction } from '@/lib/types/models';
 import { UserRole, UserStatus } from '@/lib/types/models';
+import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -129,12 +130,13 @@ async function createHandler(request: NextRequest, user: any) {
     const cleanEmail = (email || '').trim();
     const cleanFirstName = (first_name || '').trim();
     const cleanLastName = (last_name || '').trim();
-    const cleanPhone = (phone || '').trim();
+    const cleanPhone = normalizePhone(phone);
 
     const requiredErrors: Record<string, string> = {};
     if (!cleanUsername) requiredErrors.username = 'Username is required.';
     if (!cleanEmail) requiredErrors.email = 'Email is required.';
     if (!cleanPhone) requiredErrors.phone = 'Phone is required.';
+    else if (!isValidPhone(cleanPhone)) requiredErrors.phone = PHONE_ERROR;
     if (!role) requiredErrors.role = 'Role is required.';
     if (!password) requiredErrors.password = 'Password is required.';
     else if (!confirm_password) requiredErrors.confirm_password = 'Please confirm the password.';

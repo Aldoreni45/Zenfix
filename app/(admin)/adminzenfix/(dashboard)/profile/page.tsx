@@ -10,6 +10,7 @@ import { User, Mail, Phone, Loader2, Shield } from 'lucide-react';
 import { useAuth } from '@/lib/hooks';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { changePassword } from '@/lib/actions/auth';
+import { isValidPhone, restrictPhoneInput, PHONE_ERROR } from '@/lib/validation';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -51,6 +52,12 @@ export default function ProfilePage() {
 
     if (!user) {
       toast.error('User data not loaded');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.phone.trim() && !isValidPhone(formData.phone)) {
+      toast.error(PHONE_ERROR);
       setLoading(false);
       return;
     }
@@ -166,10 +173,13 @@ export default function ProfilePage() {
               </Label>
               <Input
                 id="phone"
-                onChange={(e) => setFormData((f) => ({ ...f, phone: e.target.value }))}
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                onChange={(e) => setFormData((f) => ({ ...f, phone: restrictPhoneInput(e.target.value) }))}
                 value={formData.phone}
                 className="bg-slate-800/50 border-white/10 text-white"
-                placeholder="+1234567890"
+                placeholder="10-digit number"
               />
             </div>
           </div>

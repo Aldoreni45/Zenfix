@@ -9,6 +9,7 @@ import { handleError, handleValidationError } from '@/lib/api-helpers/error-hand
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { ActivityAction } from '@/lib/types/models';
 import { ClientStatus } from '@/lib/types/models';
+import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -155,6 +156,12 @@ async function createHandler(request: NextRequest, user: any) {
       return handleValidationError('Name is required');
     }
 
+    // Phone is optional, but when provided it must be exactly 10 digits.
+    const cleanPhone = normalizePhone(phone);
+    if (cleanPhone && !isValidPhone(cleanPhone)) {
+      return NextResponse.json({ error: { phone: PHONE_ERROR } }, { status: 400 });
+    }
+
     // Validate assigned_manager
     let assigned_manager_id = null;
     if (assigned_manager) {
@@ -170,7 +177,7 @@ async function createHandler(request: NextRequest, user: any) {
       company_name,
       contact_person,
       email,
-      phone,
+      phone: cleanPhone,
       website,
       industry,
       description,
