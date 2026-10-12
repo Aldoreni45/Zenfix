@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { ArrowLeft, Loader2, UserPlus, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { api, apiEndpoints, extractApiErrorMessage, type ApiResponse } from '@/lib/api';
-import { useIsOwner, useDepartments } from '@/lib/hooks';
+import { useIsOwner } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 
 const ROLES = [
@@ -42,8 +42,7 @@ function parseApiErrors(
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
       const fieldErrors: Record<string, string> = {};
       const knownFields = new Set([
-        'username', 'email', 'first_name', 'last_name', 'phone',
-        'password', 'confirm_password', 'role', 'department', 'status',
+        'username', 'email', 'phone', 'password', 'confirm_password', 'role',
       ]);
       let hasField = false;
       for (const [key, value] of Object.entries(payload)) {
@@ -69,18 +68,14 @@ export default function CreateUserPage() {
   const router = useRouter();
   const { initialized, isAuthenticated } = useAuth();
   const isOwner = useIsOwner();
-  const { data: departments } = useDepartments();
 
   const [form, setForm] = useState({
     username: '',
-    first_name: '',
-    last_name: '',
     email: '',
     phone: '',
     password: '',
     confirm_password: '',
-    role: 'employee',
-    department: '',
+    role: '',
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
@@ -117,12 +112,16 @@ export default function CreateUserPage() {
     setFieldErrors({});
     setGeneralError(null);
 
-    // Client-side validation
+    // Client-side validation — every field is required.
     const errs: Record<string, string> = {};
     if (!form.username.trim()) errs.username = 'Username is required';
-    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    if (!form.email.trim()) {
+      errs.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       errs.email = 'Please enter a valid email address';
     }
+    if (!form.phone.trim()) errs.phone = 'Phone is required';
+    if (!form.role) errs.role = 'Role is required';
     if (!form.password) {
       errs.password = 'Password is required';
     } else {
@@ -146,13 +145,10 @@ export default function CreateUserPage() {
     const payload = {
       username: form.username.trim(),
       email: form.email.trim(),
-      first_name: form.first_name.trim(),
-      last_name: form.last_name.trim(),
       phone: form.phone.trim(),
       password: form.password,
       confirm_password: form.confirm_password,
       role: form.role,
-      department: form.department,
       status: 'active',
     };
 
@@ -212,12 +208,13 @@ export default function CreateUserPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Label htmlFor="email" className="text-gray-300">Email <span className="text-red-400">*</span></Label>
               <Input
                 id="email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setField('email', e.target.value)}
+                required
                 autoComplete="off"
                 className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
               />
@@ -225,23 +222,36 @@ export default function CreateUserPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="first_name" className="text-gray-300">First Name</Label>
+              <Label htmlFor="phone" className="text-gray-300">Phone <span className="text-red-400">*</span></Label>
               <Input
-                id="first_name"
-                value={form.first_name}
-                onChange={(e) => setField('first_name', e.target.value)}
-                className="bg-slate-800/50 border-white/10 text-white"
+                id="phone"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setField('phone', e.target.value)}
+                required
+                autoComplete="off"
+                className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
               />
+              {fieldErrors.phone && <p className="text-red-400 text-xs">{fieldErrors.phone}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="last_name" className="text-gray-300">Last Name</Label>
-              <Input
-                id="last_name"
-                value={form.last_name}
-                onChange={(e) => setField('last_name', e.target.value)}
-                className="bg-slate-800/50 border-white/10 text-white"
-              />
+              <Label htmlFor="role" className="text-gray-300">Role <span className="text-red-400">*</span></Label>
+              <select
+                id="role"
+                value={form.role}
+                onChange={(e) => setField('role', e.target.value)}
+                required
+                className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+              >
+                <option value="" className="bg-slate-900">Select Role</option>
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value} className="bg-slate-900">
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+              {fieldErrors.role && <p className="text-red-400 text-xs">{fieldErrors.role}</p>}
             </div>
 
             <div className="space-y-2">
@@ -290,52 +300,6 @@ export default function CreateUserPage() {
                 </button>
               </div>
               {fieldErrors.confirm_password && <p className="text-red-400 text-xs">{fieldErrors.confirm_password}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role" className="text-gray-300">Role</Label>
-              <select
-                id="role"
-                value={form.role}
-                onChange={(e) => setField('role', e.target.value)}
-                className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-              >
-                {ROLES.map((r) => (
-                  <option key={r.value} value={r.value} className="bg-slate-900">
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.role && <p className="text-red-400 text-xs">{fieldErrors.role}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="department" className="text-gray-300">Department</Label>
-              <select
-                id="department"
-                value={form.department}
-                onChange={(e) => setField('department', e.target.value)}
-                className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
-              >
-                <option value="" className="bg-slate-900">Select Department</option>
-                {(departments || []).map((d: any) => (
-                  <option key={d.id} value={d.name} className="bg-slate-900">
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-              {fieldErrors.department && <p className="text-red-400 text-xs">{fieldErrors.department}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-300">Phone</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={form.phone}
-                onChange={(e) => setField('phone', e.target.value)}
-                className="bg-slate-800/50 border-white/10 text-white"
-              />
             </div>
           </div>
 

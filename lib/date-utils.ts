@@ -138,3 +138,47 @@ export function todayLocalISO(now: Date = new Date()): string {
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+/**
+ * Format an ISO timestamp (or Date) as a human-readable date + time.
+ * Returns '—' when the value is missing or invalid.
+ */
+export function formatDateTime(value: unknown): string {
+  if (value == null || value === '') return '—';
+  const date = value instanceof Date ? value : new Date(value as string);
+  if (!isValidDate(date)) return '—';
+  return date.toLocaleString(undefined, {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Human-readable duration between a start and end timestamp, e.g. "2h 15m".
+ * Returns null when either timestamp is missing/invalid or the range is negative.
+ */
+export function formatDuration(startValue: unknown, endValue: unknown): string | null {
+  if (startValue == null || endValue == null) return null;
+  const start = startValue instanceof Date ? startValue : new Date(startValue as string);
+  const end = endValue instanceof Date ? endValue : new Date(endValue as string);
+  if (!isValidDate(start) || !isValidDate(end)) return null;
+
+  let seconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+  if (seconds < 0) return null;
+  if (seconds < 60) return 'less than a minute';
+
+  const days = Math.floor(seconds / 86400);
+  seconds -= days * 86400;
+  const hours = Math.floor(seconds / 3600);
+  seconds -= hours * 3600;
+  const minutes = Math.floor(seconds / 60);
+
+  const parts: string[] = [];
+  if (days) parts.push(`${days}d`);
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  return parts.length ? parts.join(' ') : 'less than a minute';
+}

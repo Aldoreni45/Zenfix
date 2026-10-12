@@ -124,17 +124,30 @@ async function createHandler(request: NextRequest, user: any) {
       confirm_password,
     } = body;
 
-    // Only username is strictly required. Everything else is optional so the
-    // form works even when the owner only knows the login details.
+    // Username, email, phone, role and password are required for every new user.
     const cleanUsername = (username || '').trim();
     const cleanEmail = (email || '').trim();
     const cleanFirstName = (first_name || '').trim();
     const cleanLastName = (last_name || '').trim();
     const cleanPhone = (phone || '').trim();
 
-    if (!cleanUsername) {
+    const requiredErrors: Record<string, string> = {};
+    if (!cleanUsername) requiredErrors.username = 'Username is required.';
+    if (!cleanEmail) requiredErrors.email = 'Email is required.';
+    if (!cleanPhone) requiredErrors.phone = 'Phone is required.';
+    if (!role) requiredErrors.role = 'Role is required.';
+    if (!password) requiredErrors.password = 'Password is required.';
+    else if (!confirm_password) requiredErrors.confirm_password = 'Please confirm the password.';
+    else if (password !== confirm_password) requiredErrors.confirm_password = 'Passwords do not match.';
+
+    if (Object.keys(requiredErrors).length > 0) {
+      return NextResponse.json({ error: requiredErrors }, { status: 400 });
+    }
+
+    // Basic email format validation.
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       return NextResponse.json(
-        { error: { username: 'Username is required.' } },
+        { error: { email: 'Please enter a valid email address.' } },
         { status: 400 }
       );
     }
@@ -148,15 +161,13 @@ async function createHandler(request: NextRequest, user: any) {
       );
     }
 
-    // Check if email exists (only when a real email was provided)
-    if (cleanEmail) {
-      const existingEmail = await UserModel.findByEmail(cleanEmail);
-      if (existingEmail) {
-        return NextResponse.json(
-          { error: { email: 'Email already exists.' } },
-          { status: 400 }
-        );
-      }
+    // Check if email exists
+    const existingEmail = await UserModel.findByEmail(cleanEmail);
+    if (existingEmail) {
+      return NextResponse.json(
+        { error: { email: 'Email already exists.' } },
+        { status: 400 }
+      );
     }
 
     // Validate role
@@ -164,6 +175,12 @@ async function createHandler(request: NextRequest, user: any) {
       return NextResponse.json(
         { error: { role: 'Cannot create an owner.' } },
         { status: 403 }
+      );
+    }
+    if (role !== UserRole.EMPLOYEE && role !== UserRole.MANAGER) {
+      return NextResponse.json(
+        { error: { role: "Role must be 'manager' or 'employee'." } },
+        { status: 400 }
       );
     }
 
@@ -180,33 +197,15 @@ async function createHandler(request: NextRequest, user: any) {
       department_id = dept.numeric_id;
     }
 
-    // Validate password
-    let hashedPassword = '';
-    if (password) {
-      if (!confirm_password) {
-        return NextResponse.json(
-          { error: { confirm_password: 'This field is required when setting a password.' } },
-          { status: 400 }
-        );
-      }
-      if (password !== confirm_password) {
-        return NextResponse.json(
-          { error: { confirm_password: 'Passwords do not match.' } },
-          { status: 400 }
-        );
-      }
-      const strengthCheck = validatePasswordStrength(password);
-      if (!strengthCheck.valid) {
-        return NextResponse.json(
-          { error: { password: strengthCheck.errors } },
-          { status: 400 }
-        );
-      }
-      hashedPassword = await hashPassword(password);
-    } else {
-      // Set unusable password (random hash)
-      hashedPassword = await hashPassword(Math.random().toString(36));
+    // Validate password strength and hash it.
+    const strengthCheck = validatePasswordStrength(password);
+    if (!strengthCheck.valid) {
+      return NextResponse.json(
+        { error: { password: strengthCheck.errors } },
+        { status: 400 }
+      );
     }
+    const hashedPassword = await hashPassword(password);
 
     // Validate reports_to
     let reports_to_id = null;

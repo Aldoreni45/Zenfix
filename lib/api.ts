@@ -747,6 +747,7 @@ export interface Task {
   status_name: string;
   due_date: string;
   due_time?: string;
+  started_at?: string | null;
   completed_at?: string;
   parent_task?: number;
   carried_forward_from?: number;

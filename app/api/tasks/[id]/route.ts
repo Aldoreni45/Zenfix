@@ -246,6 +246,16 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
         }
       }
       updateData.status = status;
+
+      // Record start/end timestamps so "time taken" can be computed. Only set
+      // when moving into the state and no timestamp exists yet, so re-saves do
+      // not overwrite the original start time.
+      if (status === TaskStatus.IN_PROGRESS && !taskDoc.started_at) {
+        updateData.started_at = new Date();
+      }
+      if (status === TaskStatus.COMPLETED && !taskDoc.completed_at) {
+        updateData.completed_at = new Date();
+      }
     }
 
     const oldStatus = taskDoc.status;

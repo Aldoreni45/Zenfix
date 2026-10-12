@@ -9,6 +9,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuth, useUserRole, useTaskHistoryTaskDetail } from '@/lib/hooks';
+import { formatDateTime, formatDuration } from '@/lib/date-utils';
 
 const TIMELINE_META: Record<string, { icon: any; color: string }> = {
   CREATE: { icon: Plus, color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
@@ -144,9 +145,20 @@ export default function TaskHistoryTaskDetailPage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-white/5 pt-4">
               <Stat label="Created" value={task.created_at ? new Date(task.created_at).toLocaleDateString() : '—'} />
-              <Stat label="Started" value={task.started_at ? new Date(task.started_at).toLocaleDateString() : '—'} />
-              <Stat label="Completed" value={task.submitted_at ? new Date(task.submitted_at).toLocaleDateString() : '—'} />
+              <Stat label="Started" value={formatDateTime(task.started_at)} />
+              <Stat label="Completed" value={formatDateTime(task.submitted_at ?? task.completed_at)} />
               <Stat label="Carried fwd" value={String(task.carry_forward_count ?? 0)} />
+            </div>
+
+            <div className="border-t border-white/5 pt-4">
+              <p className="text-xs text-slate-500 uppercase mb-1">Time taken</p>
+              <p className="text-lg font-bold text-white">
+                {task.status === 'completed'
+                  ? (formatDuration(task.started_at, task.completed_at ?? task.submitted_at) ?? '—')
+                  : task.status === 'in_progress'
+                    ? 'In progress'
+                    : '—'}
+              </p>
             </div>
 
             {task.drive_link && (

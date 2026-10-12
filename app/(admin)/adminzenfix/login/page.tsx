@@ -63,21 +63,26 @@ function LoginForm() {
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Authenticate with the entered credentials via the backend.
+  const signIn = async (creds: { username: string; password: string }) => {
     setLoading(true);
     setError('');
 
-    const result = await login(credentials);
+    const result = await login(creds);
 
     if (result.success) {
       const from = searchParams.get('from');
-      router.replace(resolveLoginTarget(from, userRole));
+      router.replace(resolveLoginTarget(from, result.role ?? userRole));
     } else {
       setError(result.error || 'Login failed. Please try again.');
     }
 
     setLoading(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signIn(credentials);
   };
 
   return (
@@ -154,30 +159,6 @@ function LoginForm() {
                 Reset here
               </a>
             </p>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-white/10">
-            <p className="text-slate-500 text-xs text-center mb-3">Quick Login</p>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCredentials({ username: 'manager1', password: 'password123' })}
-                className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
-              >
-                Manager
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCredentials({ username: 'employee1', password: 'password123' })}
-                className="bg-slate-800/50 border-white/10 text-slate-300 hover:bg-slate-700/50 hover:text-white text-xs"
-              >
-                Employee
-              </Button>
-            </div>
           </div>
         </div>
 

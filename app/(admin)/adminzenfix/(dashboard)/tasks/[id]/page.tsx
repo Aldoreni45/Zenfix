@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useEmployees } from '@/lib/hooks';
-import { formatDueDate, getDueDateStatus, todayLocalISO } from '@/lib/date-utils';
+import { formatDueDate, getDueDateStatus, todayLocalISO, formatDateTime, formatDuration } from '@/lib/date-utils';
 
 function getStatusColor(status: string, isOverdue: boolean) {
   if (isOverdue) return 'bg-red-500/10 text-red-400 border-red-500/20';
@@ -574,7 +574,7 @@ export default function TaskDetailPage() {
             </span>
           </div>
 
-          {/* Meta: submitted by + submitted on */}
+          {/* Meta: submitted by + started on + submitted on + time taken */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="flex items-start gap-2.5">
               <User className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
@@ -586,20 +586,27 @@ export default function TaskDetailPage() {
               </div>
             </div>
             <div className="flex items-start gap-2.5">
+              <Clock className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-slate-500 mb-0.5">Started on</p>
+                <p className="text-white text-sm font-medium">{formatDateTime(task.started_at)}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
               <Calendar className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs text-slate-500 mb-0.5">Submitted on</p>
                 <p className="text-white text-sm font-medium">
-                  {(task.submitted_at || task.completed_at)
-                    ? new Date(task.submitted_at || task.completed_at).toLocaleString('en-IN', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true,     
-                      })
-                    : '—'}
+                  {formatDateTime(task.submitted_at || task.completed_at)}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <Clock className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-slate-500 mb-0.5">Time taken</p>
+                <p className="text-white text-sm font-medium">
+                  {formatDuration(task.started_at, task.completed_at || task.submitted_at) ?? '—'}
                 </p>
               </div>
             </div>
@@ -645,29 +652,6 @@ export default function TaskDetailPage() {
           </div>
         </div>
       )}
-
-      {/* Task metadata */}
-      <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-5">
-        <h3 className="text-white font-semibold mb-3">Task Details</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-slate-500 text-xs">Created By</p>
-            <p className="text-white">{task.created_by_name || '—'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs">Manager</p>
-            <p className="text-white">{task.assigned_manager_name || '—'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs">Estimated Hours</p>
-            <p className="text-white">{task.estimated_hours || '—'}</p>
-          </div>
-          <div>
-            <p className="text-slate-500 text-xs">Actual Hours</p>
-            <p className="text-white">{task.actual_hours || '—'}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

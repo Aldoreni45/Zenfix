@@ -23,7 +23,7 @@ interface AuthContextType {
   loading: boolean;
   initialized: boolean;
   isAuthenticated: boolean;
-  login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+  login: (credentials: { username: string; password: string }) => Promise<{ success: boolean; error?: string; role?: string }>;
   logout: () => Promise<void>;
   refetch: () => Promise<void>;
 }
@@ -238,7 +238,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         saveUserRole(userData.role);
         setIsAuthenticated(true);
         scheduleRefresh();
-        return { success: true };
+        return { success: true, role: userData.role };
       }
 
       console.log('[AUTH] login:failed', response.error);

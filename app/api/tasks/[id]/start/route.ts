@@ -47,6 +47,9 @@ async function handler(request: NextRequest, user: any, id: string) {
     const updatedTask = await TaskModel.update(numericId, {
       status: TaskStatus.IN_PROGRESS,
       started_at: new Date(),
+      // Clear any previous completion so a restarted (e.g. rejected) task
+      // measures a fresh cycle for "time taken".
+      completed_at: undefined,
     });
 
     if (!updatedTask) {
