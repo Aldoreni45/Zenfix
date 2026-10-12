@@ -239,6 +239,11 @@ export function useManagers() {
   return useApi<any[]>(apiEndpoints.managers, []);
 }
 
+// Departments hook
+export function useDepartments() {
+  return useApi<any[]>(apiEndpoints.departments, []);
+}
+
 // Employees hook
 export function useEmployees() {
   return useApi<any[]>(apiEndpoints.employees, []);

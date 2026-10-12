@@ -106,6 +106,15 @@ export default function ClientDetailPage() {
     fetchClient();
   }, [fetchClient]);
 
+  // Open the edit form automatically when navigated from the list's Edit action.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('edit') === '1') {
+      setEditing(true);
+    }
+  }, []);
+
   const setField = (key: string, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };

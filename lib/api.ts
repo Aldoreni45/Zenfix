@@ -482,6 +482,10 @@ export const apiEndpoints = {
   me: '/users/me',
   changePassword: '/users/change_password',
   
+  // Departments
+  departments: '/departments',
+  department: (id: number) => `/departments/${id}`,
+  
   // Clients
   clients: '/clients',
   client: (id: number) => `/clients/${id}`,

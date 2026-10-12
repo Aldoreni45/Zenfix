@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Filter, MoreHorizontal, Users, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Search, Pencil, Users, TrendingUp, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useClients, useCanManage } from '@/lib/hooks';
@@ -200,9 +200,28 @@ export default function ClientsPage() {
                       )}
                     </td>
                     <td className="p-4 text-right">
-                      <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                      {canManage ? (
+                        <Link href={`/adminzenfix/clients/${client.id}?edit=1`}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white hover:bg-white/5"
+                          >
+                            <Pencil className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link href={`/adminzenfix/clients/${client.id}`}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-400 hover:text-white hover:bg-white/5"
+                          >
+                            View
+                          </Button>
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 ))

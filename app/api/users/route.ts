@@ -124,35 +124,45 @@ async function createHandler(request: NextRequest, user: any) {
       confirm_password,
     } = body;
 
-    if (!username || !email || !first_name || !last_name) {
+    // Only username is strictly required. Everything else is optional so the
+    // form works even when the owner only knows the login details.
+    const cleanUsername = (username || '').trim();
+    const cleanEmail = (email || '').trim();
+    const cleanFirstName = (first_name || '').trim();
+    const cleanLastName = (last_name || '').trim();
+    const cleanPhone = (phone || '').trim();
+
+    if (!cleanUsername) {
       return NextResponse.json(
-        { error: 'Username, email, first_name, and last_name are required' },
+        { error: { username: 'Username is required.' } },
         { status: 400 }
       );
     }
 
     // Check if username exists
-    const existingUsername = await UserModel.findByUsername(username);
+    const existingUsername = await UserModel.findByUsername(cleanUsername);
     if (existingUsername) {
       return NextResponse.json(
-        { error: 'Username already exists' },
+        { error: { username: 'Username already exists.' } },
         { status: 400 }
       );
     }
 
-    // Check if email exists
-    const existingEmail = await UserModel.findByEmail(email);
-    if (existingEmail) {
-      return NextResponse.json(
-        { error: 'Email already exists' },
-        { status: 400 }
-      );
+    // Check if email exists (only when a real email was provided)
+    if (cleanEmail) {
+      const existingEmail = await UserModel.findByEmail(cleanEmail);
+      if (existingEmail) {
+        return NextResponse.json(
+          { error: { email: 'Email already exists.' } },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate role
     if (role === UserRole.OWNER) {
       return NextResponse.json(
-        { error: 'Cannot create an owner.' },
+        { error: { role: 'Cannot create an owner.' } },
         { status: 403 }
       );
     }
@@ -163,7 +173,7 @@ async function createHandler(request: NextRequest, user: any) {
       const dept = await DepartmentModel.findByName(department);
       if (!dept) {
         return NextResponse.json(
-          { error: `Department '${department}' not found.` },
+          { error: { department: `Department '${department}' not found.` } },
           { status: 400 }
         );
       }
@@ -204,7 +214,7 @@ async function createHandler(request: NextRequest, user: any) {
       const manager = await UserModel.findByNumericId(reports_to);
       if (!manager) {
         return NextResponse.json(
-          { error: 'Reports to user not found.' },
+          { error: { reports_to: 'Reports to user not found.' } },
           { status: 400 }
         );
       }
@@ -212,12 +222,12 @@ async function createHandler(request: NextRequest, user: any) {
     }
 
     const newUser = await UserModel.create({
-      username,
-      email,
-      first_name,
-      last_name,
+      username: cleanUsername,
+      email: cleanEmail,
+      first_name: cleanFirstName,
+      last_name: cleanLastName,
       password: hashedPassword,
-      phone,
+      phone: cleanPhone,
       role,
       status,
       department_id: department_id || undefined,

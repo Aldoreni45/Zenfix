@@ -6,23 +6,70 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { ArrowLeft, Loader2, UserPlus } from 'lucide-react';
-import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
-import { useIsOwner } from '@/lib/hooks';
+import { ArrowLeft, Loader2, UserPlus, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { api, apiEndpoints, extractApiErrorMessage, type ApiResponse } from '@/lib/api';
+import { useIsOwner, useDepartments } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
-
-const DEPARTMENTS = ['Marketing', 'SEO', 'Development', 'Design', 'Sales', 'HR', 'Production', 'Social Media'];
 
 const ROLES = [
   { value: 'employee', label: 'Employee' },
   { value: 'manager', label: 'Team Manager' },
-  { value: 'owner', label: 'Owner' },
 ];
+
+// Mirrors validatePasswordStrength on the server so the user gets instant
+// feedback instead of a silent rejection.
+function getPasswordIssues(password: string): string[] {
+  const issues: string[] = [];
+  if (password.length < 8) issues.push('at least 8 characters');
+  if (!/[A-Z]/.test(password)) issues.push('one uppercase letter');
+  if (!/[a-z]/.test(password)) issues.push('one lowercase letter');
+  if (!/[0-9]/.test(password)) issues.push('one number');
+  return issues;
+}
+
+// Turn a raw error response into field errors and/or a general message.
+function parseApiErrors(
+  res: ApiResponse<unknown>
+): { fieldErrors: Record<string, string>; message: string | null } {
+  const raw = res.error ?? '';
+  try {
+    const parsed = JSON.parse(raw);
+    let payload: any = parsed;
+    if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+      payload = (parsed as any).error;
+    }
+
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+      const fieldErrors: Record<string, string> = {};
+      const knownFields = new Set([
+        'username', 'email', 'first_name', 'last_name', 'phone',
+        'password', 'confirm_password', 'role', 'department', 'status',
+      ]);
+      let hasField = false;
+      for (const [key, value] of Object.entries(payload)) {
+        if (!knownFields.has(key)) continue;
+        const msg = Array.isArray(value) ? String(value[0]) : String(value);
+        fieldErrors[key] = msg;
+        hasField = true;
+      }
+      if (hasField) return { fieldErrors, message: null };
+    }
+
+    if (typeof payload === 'string' && payload.trim()) {
+      return { fieldErrors: {}, message: payload };
+    }
+  } catch {
+    // Not JSON — fall through to the generic extractor.
+  }
+
+  return { fieldErrors: {}, message: extractApiErrorMessage(res) };
+}
 
 export default function CreateUserPage() {
   const router = useRouter();
-  const { user, initialized, isAuthenticated } = useAuth();
+  const { initialized, isAuthenticated } = useAuth();
   const isOwner = useIsOwner();
+  const { data: departments } = useDepartments();
 
   const [form, setForm] = useState({
     username: '',
@@ -36,6 +83,9 @@ export default function CreateUserPage() {
     department: '',
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [generalError, setGeneralError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Redirect in an effect so we never call the router during render.
@@ -57,25 +107,38 @@ export default function CreateUserPage() {
       delete next[key];
       return next;
     });
+    if (generalError) setGeneralError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
     setFieldErrors({});
+    setGeneralError(null);
 
-    if (!form.username.trim()) {
-      setFieldErrors({ username: 'Username is required' });
-      setSubmitting(false);
-      return;
+    // Client-side validation
+    const errs: Record<string, string> = {};
+    if (!form.username.trim()) errs.username = 'Username is required';
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = 'Please enter a valid email address';
     }
-    if (form.password.length < 8) {
-      setFieldErrors({ password: 'Password must be at least 8 characters' });
-      setSubmitting(false);
-      return;
+    if (!form.password) {
+      errs.password = 'Password is required';
+    } else {
+      const issues = getPasswordIssues(form.password);
+      if (issues.length > 0) {
+        errs.password = `Password must contain ${issues.join(', ')}`;
+      }
     }
-    if (form.password !== form.confirm_password) {
-      setFieldErrors({ confirm_password: 'Passwords do not match' });
+    if (!form.confirm_password) {
+      errs.confirm_password = 'Please confirm the password';
+    } else if (form.password !== form.confirm_password) {
+      errs.confirm_password = 'Passwords do not match';
+    }
+
+    if (Object.keys(errs).length > 0) {
+      setFieldErrors(errs);
       setSubmitting(false);
       return;
     }
@@ -96,20 +159,14 @@ export default function CreateUserPage() {
     const res = await api.post(apiEndpoints.users, payload);
 
     if (res.error) {
-      if (res.status && res.status >= 400 && res.status < 500 && res.error.trim().startsWith('{')) {
-        try {
-          const parsed = JSON.parse(res.error);
-          const errs: Record<string, string> = {};
-          for (const [key, value] of Object.entries(parsed)) {
-            const msgs = Array.isArray(value) ? value : [value];
-            errs[key] = String(msgs[0] ?? 'Invalid value');
-          }
-          setFieldErrors(errs);
-        } catch {
-          toast.error(extractApiErrorMessage(res));
-        }
+      const { fieldErrors: parsedFields, message } = parseApiErrors(res);
+      if (Object.keys(parsedFields).length > 0) {
+        setFieldErrors(parsedFields);
+        toast.error('Please fix the highlighted fields');
       } else {
-        toast.error(extractApiErrorMessage(res));
+        const msg = message || 'Failed to create user';
+        setGeneralError(msg);
+        toast.error(msg);
       }
     } else {
       toast.success('User created successfully');
@@ -132,6 +189,13 @@ export default function CreateUserPage() {
       <div className="bg-slate-900/50 border border-white/10 rounded-2xl p-8">
         <h1 className="text-2xl font-bold text-white mb-6">Create New User</h1>
 
+        {generalError && (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4">
+            <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-400">{generalError}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -141,6 +205,7 @@ export default function CreateUserPage() {
                 value={form.username}
                 onChange={(e) => setField('username', e.target.value)}
                 required
+                autoComplete="off"
                 className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
               />
               {fieldErrors.username && <p className="text-red-400 text-xs">{fieldErrors.username}</p>}
@@ -153,6 +218,7 @@ export default function CreateUserPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setField('email', e.target.value)}
+                autoComplete="off"
                 className="bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500"
               />
               {fieldErrors.email && <p className="text-red-400 text-xs">{fieldErrors.email}</p>}
@@ -180,27 +246,49 @@ export default function CreateUserPage() {
 
             <div className="space-y-2">
               <Label htmlFor="password" className="text-gray-300">Password <span className="text-red-400">*</span></Label>
-              <Input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(e) => setField('password', e.target.value)}
-                required
-                className="bg-slate-800/50 border-white/10 text-white"
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={(e) => setField('password', e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className="bg-slate-800/50 border-white/10 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {fieldErrors.password && <p className="text-red-400 text-xs">{fieldErrors.password}</p>}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="confirm_password" className="text-gray-300">Confirm Password <span className="text-red-400">*</span></Label>
-              <Input
-                id="confirm_password"
-                type="password"
-                value={form.confirm_password}
-                onChange={(e) => setField('confirm_password', e.target.value)}
-                required
-                className="bg-slate-800/50 border-white/10 text-white"
-              />
+              <div className="relative">
+                <Input
+                  id="confirm_password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={form.confirm_password}
+                  onChange={(e) => setField('confirm_password', e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  className="bg-slate-800/50 border-white/10 text-white pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               {fieldErrors.confirm_password && <p className="text-red-400 text-xs">{fieldErrors.confirm_password}</p>}
             </div>
 
@@ -218,6 +306,7 @@ export default function CreateUserPage() {
                   </option>
                 ))}
               </select>
+              {fieldErrors.role && <p className="text-red-400 text-xs">{fieldErrors.role}</p>}
             </div>
 
             <div className="space-y-2">
@@ -229,12 +318,13 @@ export default function CreateUserPage() {
                 className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
               >
                 <option value="" className="bg-slate-900">Select Department</option>
-                {DEPARTMENTS.map((d) => (
-                  <option key={d} value={d} className="bg-slate-900">
-                    {d}
+                {(departments || []).map((d: any) => (
+                  <option key={d.id} value={d.name} className="bg-slate-900">
+                    {d.name}
                   </option>
                 ))}
               </select>
+              {fieldErrors.department && <p className="text-red-400 text-xs">{fieldErrors.department}</p>}
             </div>
 
             <div className="space-y-2">
