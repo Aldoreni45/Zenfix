@@ -21,6 +21,7 @@ import {
   Receipt,
   Calculator,
   CreditCard,
+  Trash2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +32,7 @@ import { useIsOwner, useIsManager, useClients, useUsers } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
 
 const SPENDING_CATEGORIES = [
-  'Travel', 'Equipment', 'Software', 'Marketing', 'Client Meeting', 'Production', 'Office Supplies', 'Other',
+  'Petrol', 'Tea Expense', 'Food', 'Marketing',
 ];
 
 const INCOME_CATEGORIES = [
@@ -70,6 +71,17 @@ export default function AccountsPage() {
     client_id: '', employee_id: '', amount: '', description: '', category: '', location: '',
     date: new Date().toISOString().split('T')[0], notes: '', total_spending: '', amount_paid: '', month: new Date().toISOString().slice(0, 7),
   });
+
+  // Multiple spending line items (Amount + Category) entered together.
+  type SpendItem = { amount: string; category: string };
+  const emptySpendItem: SpendItem = { amount: '', category: '' };
+  const [spendItems, setSpendItems] = useState<SpendItem[]>([{ ...emptySpendItem }]);
+  const addSpendItem = () => setSpendItems((prev) => [...prev, { ...emptySpendItem }]);
+  const removeSpendItem = (index: number) =>
+    setSpendItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  const updateSpendItem = (index: number, key: keyof SpendItem, value: string) =>
+    setSpendItems((prev) => prev.map((it, i) => (i === index ? { ...it, [key]: value } : it)));
+  const spendTotal = spendItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0);
 
   useEffect(() => {
     if (!canManage) {
@@ -124,20 +136,38 @@ export default function AccountsPage() {
 
     try {
       if (activeTab === 'spending') {
-        const payload = {
-          client_id: Number(form.client_id),
-          employee_id: Number(form.employee_id),
-          amount: Number(form.amount),
-          description: form.description,
-          category: form.category,
-          location: form.location,
-          date: form.date,
-          notes: form.notes,
-        };
-        const res = await api.post(apiEndpoints.spending, payload);
-        if (res.error) toast.error('Failed to add spending');
-        else {
-          toast.success('Spending added successfully');
+        if (!form.client_id || !form.employee_id || !form.date) {
+          toast.error('Select a client, employee, and date');
+          return;
+        }
+        const items = spendItems.filter((it) => it.amount !== '' || it.category !== '');
+        if (items.length === 0) {
+          toast.error('Add at least one amount and category');
+          return;
+        }
+        if (items.some((it) => !it.amount || !it.category)) {
+          toast.error('Each item needs both an amount and a category');
+          return;
+        }
+
+        let created = 0;
+        for (const it of items) {
+          const payload = {
+            client_id: Number(form.client_id),
+            employee_id: Number(form.employee_id),
+            amount: Number(it.amount),
+            description: it.category,
+            category: it.category,
+            location: form.location,
+            date: form.date,
+            notes: form.notes,
+          };
+          const res = await api.post(apiEndpoints.spending, payload);
+          if (res.error) toast.error(`Failed to add ${it.category}`);
+          else created += 1;
+        }
+        if (created > 0) {
+          toast.success(`${created} spending ${created > 1 ? 'entries' : 'entry'} added successfully`);
           fetchData();
         }
       } else if (activeTab === 'payments') {
@@ -197,6 +227,7 @@ export default function AccountsPage() {
       client_id: '', employee_id: '', amount: '', description: '', category: '', location: '',
       date: new Date().toISOString().split('T')[0], notes: '', total_spending: '', amount_paid: '', month: new Date().toISOString().slice(0, 7),
     });
+    setSpendItems([{ ...emptySpendItem }]);
   };
 
   const handlePayEmployee = async (employeePayment: any) => {
@@ -426,17 +457,6 @@ export default function AccountsPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-200">Amount (₹) *</Label>
-                    <Input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="bg-slate-800/50 border-white/10 text-white" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-slate-200">Category *</Label>
-                    <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white" required>
-                      <option value="">Select category</option>
-                      {SPENDING_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
                     <Label className="text-slate-200">Date *</Label>
                     <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="bg-slate-800/50 border-white/10 text-white" required />
                   </div>
@@ -444,10 +464,63 @@ export default function AccountsPage() {
                     <Label className="text-slate-200 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</Label>
                     <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Where was this spent?" className="bg-slate-800/50 border-white/10 text-white" />
                   </div>
-                  <div className="space-y-2 md:col-span-2">
-                    <Label className="text-slate-200">Description *</Label>
-                    <textarea rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe this spending..." className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white" required />
+
+                  {/* Multiple spending line items */}
+                  <div className="space-y-3 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-slate-200">Spending Items *</Label>
+                      <span className="text-sm text-slate-400">Total: <span className="text-white font-medium">₹{spendTotal.toFixed(2)}</span></span>
+                    </div>
+                    <div className="space-y-3">
+                      {spendItems.map((item, index) => (
+                        <div key={index} className="flex flex-col sm:flex-row sm:items-end gap-3 rounded-xl border border-white/10 bg-slate-800/30 p-3">
+                          <div className="space-y-1.5 flex-1">
+                            <Label className="text-xs text-slate-400">Amount (₹) *</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.amount}
+                              onChange={(e) => updateSpendItem(index, 'amount', e.target.value)}
+                              className="bg-slate-800/50 border-white/10 text-white"
+                            />
+                          </div>
+                          <div className="space-y-1.5 flex-1">
+                            <Label className="text-xs text-slate-400">Category *</Label>
+                            <select
+                              value={item.category}
+                              onChange={(e) => updateSpendItem(index, 'category', e.target.value)}
+                              className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white"
+                            >
+                              <option value="">Select category</option>
+                              {SPENDING_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSpendItem(index)}
+                            disabled={spendItems.length === 1}
+                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-10 disabled:opacity-30"
+                            title="Remove item"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addSpendItem}
+                      className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Item
+                    </Button>
                   </div>
+
                   <div className="space-y-2 md:col-span-2">
                     <Label className="text-slate-200">Notes</Label>
                     <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Additional details..." className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white" />
