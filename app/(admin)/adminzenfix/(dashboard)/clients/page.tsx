@@ -15,13 +15,15 @@ export default function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
 
   const filteredClients = clients?.filter((client: any) => {
-    const matchesSearch = 
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.contact_person.toLowerCase().includes(searchQuery.toLowerCase());
-    
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      (client.name || '').toLowerCase().includes(q) ||
+      (client.contact_person || '').toLowerCase().includes(q) ||
+      (client.email || '').toLowerCase().includes(q) ||
+      (client.phone || '').toLowerCase().includes(q);
+
     const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   }) || [];
 
@@ -80,7 +82,6 @@ export default function ClientsPage() {
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-          <option value="archived">Archived</option>
         </select>
       </div>
 
@@ -131,10 +132,10 @@ export default function ClientsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left p-4 text-slate-400 font-medium text-sm">Client</th>
-                <th className="text-left p-4 text-slate-400 font-medium text-sm">Contact</th>
-                <th className="text-left p-4 text-slate-400 font-medium text-sm">Instagram</th>
-                <th className="text-left p-4 text-slate-400 font-medium text-sm">Manager</th>
+                <th className="text-left p-4 text-slate-400 font-medium text-sm">Brand</th>
+                <th className="text-left p-4 text-slate-400 font-medium text-sm">Brand Owner</th>
+                <th className="text-left p-4 text-slate-400 font-medium text-sm">Email</th>
+                <th className="text-left p-4 text-slate-400 font-medium text-sm">Phone</th>
                 <th className="text-left p-4 text-slate-400 font-medium text-sm">Status</th>
                 <th className="text-left p-4 text-slate-400 font-medium text-sm">Progress</th>
                 <th className="text-right p-4 text-slate-400 font-medium text-sm">Actions</th>
@@ -153,29 +154,26 @@ export default function ClientsPage() {
                     <td className="p-4">
                       <Link href={`/adminzenfix/clients/${client.id}`} className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                          {client.name[0]}
+                          {(client.name || 'C')[0]}
                         </div>
                         <div>
                           <p className="text-white font-medium">{client.name}</p>
-                          <p className="text-slate-500 text-xs">{client.company_name}</p>
                         </div>
                       </Link>
                     </td>
                     <td className="p-4">
-                      <p className="text-white text-sm">{client.contact_person}</p>
-                      <p className="text-slate-500 text-xs">{client.email}</p>
+                      <p className="text-white text-sm">{client.contact_person || '—'}</p>
                     </td>
                     <td className="p-4">
-                      <p className="text-white text-sm">@{client.instagram_username || 'N/A'}</p>
+                      <p className="text-white text-sm">{client.email || '—'}</p>
                     </td>
                     <td className="p-4">
-                      <p className="text-white text-sm">{client.manager_name || 'Unassigned'}</p>
+                      <p className="text-white text-sm">{client.phone || '—'}</p>
                     </td>
                     <td className="p-4">
                       <span className={cn(
                         'px-2 py-1 rounded-full text-xs font-medium capitalize',
                         client.status === 'active' ? 'bg-green-500/10 text-green-400' :
-                        client.status === 'inactive' ? 'bg-yellow-500/10 text-yellow-400' :
                         'bg-slate-500/10 text-slate-400'
                       )}>
                         {client.status}

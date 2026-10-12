@@ -143,7 +143,7 @@ async function createHandler(request: NextRequest, user: any) {
       instagram_username,
       instagram_url,
       notes,
-      status = ClientStatus.LEAD,
+      status = ClientStatus.ACTIVE,
       assigned_manager,
       assigned_team,
       start_date,

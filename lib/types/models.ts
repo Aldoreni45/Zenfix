@@ -19,10 +19,8 @@ export const UserStatus = {
 export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
 
 export const ClientStatus = {
-  LEAD: 'lead',
   ACTIVE: 'active',
   INACTIVE: 'inactive',
-  CHURNED: 'churned',
 } as const;
 
 export type ClientStatus = typeof ClientStatus[keyof typeof ClientStatus];

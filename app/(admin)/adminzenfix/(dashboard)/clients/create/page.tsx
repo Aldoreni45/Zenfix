@@ -12,6 +12,7 @@ import {
   Mail,
   Phone,
   Video,
+  User as UserIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,14 +22,17 @@ import { useIsOwner, useIsManager } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'inactive', label: 'Inactive' },
+];
 
 export default function CreateClientPage() {
   const router = useRouter();
-  const { user, initialized, isAuthenticated } = useAuth();
+  const { initialized, isAuthenticated } = useAuth();
   const isOwner = useIsOwner();
   const isManager = useIsManager();
   const canManage = isOwner || isManager;
-
 
   const [form, setForm] = useState({
     name: '',
@@ -36,6 +40,7 @@ export default function CreateClientPage() {
     email: '',
     phone: '',
     monthly_video_target: '5',
+    status: 'active',
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -62,9 +67,9 @@ export default function CreateClientPage() {
     });
   };
 
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
     setFieldErrors({});
 
@@ -88,32 +93,13 @@ export default function CreateClientPage() {
       email: form.email.trim(),
       phone: form.phone.trim(),
       monthly_video_target: Number(form.monthly_video_target) || 5,
-      assigned_team: [], // Required by serializer, send empty array if no team assigned
+      status: form.status,
     };
 
-    console.log('[CREATE CLIENT] Sending payload:', JSON.stringify(payload, null, 2));
     const res = await api.post(apiEndpoints.clients, payload);
-    console.log('[CREATE CLIENT] Response status:', res.status);
-    console.log('[CREATE CLIENT] Response error:', res.error);
-    console.log('[CREATE CLIENT] Response data:', res.data);
 
     if (res.error) {
-      const status = res.status;
-      if (status && status >= 400 && status < 500 && res.error.trim().startsWith('{')) {
-        try {
-          const parsed = JSON.parse(res.error);
-          const errs: Record<string, string> = {};
-          for (const [key, value] of Object.entries(parsed)) {
-            const msgs = Array.isArray(value) ? value : [value];
-            errs[key] = String(msgs[0] ?? 'Invalid value');
-          }
-          setFieldErrors(errs);
-        } catch {
-          toast.error(extractApiErrorMessage(res));
-        }
-      } else {
-        toast.error(extractApiErrorMessage(res));
-      }
+      toast.error(extractApiErrorMessage(res));
     } else {
       toast.success('Client created successfully!');
       router.push('/adminzenfix/clients');
@@ -124,7 +110,7 @@ export default function CreateClientPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+    <div className="max-w-3xl mx-auto space-y-6 pb-12">
       {/* Header & Back Link */}
       <div className="flex flex-col gap-2">
         <Link
@@ -134,22 +120,18 @@ export default function CreateClientPage() {
           <ArrowLeft className="h-4 w-4" />
           Back to Clients
         </Link>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-              <span className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 text-cyan-400">
-                <Building2 className="h-6 w-6" />
-              </span>
-              Add New Client
-            </h1>
-            <p className="text-slate-400 mt-1">
-              Create a client account to manage projects, video targets, and assigned team members.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+            <span className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 text-cyan-400">
+              <Building2 className="h-6 w-6" />
+            </span>
+            Add New Client
+          </h1>
+          <p className="text-slate-400 mt-1">Basic client details and contact information.</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
         {/* Client Information */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 space-y-6">
           <div className="border-b border-white/10 pb-4">
@@ -183,7 +165,8 @@ export default function CreateClientPage() {
 
             {/* Brand Owner */}
             <div className="space-y-2">
-              <Label htmlFor="contact_person" className="text-slate-200">
+              <Label htmlFor="contact_person" className="text-slate-200 flex items-center gap-1.5">
+                <UserIcon className="h-3.5 w-3.5 text-slate-400" />
                 Brand Owner
               </Label>
               <Input
@@ -248,6 +231,23 @@ export default function CreateClientPage() {
                 className="bg-slate-800/50 border-white/10 text-white"
               />
               <p className="text-xs text-slate-500">Videos per month</p>
+            </div>
+
+            {/* Status */}
+            <div className="space-y-2">
+              <Label htmlFor="status" className="text-slate-200">Status</Label>
+              <select
+                id="status"
+                value={form.status}
+                onChange={(e) => setField('status', e.target.value)}
+                className="w-full h-10 rounded-md border border-white/10 bg-slate-800/50 px-3 text-sm text-white capitalize focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500"
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

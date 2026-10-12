@@ -247,14 +247,14 @@ const DEMO_DEPARTMENTS = [
 ];
 
 const DEMO_CLIENTS = [
-  { name: 'TechCorp Inc.', industry: 'Technology', contact: 'John Doe', email: 'john@techcorp.com', phone: '+1 555 1001' },
-  { name: 'Global Brands LLC', industry: 'Retail', contact: 'Jane Smith', email: 'jane@globalbrands.com', phone: '+1 555 1002' },
-  { name: 'StartupXYZ', industry: 'SaaS', contact: 'Mike Johnson', email: 'mike@startupxyz.com', phone: '+1 555 1003' },
-  { name: 'EcoFriendly Co', industry: 'Environment', contact: 'Sarah Green', email: 'sarah@ecofriendly.com', phone: '+1 555 1004' },
-  { name: 'FashionForward', industry: 'Fashion', contact: 'Emma Style', email: 'emma@fashionforward.com', phone: '+1 555 1005' },
-  { name: 'FoodieDelights', industry: 'Food & Beverage', contact: 'Chef Mario', email: 'mario@foodiedelights.com', phone: '+1 555 1006' },
-  { name: 'FitLife Gym', industry: 'Fitness', contact: 'Tom Strong', email: 'tom@fitlife.com', phone: '+1 555 1007' },
-  { name: 'TravelAdventures', industry: 'Travel', contact: 'Wanderlust Amy', email: 'amy@traveladventures.com', phone: '+1 555 1008' },
+  { name: 'TechCorp Inc.', contact: 'John Doe', email: 'john@techcorp.com', phone: '+1 555 1001', monthly_target: 8, status: 'active' },
+  { name: 'Global Brands LLC', contact: 'Jane Smith', email: 'jane@globalbrands.com', phone: '+1 555 1002', monthly_target: 6, status: 'active' },
+  { name: 'StartupXYZ', contact: 'Mike Johnson', email: 'mike@startupxyz.com', phone: '+1 555 1003', monthly_target: 5, status: 'active' },
+  { name: 'EcoFriendly Co', contact: 'Sarah Green', email: 'sarah@ecofriendly.com', phone: '+1 555 1004', monthly_target: 4, status: 'active' },
+  { name: 'FashionForward', contact: 'Emma Style', email: 'emma@fashionforward.com', phone: '+1 555 1005', monthly_target: 10, status: 'active' },
+  { name: 'FoodieDelights', contact: 'Chef Mario', email: 'mario@foodiedelights.com', phone: '+1 555 1006', monthly_target: 5, status: 'active' },
+  { name: 'FitLife Gym', contact: 'Tom Strong', email: 'tom@fitlife.com', phone: '+1 555 1007', monthly_target: 8, status: 'inactive' },
+  { name: 'TravelAdventures', contact: 'Wanderlust Amy', email: 'amy@traveladventures.com', phone: '+1 555 1008', monthly_target: 6, status: 'active' },
 ];
 
 const DEMO_TASKS = [
@@ -387,11 +387,12 @@ const DEMO_TASKS = [
         const doc = {
           numeric_id,
           name: client.name,
-          industry: client.industry,
           contact_person: client.contact,
           email: client.email,
           phone: client.phone,
-          status: 'active',
+          monthly_video_target: client.monthly_target,
+          status: client.status || 'active',
+          assigned_team_ids: [],
           created_at: new Date(),
           updated_at: new Date(),
         };
