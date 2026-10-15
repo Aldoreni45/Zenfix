@@ -43,8 +43,6 @@ async function handler(request: NextRequest, user: any) {
         $or: [
           { username: { $regex: search, $options: 'i' } },
           { email: { $regex: search, $options: 'i' } },
-          { first_name: { $regex: search, $options: 'i' } },
-          { last_name: { $regex: search, $options: 'i' } },
         ],
       });
     } else {
@@ -63,16 +61,14 @@ async function handler(request: NextRequest, user: any) {
         let reports_to_name = null;
         if (u.reports_to_id) {
           const manager = await UserModel.findByNumericId(u.reports_to_id);
-          reports_to_name = manager ? `${manager.first_name} ${manager.last_name}`.trim() || manager.username : null;
+          reports_to_name = manager ? manager.username : null;
         }
 
         return {
           id: u.numeric_id,
           username: u.username,
           email: u.email,
-          first_name: u.first_name,
-          last_name: u.last_name,
-          full_name: `${u.first_name} ${u.last_name}`.trim() || u.username,
+          full_name: u.username,
           phone: u.phone,
           role: u.role,
           role_name: u.role.charAt(0).toUpperCase() + u.role.slice(1),
@@ -114,8 +110,6 @@ async function createHandler(request: NextRequest, user: any) {
     const {
       username,
       email,
-      first_name,
-      last_name,
       phone,
       role = UserRole.EMPLOYEE,
       status = UserStatus.ACTIVE,
@@ -128,8 +122,6 @@ async function createHandler(request: NextRequest, user: any) {
     // Username, email, phone, role and password are required for every new user.
     const cleanUsername = (username || '').trim();
     const cleanEmail = (email || '').trim();
-    const cleanFirstName = (first_name || '').trim();
-    const cleanLastName = (last_name || '').trim();
     const cleanPhone = normalizePhone(phone);
 
     const requiredErrors: Record<string, string> = {};
@@ -225,8 +217,6 @@ async function createHandler(request: NextRequest, user: any) {
     const newUser = await UserModel.create({
       username: cleanUsername,
       email: cleanEmail,
-      first_name: cleanFirstName,
-      last_name: cleanLastName,
       password: hashedPassword,
       phone: cleanPhone,
       role,
@@ -273,9 +263,7 @@ async function createHandler(request: NextRequest, user: any) {
       id: newUser.numeric_id,
       username: newUser.username,
       email: newUser.email,
-      first_name: newUser.first_name,
-      last_name: newUser.last_name,
-      full_name: `${newUser.first_name} ${newUser.last_name}`.trim() || newUser.username,
+      full_name: newUser.username,
       phone: newUser.phone,
       role: newUser.role,
       role_name: newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1),

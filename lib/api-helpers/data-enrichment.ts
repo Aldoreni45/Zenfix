@@ -7,7 +7,7 @@ import { DepartmentModel } from '@/lib/mongodb/models/department';
  */
 export function formatUserName(user: any): string {
   if (!user) return '';
-  return `${user.first_name} ${user.last_name}`.trim() || user.username || '';
+  return user.username || '';
 }
 
 /**

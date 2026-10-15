@@ -8,8 +8,6 @@ export interface UserDoc {
   id: number;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
   full_name: string;
   phone?: string;
   role: 'owner' | 'manager' | 'employee';
@@ -71,7 +69,7 @@ export async function createUser(
   return insertDocumentReturningId(ENTITY, {
     ...rest,
     passwordHash,
-    full_name: `${rest.first_name ?? ''} ${rest.last_name ?? ''}`.trim() || (rest as any).username,
+    full_name: (rest as any).username,
     last_login: null,
   } as Record<string, unknown>);
 }
@@ -91,9 +89,8 @@ export async function updateUser(
   // Never let a client assign a passwordHash directly.
   delete update.passwordHash;
 
-  if (update.first_name !== undefined || update.last_name !== undefined) {
-    const current = await findById(id);
-    update.full_name = `${update.first_name ?? current?.first_name ?? ''} ${update.last_name ?? current?.last_name ?? ''}`.trim();
+  if (update.username !== undefined) {
+    update.full_name = update.username;
   }
 
   const updated = await updateDocumentById(ENTITY, id, update);

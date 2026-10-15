@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Clock, User, Calendar, Link2, FileText, RefreshCw,
   Play, CheckCircle2, XCircle, Loader2, AlertTriangle, AlertCircle,
-  UserCog, Trash2,
+  UserCog, Trash2, Pause,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ function getStatusColor(status: string, isOverdue: boolean) {
   const colors: Record<string, string> = {
     completed: 'bg-green-500/10 text-green-400 border-green-500/20',
     in_progress: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+    on_hold: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
     pending: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
     assigned: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     submitted: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
@@ -88,6 +89,12 @@ export default function TaskDetailPage() {
 
   const handleStart = () =>
     runAction(() => api.post(apiEndpoints.startTask(Number(taskId)), {}), 'Task started');
+
+  const handleHold = () =>
+    runAction(() => api.post(apiEndpoints.task(Number(taskId)) + '/hold', {}), 'Task put on hold');
+
+  const handleResume = () =>
+    runAction(() => api.post(apiEndpoints.task(Number(taskId)) + '/resume', {}), 'Task resumed');
 
   const handleComplete = async () => {
     if (!driveLink.trim()) {
@@ -230,12 +237,14 @@ export default function TaskDetailPage() {
   const isAssignee = Boolean(idsMatch || namesMatch);
   const isOverdue = task.is_overdue;
   const status = String(task.status || '').toLowerCase();
-  const isOpen = ['pending', 'assigned', 'in_progress', 'blocked', 'submitted', 'rejected'].includes(status);
+  const isOpen = ['pending', 'assigned', 'in_progress', 'on_hold', 'blocked', 'submitted', 'rejected'].includes(status);
   const isVideoTask = Boolean(task.video_stage_id);
   const isLockedStatus = status === 'completed' || status === 'cancelled';
   // ONLY the assigned employee can start and complete tasks
   const canStart = isAssignee && isOpen && ['pending', 'assigned', 'rejected'].includes(status);
   const canComplete = isAssignee && isOpen && ['pending', 'assigned', 'in_progress', 'submitted', 'rejected'].includes(status);
+  const canHold = isAssignee && isOpen && ['in_progress'].includes(status);
+  const canResume = isAssignee && isOpen && ['on_hold'].includes(status);
   const canCarryForward = canManage && isOpen;
   const canReject = canManage && !isVideoTask && ['in_progress', 'waiting_approval', 'submitted'].includes(status);
   const canReassign = canManage && !isVideoTask && !isLockedStatus;
@@ -331,6 +340,18 @@ export default function TaskDetailPage() {
             <Button onClick={handleStart} disabled={acting} className="bg-cyan-500 hover:bg-cyan-600">
               <Play className="h-4 w-4 mr-2" />
               Start Task
+            </Button>
+          )}
+          {canHold && !acting && (
+            <Button onClick={handleHold} disabled={acting} variant="outline" className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+              {acting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Pause className="h-4 w-4 mr-2" />}
+              Hold
+            </Button>
+          )}
+          {canResume && !acting && (
+            <Button onClick={handleResume} disabled={acting} className="bg-blue-500 hover:bg-blue-600">
+              {acting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+              Resume
             </Button>
           )}
           {canComplete && !completing && (

@@ -94,13 +94,13 @@ async function seed() {
     console.log('👤 Seeding users...');
     const hashedPassword = await hashPassword('password123');
     const users = [
-      { username: 'owner', email: 'owner@zenfix.com', first_name: 'ZenFix', last_name: 'Owner', password: hashedPassword, role: UserRole.OWNER, status: UserStatus.ACTIVE, phone: '+9987654321', department_id: 3, is_active: true, is_staff: true, is_superuser: true },
-      { username: 'manager1', email: 'manager1@zenfix.com', first_name: 'John', last_name: 'Manager', password: hashedPassword, role: UserRole.MANAGER, status: UserStatus.ACTIVE, phone: '+9112345678', department_id: 3, is_active: true, is_staff: false, is_superuser: false },
-      { username: 'manager2', email: 'manager2@zenfix.com', first_name: 'Jane', last_name: 'Smith', password: hashedPassword, role: UserRole.MANAGER, status: UserStatus.ACTIVE, phone: '+9198765432', department_id: 1, is_active: true, is_staff: false, is_superuser: false },
-      { username: 'employee1', email: 'employee1@zenfix.com', first_name: 'Mike', last_name: 'Johnson', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9155555555', department_id: 1, is_active: true, is_staff: false, is_superuser: false },
-      { username: 'employee2', email: 'employee2@zenfix.com', first_name: 'Sarah', last_name: 'Williams', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9144444444', department_id: 2, is_active: true, is_staff: false, is_superuser: false },
-      { username: 'employee3', email: 'employee3@zenfix.com', first_name: 'David', last_name: 'Brown', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9133333333', department_id: 1, is_active: true, is_staff: false, is_superuser: false },
-      { username: 'employee4', email: 'employee4@zenfix.com', first_name: 'Emily', last_name: 'Davis', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9122222222', department_id: 2, is_active: true, is_staff: false, is_superuser: false }
+      { username: 'owner', email: 'owner@zenfix.com', password: hashedPassword, role: UserRole.OWNER, status: UserStatus.ACTIVE, phone: '+9987654321', department_id: 3, is_active: true, is_staff: true, is_superuser: true },
+      { username: 'manager1', email: 'manager1@zenfix.com', password: hashedPassword, role: UserRole.MANAGER, status: UserStatus.ACTIVE, phone: '+9112345678', department_id: 3, is_active: true, is_staff: false, is_superuser: false },
+      { username: 'manager2', email: 'manager2@zenfix.com', password: hashedPassword, role: UserRole.MANAGER, status: UserStatus.ACTIVE, phone: '+9198765432', department_id: 1, is_active: true, is_staff: false, is_superuser: false },
+      { username: 'employee1', email: 'employee1@zenfix.com', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9155555555', department_id: 1, is_active: true, is_staff: false, is_superuser: false },
+      { username: 'employee2', email: 'employee2@zenfix.com', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9144444444', department_id: 2, is_active: true, is_staff: false, is_superuser: false },
+      { username: 'employee3', email: 'employee3@zenfix.com', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9133333333', department_id: 1, is_active: true, is_staff: false, is_superuser: false },
+      { username: 'employee4', email: 'employee4@zenfix.com', password: hashedPassword, role: UserRole.EMPLOYEE, status: UserStatus.ACTIVE, phone: '+9122222222', department_id: 2, is_active: true, is_staff: false, is_superuser: false }
     ];
     const userResults = await db.collection('zf_users').insertMany(
       users.map((u, i) => ({

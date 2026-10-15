@@ -119,8 +119,6 @@ const DEMO_USERS = [
   {
     username: 'admin',
     email: 'admin@zenfix.io',
-    first_name: 'ZenFix',
-    last_name: 'Owner',
     phone: '+1 555 0100',
     password: 'admin123',
     role: 'owner',
@@ -134,8 +132,6 @@ const DEMO_USERS = [
   {
     username: 'manager',
     email: 'manager@zenfix.io',
-    first_name: 'Manager',
-    last_name: 'Demo',
     phone: '+1 555 0101',
     password: 'manager123',
     role: 'manager',
@@ -149,8 +145,6 @@ const DEMO_USERS = [
   {
     username: 'employee',
     email: 'employee@zenfix.io',
-    first_name: 'Employee',
-    last_name: 'Demo',
     phone: '+1 555 0102',
     password: 'employee123',
     role: 'employee',
@@ -164,8 +158,6 @@ const DEMO_USERS = [
   {
     username: 'sarah',
     email: 'sarah@zenfix.io',
-    first_name: 'Sarah',
-    last_name: 'Johnson',
     phone: '+1 555 0103',
     password: 'sarah123',
     role: 'manager',
@@ -179,8 +171,6 @@ const DEMO_USERS = [
   {
     username: 'mike',
     email: 'mike@zenfix.io',
-    first_name: 'Mike',
-    last_name: 'Williams',
     phone: '+1 555 0104',
     password: 'mike123',
     role: 'employee',
@@ -194,8 +184,6 @@ const DEMO_USERS = [
   {
     username: 'emma',
     email: 'emma@zenfix.io',
-    first_name: 'Emma',
-    last_name: 'Davis',
     phone: '+1 555 0105',
     password: 'emma123',
     role: 'employee',
@@ -209,8 +197,6 @@ const DEMO_USERS = [
   {
     username: 'john',
     email: 'john@zenfix.io',
-    first_name: 'John',
-    last_name: 'Smith',
     phone: '+1 555 0106',
     password: 'john123',
     role: 'employee',
@@ -224,8 +210,6 @@ const DEMO_USERS = [
   {
     username: 'lisa',
     email: 'lisa@zenfix.io',
-    first_name: 'Lisa',
-    last_name: 'Brown',
     phone: '+1 555 0107',
     password: 'lisa123',
     role: 'manager',
@@ -324,8 +308,6 @@ const DEMO_TASKS = [
       const userData = {
         username: u.username,
         email: u.email,
-        first_name: u.first_name,
-        last_name: u.last_name,
         password: passwordHash,
         phone: u.phone,
         role: u.role,
@@ -484,7 +466,7 @@ const DEMO_TASKS = [
         user_id: user.numeric_id,
         type,
         title: `${type.replace('_', ' ').toUpperCase()}`,
-        message: `This is a ${type} notification for ${user.first_name}`,
+        message: `This is a ${type} notification for ${user.username}`,
         priority,
         is_read: Math.random() > 0.5,
         created_at: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),

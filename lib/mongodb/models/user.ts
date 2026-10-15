@@ -7,8 +7,6 @@ export interface UserDocument {
   numeric_id: number;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
   password: string;
   phone?: string;
   role: UserRole;

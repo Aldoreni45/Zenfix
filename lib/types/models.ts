@@ -29,8 +29,6 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  first_name: string;
-  last_name: string;
   full_name: string;
   phone?: string;
   role: UserRole;
@@ -126,6 +124,7 @@ export const TaskStatus = {
   PENDING: 'pending',
   ASSIGNED: 'assigned',
   IN_PROGRESS: 'in_progress',
+  ON_HOLD: 'on_hold',
   BLOCKED: 'blocked',
   SUBMITTED: 'submitted',
   COMPLETED: 'completed',

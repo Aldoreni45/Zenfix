@@ -37,16 +37,14 @@ async function getHandler(request: NextRequest, user: any, id: string) {
     let reports_to_name = null;
     if (userDoc.reports_to_id) {
       const manager = await UserModel.findByNumericId(userDoc.reports_to_id);
-      reports_to_name = manager ? `${manager.first_name} ${manager.last_name}`.trim() || manager.username : null;
+      reports_to_name = manager ? manager.username : null;
     }
 
     const userResponse = {
       id: userDoc.numeric_id,
       username: userDoc.username,
       email: userDoc.email,
-      first_name: userDoc.first_name,
-      last_name: userDoc.last_name,
-      full_name: `${userDoc.first_name} ${userDoc.last_name}`.trim() || userDoc.username,
+      full_name: userDoc.username,
       phone: userDoc.phone,
       role: userDoc.role,
       role_name: userDoc.role.charAt(0).toUpperCase() + userDoc.role.slice(1),
@@ -94,8 +92,6 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
 
     const body = await request.json();
     const {
-      first_name,
-      last_name,
       phone,
       email,
       avatar,
@@ -130,9 +126,6 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
     }
 
     const updateData: any = {};
-    
-    if (first_name !== undefined) updateData.first_name = first_name;
-    if (last_name !== undefined) updateData.last_name = last_name;
     if (phone !== undefined) {
       const cleanPhone = normalizePhone(phone);
       if (cleanPhone && !isValidPhone(cleanPhone)) {
@@ -222,9 +215,7 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
       id: updatedUser.numeric_id,
       username: updatedUser.username,
       email: updatedUser.email,
-      first_name: updatedUser.first_name,
-      last_name: updatedUser.last_name,
-      full_name: `${updatedUser.first_name} ${updatedUser.last_name}`.trim() || updatedUser.username,
+      full_name: updatedUser.username,
       phone: updatedUser.phone,
       role: updatedUser.role,
       role_name: updatedUser.role.charAt(0).toUpperCase() + updatedUser.role.slice(1),
