@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { UserModel } from '@/lib/mongodb/models/user';
+import { PasswordResetTokenModel } from '@/lib/mongodb/models/password-reset-token';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
-import crypto from 'crypto';
+import { checkRateLimit, clientIp, tooManyRequests } from '@/lib/api-helpers/rate-limit';
+import { logError } from '@/lib/logger';
 
-// Simple token generator for password reset (Django parity)
-function generateResetToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-// Store reset tokens in memory (in production, use Redis or database with expiry)
-const resetTokens = new Map<string, { userId: number; expiresAt: Date }>();
+const RESET_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RESET_MAX_REQUESTS = 5; // per IP + email
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,34 +21,53 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const rateLimit = checkRateLimit(
+      `password-reset:${clientIp(request)}:${email.toLowerCase()}`,
+      RESET_MAX_REQUESTS,
+      RESET_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return tooManyRequests(rateLimit.retryAfterSeconds);
+    }
+
     const user = await UserModel.findByEmail(email);
 
     if (user) {
-      // Django: Generate uid and token for password reset
+      // Generate a single-use token stored as a hash in MongoDB with a 1 hour
+      // expiry. The raw token is only returned/emailed, never persisted.
       const uid = String(user.numeric_id);
-      const token = generateResetToken();
-      
-      // Store token with 1 hour expiry
-      resetTokens.set(token, {
-        userId: user.numeric_id,
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
+      const token = await PasswordResetTokenModel.create(user.numeric_id);
+
+      // In production this token must be delivered by email (nodemailer etc.).
+      // It is only printed to the console in development so the flow is
+      // testable locally; logging it in production would let anyone with log
+      // access take over accounts.
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[password-reset] Use uid=${uid} token=${token} with POST /api/auth/password-reset-confirm/`
+        );
+      }
+
+      await ActivityLogModel.create({
+        actor_id: user.numeric_id,
+        action: ActivityAction.PASSWORD_RESET,
+        entity_type: 'user',
+        entity_id: user.numeric_id.toString(),
+        description: 'Password reset requested',
+        metadata: {},
+        ip_address: clientIp(request),
+        user_agent: request.headers.get('user-agent')?.substring(0, 300) || '',
       });
-
-      // Log the reset request for development (Django behavior)
-      console.log(`Password reset requested for email: ${email}`);
-      console.log(`Use uid=${uid} token=${token} with POST /api/auth/password-reset-confirm/`);
-
-      // In production, send email here
-      // Django uses Django's email backend, we would use nodemailer or similar
     }
 
-    // Django: Always return success to prevent email enumeration
+    // Always return success to prevent email enumeration (Django parity).
     return NextResponse.json({
       success: true,
       message: 'If the account exists, reset instructions were sent.'
     });
   } catch (error) {
-    console.error('Password reset error:', error);
+    logError('Password reset error:', error);
     return NextResponse.json(
       { error: 'Failed to process password reset' },
       { status: 500 }

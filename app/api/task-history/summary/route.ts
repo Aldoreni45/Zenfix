@@ -3,6 +3,7 @@ import { requireOwner } from '@/lib/auth/middleware';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { TaskStatus } from '@/lib/types/models';
 import { isOverdueByDate } from '@/lib/date-utils';
+import { debugInfo } from '@/lib/logger';
 
 function isReportingOverdue(task: any): boolean {
   return (
@@ -99,7 +100,7 @@ async function handler(request: NextRequest, _user: any) {
     if (userId) {
       filters.assigned_to_id = userId;
     }
-    console.info('[API][task-history/summary] start', {
+    debugInfo('[API][task-history/summary] start', {
       userId: _user.userId,
       role: _user.role,
       start: searchParams.get('start'),
@@ -116,7 +117,7 @@ async function handler(request: NextRequest, _user: any) {
       ...counts,
       total_all_time: allTimeTasks.length,
     };
-    console.info('[API][task-history/summary] success', {
+    debugInfo('[API][task-history/summary] success', {
       userId: _user.userId,
       role: _user.role,
       total: payload.total,

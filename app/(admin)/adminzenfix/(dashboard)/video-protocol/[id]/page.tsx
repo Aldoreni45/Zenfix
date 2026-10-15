@@ -17,6 +17,7 @@ import { useIsOwner, useIsManager } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { cn, getUserDisplayName } from '@/lib/utils';
 import { formatDueDate } from '@/lib/date-utils';
+import { debug } from '@/lib/logger';
 
 const STAGE_ICONS: Record<string, any> = {
   shoot: Camera,
@@ -169,7 +170,7 @@ function VideoCard({ video, users, onAction, canManage, onRenameVideo }: { video
     if (completeDriveLink.trim()) payload.drive_link = completeDriveLink.trim();
     if (completeNotes.trim()) payload.completion_notes = completeNotes.trim();
     if (completeNotes.trim()) payload.notes = completeNotes.trim();
-    console.log('[VideoCard handleComplete] stageId=', stageId, 'payload=', payload, 'completeDriveLink=', completeDriveLink);
+    debug('[VideoCard handleComplete] stageId=', stageId, 'payload=', payload, 'completeDriveLink=', completeDriveLink);
     await onAction('complete', stageId, payload);
     setShowComplete(null);
     setCompleteNotes('');

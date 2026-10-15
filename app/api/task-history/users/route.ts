@@ -5,6 +5,7 @@ import { TaskModel } from '@/lib/mongodb/models/task';
 import { TaskStatus } from '@/lib/types/models';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
 import { isOverdueByDate } from '@/lib/date-utils';
+import { debugInfo } from '@/lib/logger';
 
 function isReportingOverdue(task: any): boolean {
   return (
@@ -47,7 +48,7 @@ async function handler(request: NextRequest, _user: any) {
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get('role');
     const range = parseDateRange(searchParams);
-    console.info('[API][task-history/users] start', {
+    debugInfo('[API][task-history/users] start', {
       userId: _user.userId,
       role: _user.role,
       start: searchParams.get('start'),
@@ -107,7 +108,7 @@ async function handler(request: NextRequest, _user: any) {
     );
 
     const sorted = payload.sort((a, b) => b.assigned - a.assigned);
-    console.info('[API][task-history/users] success', {
+    debugInfo('[API][task-history/users] success', {
       userId: _user.userId,
       role: _user.role,
       count: sorted.length,

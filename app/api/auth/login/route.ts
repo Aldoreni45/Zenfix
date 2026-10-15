@@ -6,6 +6,19 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { UserStatus } from '@/lib/types/models';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
+import { checkRateLimit, clientIp, tooManyRequests } from '@/lib/api-helpers/rate-limit';
+import { logError } from '@/lib/logger';
+
+const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const LOGIN_MAX_ATTEMPTS = 10; // per IP + username
+
+// A valid bcrypt hash of a random value. Compared against when the username is
+// unknown so a failed lookup costs roughly the same time as a wrong password,
+// preventing user enumeration through response timing. Never matches a real
+// password.
+const DUMMY_PASSWORD_HASH = '$2b$10$niDbXw3UM8no60DpQy1RgOahy0Y9pBqVIHlB9jBLGkcGxtgkkwcVa';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,9 +32,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const rateLimit = checkRateLimit(
+      `login:${clientIp(request)}:${String(username).toLowerCase()}`,
+      LOGIN_MAX_ATTEMPTS,
+      LOGIN_WINDOW_MS
+    );
+    if (!rateLimit.allowed) {
+      return tooManyRequests(rateLimit.retryAfterSeconds);
+    }
+
     const user = await UserModel.findByUsername(username);
-    
+
     if (!user) {
+      // Burn a comparable amount of time to avoid a username timing oracle.
+      await verifyPassword(password, DUMMY_PASSWORD_HASH);
       return NextResponse.json(
         { error: 'Invalid username or password' },
         { status: 401 }
@@ -29,7 +53,7 @@ export async function POST(request: NextRequest) {
     }
 
     const isValidPassword = await verifyPassword(password, user.password);
-    
+
     if (!isValidPassword) {
       return NextResponse.json(
         { error: 'Invalid username or password' },
@@ -119,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    logError('Login error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

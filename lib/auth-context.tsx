@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { api, apiEndpoints, clearTokens, getStoredAccessToken, hasAccessToken, hasRefreshToken, storeTokens } from './api';
+import { debug } from './logger';
 
 const USER_ROLE_KEY = 'zenfix_user_role';
 
@@ -88,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = async () => {
-    console.log('[AUTH] logout:start');
+    debug('[AUTH] logout:start');
     try {
       await api.post(apiEndpoints.logout, {});
     } catch (error) {
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setIsAuthenticated(false);
       stopRefreshTimer();
-      console.log('[AUTH] logout:complete');
+      debug('[AUTH] logout:complete');
     }
   };
 
@@ -109,11 +110,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const refreshedToken = await api.refreshToken();
         if (!refreshedToken) {
-          console.log('[AUTH] Background refresh failed, logging out');
+          debug('[AUTH] Background refresh failed, logging out');
           await logout();
         }
       } catch (error) {
-        console.log('[AUTH] Background refresh error, logging out');
+        debug('[AUTH] Background refresh error, logging out');
         await logout();
       }
     }, REFRESH_INTERVAL_MS);
@@ -127,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initStartedRef.current) return;
     initStartedRef.current = true;
 
-    console.log('[AUTH] initialization:start');
+    debug('[AUTH] initialization:start');
     setLoading(true);
     setInitialized(false);
 
@@ -144,27 +145,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // sends the session cookies (even HttpOnly ones), so /me restores the
       // session even when JS cannot read them from document.cookie.
       let response = await api.get<User>(apiEndpoints.me);
-      console.log('[AUTH] current-user:status', response.status);
+      debug('[AUTH] current-user:status', response.status);
 
       // Step 2: if 401, refresh once and retry once (bounded, never a loop)
       // Only attempt refresh if there's evidence of an existing session (sessionHint)
       // to avoid unnecessary refresh attempts when there's no session at all
       if (response.status === 401 && hasRefresh && sessionHint) {
-        console.log('[AUTH] access-token-expired, attempting refresh');
+        debug('[AUTH] access-token-expired, attempting refresh');
         const refreshedToken = await api.refreshToken();
 
         if (refreshedToken) {
-          console.log('[AUTH] refresh-success, retrying /me');
+          debug('[AUTH] refresh-success, retrying /me');
           response = await api.get<User>(apiEndpoints.me);
-          console.log('[AUTH] current-user:retry-status', response.status);
+          debug('[AUTH] current-user:retry-status', response.status);
         } else {
-          console.log('[AUTH] refresh-failed');
+          debug('[AUTH] refresh-failed');
         }
       }
 
       // Step 3: deterministic auth state from the final response
       if (response.data && (response.data.id || response.data.username)) {
-        console.log('[AUTH] user-restored', { userId: response.data.id, role: response.data.role });
+        debug('[AUTH] user-restored', { userId: response.data.id, role: response.data.role });
         setUser(response.data);
         saveUserRole(response.data.role);
         setIsAuthenticated(true);
@@ -174,21 +175,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // transient network hiccup while the page reloads). Keep the admin
         // logged in instead of bouncing to the login screen; the background
         // refresh loop will recover the session or clear it if truly dead.
-        console.log('[AUTH] no-user-restored-but-session-exists, keeping-authenticated', { status: response.status, hasError: !!response.error });
+        debug('[AUTH] no-user-restored-but-session-exists, keeping-authenticated', { status: response.status, hasError: !!response.error });
         setUser(null);
         setIsAuthenticated(true);
         scheduleRefresh();
       } else {
-        console.log('[AUTH] no-user-restored', { status: response.status, hasError: !!response.error });
+        debug('[AUTH] no-user-restored', { status: response.status, hasError: !!response.error });
         setUser(null);
         setIsAuthenticated(false);
         clearSavedUserRole();
         stopRefreshTimer();
       }
     } catch (error) {
-      console.log('[AUTH] initialization:error', error);
+      debug('[AUTH] initialization:error', error);
       if (sessionHint) {
-        console.log('[AUTH] error-but-session-exists, keeping-authenticated');
+        debug('[AUTH] error-but-session-exists, keeping-authenticated');
         setUser(null);
         setIsAuthenticated(true);
         scheduleRefresh();
@@ -199,7 +200,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         stopRefreshTimer();
       }
     } finally {
-      console.log('[AUTH] initialization:complete');
+      debug('[AUTH] initialization:complete');
       setLoading(false);
       setInitialized(true);
     }
@@ -225,7 +226,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (credentials: { username: string; password: string }) => {
     setLoading(true);
     try {
-      console.log('[AUTH] login:start');
+      debug('[AUTH] login:start');
       const response = await api.post<any>(apiEndpoints.login, credentials);
       const payload = response.data as any;
       const userData = payload?.user || payload;
@@ -233,7 +234,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!response.error && userData && access) {
         storeTokens(access);
-        console.log('[AUTH] login:success', { userId: userData.id, role: userData.role });
+        debug('[AUTH] login:success', { userId: userData.id, role: userData.role });
         setUser(userData);
         saveUserRole(userData.role);
         setIsAuthenticated(true);
@@ -241,10 +242,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true, role: userData.role };
       }
 
-      console.log('[AUTH] login:failed', response.error);
+      debug('[AUTH] login:failed', response.error);
       return { success: false, error: response.error || 'Login failed' };
     } catch (error) {
-      console.log('[AUTH] login:error', error);
+      debug('[AUTH] login:error', error);
       return { success: false, error: error instanceof Error ? error.message : 'Login failed' };
     } finally {
       setLoading(false);

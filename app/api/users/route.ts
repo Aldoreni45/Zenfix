@@ -7,7 +7,7 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { NotificationModel } from '@/lib/mongodb/models/notification';
 import { ActivityAction } from '@/lib/types/models';
 import { UserRole, UserStatus } from '@/lib/types/models';
-import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
+import { normalizePhone, isValidPhone, PHONE_ERROR, escapeRegex } from '@/lib/validation';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
 
 async function handler(request: NextRequest, user: any) {
@@ -39,11 +39,12 @@ async function handler(request: NextRequest, user: any) {
     // Search
     let users;
     if (search) {
+      const safeSearch = escapeRegex(search);
       users = await UserModel.findAll({
         ...filters,
         $or: [
-          { username: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
+          { username: { $regex: safeSearch, $options: 'i' } },
+          { email: { $regex: safeSearch, $options: 'i' } },
         ],
       });
     } else {

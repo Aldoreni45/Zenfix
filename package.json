@@ -4,9 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/build-debug.mjs && next build --webpack",
+    "build": "next build --webpack",
+    "build:debug": "node scripts/build-debug.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "seed": "node scripts/seed.mjs",
     "seed-full": "node scripts/seed-full.mjs",
     "clear-data": "node scripts/clear-data.mjs"

@@ -11,6 +11,7 @@ import { formatDate } from '@/lib/api-helpers/response-formatter';
 import { handleError, handleValidationError, handleForbidden } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { isOverdueByDate, parseDueDateUTC, toDateOnlyISO } from '@/lib/date-utils';
+import { escapeRegex } from '@/lib/validation';
 
 // Parse a date-only field ("YYYY-MM-DD" from an <input type="date">) into a
 // Date at UTC midnight. Returns null to clear the field, unchanged undefined,
@@ -52,12 +53,13 @@ async function handler(request: NextRequest, user: any) {
     
     let videos;
     if (search) {
+      const safeSearch = escapeRegex(search);
       videos = await VideoModel.findAll({
         ...filters,
         $or: [
-          { title: { $regex: search, $options: 'i' } },
-          { video_code: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
+          { title: { $regex: safeSearch, $options: 'i' } },
+          { video_code: { $regex: safeSearch, $options: 'i' } },
+          { description: { $regex: safeSearch, $options: 'i' } },
         ],
       });
     } else {

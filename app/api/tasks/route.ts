@@ -13,6 +13,7 @@ import { handleError, handleValidationError, handleForbidden } from '@/lib/api-h
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { sendTaskAssignmentNotification } from '@/lib/api-helpers/notification-helper';
 import { getDaysUntilDue, isOverdueByDate, parseDueDateUTC, toDateOnlyISO } from '@/lib/date-utils';
+import { escapeRegex } from '@/lib/validation';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -41,12 +42,13 @@ async function handler(request: NextRequest, user: any) {
     
     let tasks;
     if (search) {
+      const safeSearch = escapeRegex(search);
       tasks = await TaskModel.findAll({
         ...filters,
         $or: [
-          { title: { $regex: search, $options: 'i' } },
-          { task_id: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
+          { title: { $regex: safeSearch, $options: 'i' } },
+          { task_id: { $regex: safeSearch, $options: 'i' } },
+          { description: { $regex: safeSearch, $options: 'i' } },
         ],
       });
     } else {

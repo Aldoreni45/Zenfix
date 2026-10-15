@@ -16,3 +16,15 @@ export function restrictPhoneInput(value: string): string {
 }
 
 export const PHONE_ERROR = `Phone number must be exactly ${PHONE_DIGITS} digits.`;
+
+/**
+ * Escape a user-provided string before it is embedded in a regular expression.
+ *
+ * Search endpoints pass raw query values into MongoDB `$regex`. A value such as
+ * `(` or `[` is an invalid pattern and makes the query throw (HTTP 500), while
+ * crafted patterns can cause catastrophic backtracking (ReDoS). Escaping keeps
+ * search a plain substring match and removes both problems.
+ */
+export function escapeRegex(value: unknown): string {
+  return String(value ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

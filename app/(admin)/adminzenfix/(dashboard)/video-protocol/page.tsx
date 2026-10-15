@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useIsOwner, useIsManager } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
+import { debug } from '@/lib/logger';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -60,7 +61,7 @@ export default function VideoProtocolPage() {
       month: String(month),
       year: String(year),
     });
-    console.log('[VIDEO PROTOCOL] fetching:', { month, year });
+    debug('[VIDEO PROTOCOL] fetching:', { month, year });
     setLoading(true);
     try {
       const res = await api.get<ProtocolListItem[]>(

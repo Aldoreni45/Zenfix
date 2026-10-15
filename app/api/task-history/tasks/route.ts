@@ -5,6 +5,7 @@ import { UserModel } from '@/lib/mongodb/models/user';
 import { ClientModel } from '@/lib/mongodb/models/client';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
 import { toDateOnlyISO } from '@/lib/date-utils';
+import { debugInfo } from '@/lib/logger';
 
 function parseDateRange(searchParams: URLSearchParams): { start: Date; end: Date } | null {
   if (searchParams.get('all') === '1') return null;
@@ -42,7 +43,7 @@ async function handler(request: NextRequest, _user: any) {
     const page = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
     const pageSize = Math.min(Math.max(1, Number.parseInt(searchParams.get('page_size') || '20', 10) || 20), 100);
     const range = parseDateRange(searchParams);
-    console.info('[API][task-history/tasks] start', {
+    debugInfo('[API][task-history/tasks] start', {
       userId: _user.userId,
       role: _user.role,
       start: searchParams.get('start'),
@@ -107,7 +108,7 @@ async function handler(request: NextRequest, _user: any) {
       page_size: pageSize,
       items,
     };
-    console.info('[API][task-history/tasks] success', {
+    debugInfo('[API][task-history/tasks] success', {
       userId: _user.userId,
       role: _user.role,
       count: payload.count,

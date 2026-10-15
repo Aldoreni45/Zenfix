@@ -2,8 +2,6 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 const SALT_ROUNDS = 10;
-const PBKDF2_ITERATIONS = 390000;
-const PBKDF2_KEY_LENGTH = 128;
 const PBKDF2_DIGEST = 'sha256';
 
 // Django PBKDF2 format: pbkdf2_sha256$<iterations>$<salt>$<hash>
@@ -15,16 +13,29 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  // First try bcrypt (for new passwords)
-  if (hash.startsWith('$2a$') || hash.startsWith('$2b$')) {
-    return await bcrypt.compare(password, hash);
+  if (typeof password !== 'string' || typeof hash !== 'string' || hash.length === 0) {
+    return false;
+  }
+
+  // First try bcrypt (for new passwords). `$2y$` is a valid bcrypt variant
+  // produced by PHP/Django tooling, so it must be accepted too.
+  if (hash.startsWith('$2a$') || hash.startsWith('$2b$') || hash.startsWith('$2y$')) {
+    try {
+      return await bcrypt.compare(password, hash);
+    } catch {
+      return false;
+    }
   }
 
   // Try Django PBKDF2 format (for migrated users)
   const pbkdf2Match = hash.match(DJANGO_PBKDF2_REGEX);
   if (pbkdf2Match) {
     const [, iterations, salt, storedHash] = pbkdf2Match;
-    return verifyPBKDF2(password, salt, storedHash, parseInt(iterations));
+    const parsedIterations = parseInt(iterations, 10);
+    if (!Number.isFinite(parsedIterations) || parsedIterations <= 0) {
+      return false;
+    }
+    return verifyPBKDF2(password, salt, storedHash, parsedIterations);
   }
 
   // If neither format matches, return false
@@ -33,16 +44,27 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 
 function verifyPBKDF2(password: string, salt: string, storedHash: string, iterations: number): boolean {
   try {
-    const hash = crypto.pbkdf2Sync(
+    const stored = Buffer.from(storedHash, 'base64');
+    if (stored.length === 0) return false;
+
+    // Derive with the same key length the hash was created with. Django's
+    // default PBKDF2PasswordHasher uses the digest size (32 bytes for SHA-256),
+    // while older exports could use a larger length. Deriving from the stored
+    // length keeps both verifiable instead of hard-coding a single value.
+    const computed = crypto.pbkdf2Sync(
       password,
       Buffer.from(salt, 'base64'),
       iterations,
-      PBKDF2_KEY_LENGTH,
+      stored.length,
       PBKDF2_DIGEST
     );
-    const hashBase64 = hash.toString('base64');
-    return hashBase64 === storedHash;
-  } catch (error) {
+
+    // Constant-time comparison: a plain `===` leaks hash bytes through timing.
+    if (computed.length !== stored.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(computed, stored);
+  } catch {
     return false;
   }
 }

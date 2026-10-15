@@ -3,6 +3,7 @@ import { requireAuth, requireOwnerOrManager } from '@/lib/auth/middleware';
 import { ClientModel } from '@/lib/mongodb/models/client';
 import { VideoProtocolModel } from '@/lib/mongodb/models/video-protocol';
 import { loadProtocolContent, ensureProtocolRecords } from '@/lib/api-helpers/video-protocol';
+import { debugInfo } from '@/lib/logger';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -17,7 +18,7 @@ async function handler(request: NextRequest, user: any) {
     if (month) filters.month = month;
     if (year) filters.year = year;
     if (status) filters.status = status;
-    console.info('[API][video-protocol/protocols] list:start', {
+    debugInfo('[API][video-protocol/protocols] list:start', {
       userId: user.userId,
       role: user.role,
       client_id,
@@ -26,7 +27,7 @@ async function handler(request: NextRequest, user: any) {
       status,
     });
 
-    console.info('[VIDEO PROTOCOL API] GET', {
+    debugInfo('[VIDEO PROTOCOL API] GET', {
       month,
       year,
       pathname: new URL(request.url).pathname,
@@ -34,7 +35,7 @@ async function handler(request: NextRequest, user: any) {
 
     const protocols = await VideoProtocolModel.findAll(filters);
 
-    console.info('[VIDEO PROTOCOL API] RESULT', {
+    debugInfo('[VIDEO PROTOCOL API] RESULT', {
       month,
       year,
       count: protocols.length,
@@ -65,7 +66,7 @@ async function handler(request: NextRequest, user: any) {
       })
     );
 
-    console.info('[API][video-protocol/protocols] list:success', {
+    debugInfo('[API][video-protocol/protocols] list:success', {
       userId: user.userId,
       role: user.role,
       count: protocolsWithDetails.length,
@@ -84,7 +85,7 @@ async function createHandler(request: NextRequest, user: any) {
   try {
     const body = await request.json();
     const { client, month, year, target_videos } = body;
-    console.info('[API][video-protocol/protocols] create:start', {
+    debugInfo('[API][video-protocol/protocols] create:start', {
       userId: user.userId,
       role: user.role,
       client,
@@ -159,7 +160,7 @@ async function createHandler(request: NextRequest, user: any) {
       updated_at: refreshed.updated_at.toISOString(),
     };
 
-    console.info('[API][video-protocol/protocols] create:success', {
+    debugInfo('[API][video-protocol/protocols] create:success', {
       userId: user.userId,
       role: user.role,
       protocol_id: response.id,

@@ -30,6 +30,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# local dev artifacts (should never be committed)
+*.log
+dev-server.*.log
+inspect-vp.mjs
+test-user-get.ps1
+
 # env files — never commit secrets
 .env
 .env.local

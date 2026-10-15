@@ -3,6 +3,7 @@ import { requireOwner } from '@/lib/auth/middleware';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { TaskStatus } from '@/lib/types/models';
 import { isOverdueByDate } from '@/lib/date-utils';
+import { debugInfo } from '@/lib/logger';
 
 function isReportingOverdue(task: any): boolean {
   return (
@@ -45,7 +46,7 @@ async function handler(request: NextRequest, _user: any) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('user');
     const range = parseDateRange(searchParams);
-    console.info('[API][task-history/daily] start', {
+    debugInfo('[API][task-history/daily] start', {
       userId: _user.userId,
       role: _user.role,
       start: searchParams.get('start'),
@@ -109,7 +110,7 @@ async function handler(request: NextRequest, _user: any) {
     });
 
     const payload = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
-    console.info('[API][task-history/daily] success', {
+    debugInfo('[API][task-history/daily] success', {
       userId: _user.userId,
       role: _user.role,
       count: payload.length,

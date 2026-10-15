@@ -9,7 +9,7 @@ import { handleError, handleValidationError } from '@/lib/api-helpers/error-hand
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { ActivityAction } from '@/lib/types/models';
 import { ClientStatus } from '@/lib/types/models';
-import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
+import { normalizePhone, isValidPhone, PHONE_ERROR, escapeRegex } from '@/lib/validation';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -58,13 +58,14 @@ async function handler(request: NextRequest, user: any) {
     
     let clients;
     if (search) {
+      const safeSearch = escapeRegex(search);
       clients = await ClientModel.findAll({
         ...filters,
         $or: [
-          { name: { $regex: search, $options: 'i' } },
-          { company_name: { $regex: search, $options: 'i' } },
-          { contact_person: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
+          { name: { $regex: safeSearch, $options: 'i' } },
+          { company_name: { $regex: safeSearch, $options: 'i' } },
+          { contact_person: { $regex: safeSearch, $options: 'i' } },
+          { email: { $regex: safeSearch, $options: 'i' } },
         ],
       });
     } else {
