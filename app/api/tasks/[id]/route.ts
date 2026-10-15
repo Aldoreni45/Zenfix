@@ -43,19 +43,19 @@ async function getHandler(request: NextRequest, user: any, id: string) {
     let assigned_to_name = null;
     if (taskDoc.assigned_to_id) {
       const assignee = await UserModel.findByNumericId(taskDoc.assigned_to_id);
-      assigned_to_name = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() || assignee.username : null;
+      assigned_to_name = assignee?.username || null;
     }
 
     let assigned_manager_name = null;
     if (taskDoc.assigned_manager_id) {
       const manager = await UserModel.findByNumericId(taskDoc.assigned_manager_id);
-      assigned_manager_name = manager ? `${manager.first_name} ${manager.last_name}`.trim() || manager.username : null;
+      assigned_manager_name = manager?.username || null;
     }
 
     let created_by_name = null;
     if (taskDoc.created_by_id) {
       const creator = await UserModel.findByNumericId(taskDoc.created_by_id);
-      created_by_name = creator ? `${creator.first_name} ${creator.last_name}`.trim() || creator.username : null;
+      created_by_name = creator?.username || null;
     }
 
     const is_overdue = taskDoc.due_date && isOverdueByDate(taskDoc.due_date) && taskDoc.status !== TaskStatus.COMPLETED && taskDoc.status !== TaskStatus.CANCELLED;

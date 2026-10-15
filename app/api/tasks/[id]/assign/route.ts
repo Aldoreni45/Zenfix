@@ -57,8 +57,8 @@ export async function POST(
         action: 'ASSIGN',
         entityType: 'task',
         entityId: task.numeric_id.toString(),
-        description: `Assigned task '${task.title}' to ${assignee ? `${assignee.first_name} ${assignee.last_name || assignee.username}` : targetId}`,
-        metadata: { assignee: targetId, assignee_name: assignee ? `${assignee.first_name} ${assignee.last_name || assignee.username}` : targetId },
+        description: `Assigned task '${task.title}' to ${assignee?.username || targetId}`,
+        metadata: { assignee: targetId, assignee_name: assignee?.username || targetId },
         request,
       });
 
@@ -76,7 +76,17 @@ export async function POST(
         });
       }
 
-      return NextResponse.json({ success: true });
+      return NextResponse.json({
+        success: true,
+        assignee: assignee ? {
+          id: assignee.numeric_id,
+          username: assignee.username,
+          email: assignee.email,
+          role: assignee.role,
+        } : null,
+        assigned_to,
+        assigned_manager,
+      });
     } catch (error) {
       return handleError(error, 'Assign task');
     }

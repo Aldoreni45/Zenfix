@@ -182,3 +182,23 @@ export function formatDuration(startValue: unknown, endValue: unknown): string |
   if (minutes) parts.push(`${minutes}m`);
   return parts.length ? parts.join(' ') : 'less than a minute';
 }
+
+/**
+ * Format seconds into human-readable duration, e.g. "2h 15m".
+ */
+export function formatSeconds(seconds: number): string {
+  if (seconds < 0) return '0m';
+  if (seconds < 60) return `${seconds}s`;
+
+  const days = Math.floor(seconds / 86400);
+  seconds -= days * 86400;
+  const hours = Math.floor(seconds / 3600);
+  seconds -= hours * 3600;
+  const minutes = Math.floor(seconds / 60);
+
+  const parts: string[] = [];
+  if (days) parts.push(`${days}d`);
+  if (hours) parts.push(`${hours}h`);
+  if (minutes) parts.push(`${minutes}m`);
+  return parts.length ? parts.join(' ') : '0m';
+}

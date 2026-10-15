@@ -18,8 +18,6 @@ async function handler(request: NextRequest, user: any) {
           id: u.numeric_id,
           username: u.username,
           email: u.email,
-          first_name: u.first_name,
-          last_name: u.last_name,
           full_name: formatUserName(u),
           phone: u.phone,
           role: u.role,

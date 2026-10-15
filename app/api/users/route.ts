@@ -8,6 +8,7 @@ import { NotificationModel } from '@/lib/mongodb/models/notification';
 import { ActivityAction } from '@/lib/types/models';
 import { UserRole, UserStatus } from '@/lib/types/models';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
+import { formatUserName } from '@/lib/api-helpers/data-enrichment';
 
 async function handler(request: NextRequest, user: any) {
   try {
@@ -68,7 +69,9 @@ async function handler(request: NextRequest, user: any) {
           id: u.numeric_id,
           username: u.username,
           email: u.email,
-          full_name: u.username,
+          first_name: u.first_name || '',
+          last_name: u.last_name || '',
+          full_name: formatUserName(u),
           phone: u.phone,
           role: u.role,
           role_name: u.role.charAt(0).toUpperCase() + u.role.slice(1),
@@ -263,7 +266,9 @@ async function createHandler(request: NextRequest, user: any) {
       id: newUser.numeric_id,
       username: newUser.username,
       email: newUser.email,
-      full_name: newUser.username,
+      first_name: newUser.first_name || '',
+      last_name: newUser.last_name || '',
+      full_name: formatUserName(newUser),
       phone: newUser.phone,
       role: newUser.role,
       role_name: newUser.role.charAt(0).toUpperCase() + newUser.role.slice(1),

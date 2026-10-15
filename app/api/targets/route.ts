@@ -42,7 +42,7 @@ async function handler(request: NextRequest, user: any) {
         let user_name = null;
         if (t.user_id) {
           const user = await UserModel.findByNumericId(t.user_id);
-          user_name = user ? `${user.first_name} ${user.last_name}`.trim() || user.username : null;
+          user_name = user?.username || null;
         }
 
         let client_name = null;

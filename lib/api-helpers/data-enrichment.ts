@@ -3,11 +3,27 @@ import { ClientModel } from '@/lib/mongodb/models/client';
 import { DepartmentModel } from '@/lib/mongodb/models/department';
 
 /**
- * Format user name from user object
+ * Format a user's display name.
+ *
+ * Prefers the real name fields (`first_name` + `last_name`), then any stored
+ * `full_name`, and only falls back to the username/email when no name exists.
+ * This is what the UI should show in employee/assignee dropdowns, as opposed
+ * to the user's role.
  */
 export function formatUserName(user: any): string {
   if (!user) return '';
-  return user.username || '';
+
+  const first = typeof user.first_name === 'string' ? user.first_name.trim() : '';
+  const last = typeof user.last_name === 'string' ? user.last_name.trim() : '';
+  const fullName = `${first} ${last}`.trim();
+  if (fullName) return fullName;
+
+  if (typeof user.full_name === 'string' && user.full_name.trim()) return user.full_name.trim();
+  if (typeof user.name === 'string' && user.name.trim()) return user.name.trim();
+  if (typeof user.username === 'string' && user.username.trim()) return user.username.trim();
+  if (typeof user.email === 'string' && user.email.trim()) return user.email.trim();
+
+  return '';
 }
 
 /**

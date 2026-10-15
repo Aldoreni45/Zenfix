@@ -29,7 +29,7 @@ import { Label } from '@/components/ui/label';
 import { api, apiEndpoints } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useIsOwner, useIsManager, useClients, useUsers } from '@/lib/hooks';
-import { cn } from '@/lib/utils';
+import { cn, getUserDisplayName } from '@/lib/utils';
 
 const SPENDING_CATEGORIES = [
   'Petrol', 'Tea Expense', 'Food', 'Marketing',
@@ -453,7 +453,7 @@ export default function AccountsPage() {
                       required
                     >
                       <option value="">Select employee</option>
-                      {users?.map((u: any) => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
+                      {users?.map((u: any) => <option key={u.id} value={u.id}>{getUserDisplayName(u)}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -533,7 +533,7 @@ export default function AccountsPage() {
                     <Label className="text-slate-200">Employee *</Label>
                     <select value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white" required>
                       <option value="">Select employee</option>
-                      {users?.map((u: any) => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
+                      {users?.map((u: any) => <option key={u.id} value={u.id}>{getUserDisplayName(u)}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -590,7 +590,7 @@ export default function AccountsPage() {
                     <Label className="text-slate-200">Employee *</Label>
                     <select value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })} className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white" required>
                       <option value="">Select employee</option>
-                      {users?.map((u: any) => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
+                      {users?.map((u: any) => <option key={u.id} value={u.id}>{getUserDisplayName(u)}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">

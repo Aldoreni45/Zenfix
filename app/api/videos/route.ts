@@ -75,25 +75,25 @@ async function handler(request: NextRequest, user: any) {
         let assigned_to_name = null;
         if (v.assigned_to_id) {
           const assignee = await UserModel.findByNumericId(v.assigned_to_id);
-          assigned_to_name = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() || assignee.username : null;
+          assigned_to_name = assignee?.username || null;
         }
 
         let created_by_name = null;
         if (v.created_by_id) {
           const creator = await UserModel.findByNumericId(v.created_by_id);
-          created_by_name = creator ? `${creator.first_name} ${creator.last_name}`.trim() || creator.username : null;
+          created_by_name = creator?.username || null;
         }
 
         let shooter_name = null;
         if (v.shooter_id) {
           const shooter = await UserModel.findByNumericId(v.shooter_id);
-          shooter_name = shooter ? `${shooter.first_name} ${shooter.last_name}`.trim() || shooter.username : null;
+          shooter_name = shooter?.username || null;
         }
 
         let editor_name = null;
         if (v.editor_id) {
           const editor = await UserModel.findByNumericId(v.editor_id);
-          editor_name = editor ? `${editor.first_name} ${editor.last_name}`.trim() || editor.username : null;
+          editor_name = editor?.username || null;
         }
 
         const is_overdue = v.deadline && isOverdueByDate(v.deadline) && v.status !== VideoStage.APPROVED && v.status !== VideoStage.POSTED;
@@ -270,7 +270,7 @@ async function createHandler(request: NextRequest, user: any) {
     let assigned_to_name = null;
     if (newVideo.assigned_to_id) {
       const assignee = await UserModel.findByNumericId(newVideo.assigned_to_id);
-      assigned_to_name = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() || assignee.username : null;
+      assigned_to_name = assignee?.username || null;
     }
 
     const videoResponse = {

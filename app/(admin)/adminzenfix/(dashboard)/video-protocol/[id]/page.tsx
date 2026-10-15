@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage, VideoProtocolDashboard, VideoRecord, VideoStage } from '@/lib/api';
 import { useIsOwner, useIsManager } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
-import { cn } from '@/lib/utils';
+import { cn, getUserDisplayName } from '@/lib/utils';
 import { formatDueDate } from '@/lib/date-utils';
 
 const STAGE_ICONS: Record<string, any> = {
@@ -70,7 +70,7 @@ function StageBar({ stage, onAction, canManage, onShowDetails }: { stage: VideoS
         </p>
         {stage.assigned_to_detail ? (
           <p className="text-[10px] text-slate-500 truncate">
-            {stage.assigned_to_detail.first_name} {stage.assigned_to_detail.last_name}
+            {getUserDisplayName(stage.assigned_to_detail)}
             {stage.due_date && (
               <span className="ml-1 text-slate-600">due {formatDueDate(stage.due_date)}</span>
             )}
@@ -283,7 +283,7 @@ function VideoCard({ video, users, onAction, canManage, onRenameVideo }: { video
                     <option value="" className="bg-slate-900">Select employee...</option>
                     {users.map((u: any) => (
                       <option key={u.id} value={u.id} className="bg-slate-900">
-                        {u.first_name} {u.last_name} ({u.role})
+                        {getUserDisplayName(u)}
                       </option>
                     ))}
                   </select>
@@ -379,7 +379,7 @@ function VideoCard({ video, users, onAction, canManage, onRenameVideo }: { video
                         <p className="text-xs text-white font-medium">
                           {stage.submitted_by_name ||
                             (stage.assigned_to_detail
-                              ? `${stage.assigned_to_detail.first_name} ${stage.assigned_to_detail.last_name}`.trim()
+                              ? getUserDisplayName(stage.assigned_to_detail)
                               : '—')}
                         </p>
                       </div>
@@ -788,10 +788,15 @@ export default function ProtocolDashboardPage() {
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold">
-                            {emp.first_name?.[0]}{emp.last_name?.[0]}
+                            {getUserDisplayName(emp, '?')
+                              .split(/\s+/)
+                              .map((part: string) => part[0])
+                              .join('')
+                              .slice(0, 2)
+                              .toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-white text-xs font-medium">{emp.first_name} {emp.last_name}</p>
+                            <p className="text-white text-xs font-medium">{getUserDisplayName(emp)}</p>
                             <p className="text-slate-500 text-[10px]">{emp.email}</p>
                           </div>
                         </div>

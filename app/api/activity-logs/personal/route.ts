@@ -24,7 +24,7 @@ async function handler(request: NextRequest, user: any) {
           id: l.numeric_id,
           user: l.actor_id,
           user_email: actor?.email || '',
-          user_name: actor ? `${actor.first_name} ${actor.last_name}`.trim() || actor.username : '',
+          user_name: actor?.username || '',
           action: l.action,
           action_name: l.action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
           entity: l.entity_type,

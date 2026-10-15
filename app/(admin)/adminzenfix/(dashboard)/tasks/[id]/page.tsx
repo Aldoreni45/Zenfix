@@ -8,7 +8,7 @@ import {
   Play, CheckCircle2, XCircle, Loader2, AlertTriangle, AlertCircle,
   UserCog, Trash2, Pause,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, getUserDisplayName } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useEmployees } from '@/lib/hooks';
-import { formatDueDate, getDueDateStatus, todayLocalISO, formatDateTime, formatDuration } from '@/lib/date-utils';
+import { formatDueDate, getDueDateStatus, todayLocalISO, formatDateTime, formatDuration, formatSeconds } from '@/lib/date-utils';
 
 function getStatusColor(status: string, isOverdue: boolean) {
   if (isOverdue) return 'bg-red-500/10 text-red-400 border-red-500/20';
@@ -334,6 +334,30 @@ export default function TaskDetailPage() {
           </div>
         </div>
 
+        {/* Work Efficiency Stats */}
+        {(status === 'in_progress' || status === 'on_hold' || status === 'completed') && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-800/50 rounded-xl border border-white/5">
+            <div className="text-center">
+              <p className="text-xs text-slate-500 mb-1">Work Efficiency</p>
+              <p className={cn('text-2xl font-bold', task.work_efficiency_percent >= 70 ? 'text-green-400' : task.work_efficiency_percent >= 40 ? 'text-yellow-400' : 'text-red-400')}>
+                {task.work_efficiency_percent || 0}%
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-slate-500 mb-1">Total Hold Time</p>
+              <p className="text-lg font-semibold text-orange-400">
+                {formatSeconds(task.total_hold_seconds || 0)}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-slate-500 mb-1">Actual Work Time</p>
+              <p className="text-lg font-semibold text-cyan-400">
+                {formatSeconds(task.actual_work_seconds || 0)}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex flex-wrap gap-3 items-center">
           {canStart && (
@@ -495,7 +519,7 @@ export default function TaskDetailPage() {
                   .filter((u: any) => u.id !== task.assigned_to_id)
                   .map((u: any) => (
                     <option key={u.id} value={u.id} className="bg-slate-900">
-                      {u.full_name || u.username}
+                      {getUserDisplayName(u)}
                     </option>
                   ))}
               </select>

@@ -54,8 +54,7 @@ async function getStageResponse(stage: any) {
       assigned_to_detail = {
         id: assignee.numeric_id,
         numeric_id: assignee.numeric_id,
-        first_name: assignee.first_name,
-        last_name: assignee.last_name,
+        username: assignee.username,
         email: assignee.email,
         role: assignee.role,
       };
@@ -80,15 +79,13 @@ async function getStageResponse(stage: any) {
     if (latestTask.assigned_to_id) {
       const taskAssignee = await UserModel.findByNumericId(latestTask.assigned_to_id);
       if (taskAssignee) {
-        const full = `${taskAssignee.first_name} ${taskAssignee.last_name}`.trim();
-        submitted_by_name = full || taskAssignee.email;
+        submitted_by_name = taskAssignee.username || taskAssignee.email;
       }
     }
   }
 
   if (!submitted_by_name && assigned_to_detail) {
-    const full = `${assigned_to_detail.first_name} ${assigned_to_detail.last_name}`.trim();
-    submitted_by_name = full || assigned_to_detail.email;
+    submitted_by_name = assigned_to_detail.username || assigned_to_detail.email;
   }
 
   return {

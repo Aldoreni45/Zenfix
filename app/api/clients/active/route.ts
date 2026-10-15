@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
             const UserModel = (await import('@/lib/mongodb/models/user')).UserModel;
             const manager = await UserModel.findByNumericId(client.assigned_manager_id);
             if (manager) {
-              manager_name = `${manager.first_name} ${manager.last_name}`;
+              manager_name = manager.username;
             }
           }
           return {

@@ -30,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       
       return NextResponse.json({
         ...spending,
-        employee_name: employee ? `${employee.first_name} ${employee.last_name}` : spending.employee_name,
+        employee_name: employee?.username || spending.employee_name,
         employee_email: employee?.email || spending.employee_email,
       });
     } catch (error) {

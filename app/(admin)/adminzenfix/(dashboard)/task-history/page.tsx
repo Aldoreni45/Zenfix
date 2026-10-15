@@ -13,7 +13,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, getUserDisplayName } from '@/lib/utils';
 import { useAuth, useUserRole, useTaskHistorySummary, useTaskHistoryUsers, useTaskHistoryDaily, useTaskHistoryDailyDetail, useTaskHistoryTasks } from '@/lib/hooks';
 
 const TOOLTIP_STYLE = {
@@ -245,7 +245,7 @@ export default function TaskHistoryPage() {
             <option value="">Everyone</option>
             {(team || []).map((u: any) => (
               <option key={u.id} value={u.id} className="bg-slate-900">
-                {u.name || u.username} ({u.role})
+                {getUserDisplayName(u)} ({u.role})
               </option>
             ))}
           </select>

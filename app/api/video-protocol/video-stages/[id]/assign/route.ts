@@ -91,6 +91,10 @@ export async function POST(
           attachments: [],
           estimated_hours: 0,
           rejection_count: 0,
+          hold_periods: [],
+          total_hold_seconds: 0,
+          actual_work_seconds: 0,
+          work_efficiency_percent: 0,
         });
 
         // Django: Notify the assigned user
@@ -117,7 +121,7 @@ export async function POST(
         action: 'ASSIGN',
         entityType: 'video_stage',
         entityId: stage.numeric_id.toString(),
-        description: `Assigned video stage to ${assignee.first_name} ${assignee.last_name || assignee.username}`,
+        description: `Assigned video stage to ${assignee.username}`,
         metadata: { stage_type: stage.stage_type, assigned_to, due_date },
         request,
       });

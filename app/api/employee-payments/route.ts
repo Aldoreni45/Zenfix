@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
             const employee = await UserModel.findByNumericId(payment.employee_id);
             return {
               ...payment,
-              employee_name: employee ? `${employee.first_name} ${employee.last_name}` : payment.employee_name,
+              employee_name: employee?.username || payment.employee_name,
               employee_email: employee ? employee.email : payment.employee_email,
             };
           }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       const creator = await UserModel.findByNumericId(user.userId);
       const payment = await EmployeePaymentModel.create({
         employee_id: Number(employee_id),
-        employee_name: `${employee.first_name} ${employee.last_name}`,
+        employee_name: employee.username,
         employee_email: employee.email,
         total_spending: Number(total_spending),
         amount_paid: Number(amount_paid || 0),
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         status,
         notes: notes || '',
         created_by: user.userId,
-        created_by_name: creator ? `${creator.first_name} ${creator.last_name}`.trim() || creator.username : user.username,
+        created_by_name: creator?.username || user.username,
       });
 
       return NextResponse.json(payment, { status: 201 });

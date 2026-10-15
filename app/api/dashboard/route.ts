@@ -131,7 +131,7 @@ async function handler(request: NextRequest, user: any) {
               const memberTasks = await TaskModel.findAll({ assigned_to_id: m.numeric_id });
               return {
                 id: m.numeric_id,
-                name: `${m.first_name} ${m.last_name}`.trim() || m.username,
+                name: m.username,
                 role: m.role,
                 pending_tasks: memberTasks.filter(t => t.status === TaskStatus.PENDING || t.status === TaskStatus.ASSIGNED).length,
               };

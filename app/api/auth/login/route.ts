@@ -5,6 +5,7 @@ import { signAccessToken, signRefreshToken } from '@/lib/auth/jwt';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { UserStatus } from '@/lib/types/models';
+import { formatUserName } from '@/lib/api-helpers/data-enrichment';
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,7 +76,9 @@ export async function POST(request: NextRequest) {
       id: user.numeric_id,
       username: user.username,
       email: user.email,
-      full_name: user.username,
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      full_name: formatUserName(user),
       phone: user.phone,
       role: user.role,
       role_name: user.role.charAt(0).toUpperCase() + user.role.slice(1),

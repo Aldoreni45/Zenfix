@@ -19,7 +19,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
 
       // Verify the user is the assigned employee
-      if (task.assigned_to !== user.userId) {
+      if (task.assigned_to_id !== user.userId) {
         return NextResponse.json(
           { error: 'Only the assigned employee can put a task on hold' },
           { status: 403 }
@@ -34,7 +34,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         );
       }
 
-      const updatedTask = await TaskModel.update(taskId, { status: 'on_hold' });
+      // Add new hold period
+      const newHoldPeriod = {
+        started_at: new Date(),
+        ended_at: undefined,
+        duration_seconds: undefined,
+      };
+
+      const updatedHoldPeriods = [...(task.hold_periods || []), newHoldPeriod];
+      const updatedTask = await TaskModel.update(taskId, {
+        status: 'on_hold',
+        hold_periods: updatedHoldPeriods,
+      });
       
       // Log activity
       await ActivityLogModel.create({

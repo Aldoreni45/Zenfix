@@ -11,6 +11,7 @@ import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useClients, useUsers, useManagers, useCanManage } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth-context';
 import { todayLocalISO } from '@/lib/date-utils';
+import { getUserDisplayName } from '@/lib/utils';
 
 const TASK_TYPES = [
   { value: 'shoot_video', label: 'Shoot Video' },
@@ -206,7 +207,7 @@ export default function CreateTaskPage() {
               <option value="" className="bg-slate-900">Unassigned</option>
               {(allUsers || []).map((u: any) => (
                 <option key={u.id} value={u.id} className="bg-slate-900">
-                  {u.full_name || u.username} — {u.role_name || u.role}
+                  {getUserDisplayName(u)} — {u.role_name || u.role}
                 </option>
               ))}
             </select>

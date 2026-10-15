@@ -20,7 +20,7 @@ export async function GET(
           const author = await UserModel.findByNumericId(comment.author_id);
           return {
             ...comment,
-            author_name: author ? `${author.first_name} ${author.last_name}` : 'Unknown',
+            author_name: author?.username || 'Unknown',
           };
         })
       );

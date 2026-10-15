@@ -34,6 +34,15 @@ export interface TaskDocument {
   task_type: string;
   drive_link?: string;
   completion_notes?: string;
+  // Hold tracking for work efficiency
+  hold_periods: Array<{
+    started_at: Date;
+    ended_at?: Date;
+    duration_seconds?: number;
+  }>;
+  total_hold_seconds: number;
+  actual_work_seconds: number;
+  work_efficiency_percent: number;
   created_at: Date;
   updated_at: Date;
 }
@@ -70,6 +79,10 @@ export class TaskModel {
       ...data,
       numeric_id,
       task_id: `T-${numeric_id.toString().padStart(6, '0')}`,
+      hold_periods: data.hold_periods || [],
+      total_hold_seconds: data.total_hold_seconds || 0,
+      actual_work_seconds: data.actual_work_seconds || 0,
+      work_efficiency_percent: data.work_efficiency_percent || 0,
       created_at: now,
       updated_at: now,
     };

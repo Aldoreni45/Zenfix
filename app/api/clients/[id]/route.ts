@@ -26,7 +26,7 @@ async function getHandler(request: NextRequest, user: any, id: string) {
     if (clientDoc.assigned_manager_id) {
       const manager = await UserModel.findByNumericId(clientDoc.assigned_manager_id);
       if (manager) {
-        manager_name = `${manager.first_name} ${manager.last_name}`.trim() || manager.username;
+        manager_name = manager.username;
         manager_email = manager.email;
       }
     }
@@ -156,7 +156,7 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
     if (updatedClient.assigned_manager_id) {
       const manager = await UserModel.findByNumericId(updatedClient.assigned_manager_id);
       if (manager) {
-        manager_name = `${manager.first_name} ${manager.last_name}`.trim() || manager.username;
+        manager_name = manager.username;
         manager_email = manager.email;
       }
     }

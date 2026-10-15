@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
             const employee = await UserModel.findByNumericId(salary.employee_id);
             return {
               ...salary,
-              employee_name: employee ? `${employee.first_name} ${employee.last_name}` : salary.employee_name,
+              employee_name: employee?.username || salary.employee_name,
               employee_email: employee ? employee.email : salary.employee_email,
             };
           }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
       const salary = await SalaryModel.create({
         employee_id: Number(employee_id),
-        employee_name: `${employee.first_name} ${employee.last_name}`,
+        employee_name: employee.username,
         employee_email: employee.email,
         amount: Number(amount),
         month,

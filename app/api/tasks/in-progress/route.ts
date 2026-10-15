@@ -39,7 +39,7 @@ async function handler(request: NextRequest, user: any) {
         let assigned_to_name = null;
         if (t.assigned_to_id) {
           const assignee = await UserModel.findByNumericId(t.assigned_to_id);
-          assigned_to_name = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() || assignee.username : null;
+          assigned_to_name = assignee?.username || null;
         }
 
         const is_overdue = t.due_date && isOverdueByDate(t.due_date) && t.status !== TaskStatus.COMPLETED && t.status !== TaskStatus.CANCELLED;

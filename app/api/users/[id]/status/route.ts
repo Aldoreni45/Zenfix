@@ -40,8 +40,6 @@ async function handler(request: NextRequest, user: any, id: string) {
       id: updatedUser.numeric_id,
       username: updatedUser.username,
       email: updatedUser.email,
-      first_name: updatedUser.first_name,
-      last_name: updatedUser.last_name,
       full_name: formatUserName(updatedUser),
       phone: updatedUser.phone,
       role: updatedUser.role,

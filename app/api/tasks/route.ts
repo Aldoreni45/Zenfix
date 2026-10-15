@@ -64,19 +64,19 @@ async function handler(request: NextRequest, user: any) {
         let assigned_to_name = null;
         if (t.assigned_to_id) {
           const assignee = await UserModel.findByNumericId(t.assigned_to_id);
-          assigned_to_name = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() || assignee.username : null;
+          assigned_to_name = assignee?.username || null;
         }
 
         let assigned_manager_name = null;
         if (t.assigned_manager_id) {
           const manager = await UserModel.findByNumericId(t.assigned_manager_id);
-          assigned_manager_name = manager ? `${manager.first_name} ${manager.last_name}`.trim() || manager.username : null;
+          assigned_manager_name = manager?.username || null;
         }
 
         let created_by_name = null;
         if (t.created_by_id) {
           const creator = await UserModel.findByNumericId(t.created_by_id);
-          created_by_name = creator ? `${creator.first_name} ${creator.last_name}`.trim() || creator.username : null;
+          created_by_name = creator?.username || null;
         }
 
         let video_code = null;
@@ -237,19 +237,25 @@ async function createHandler(request: NextRequest, user: any) {
       due_date: dueDateParsed || undefined,
       due_time,
       parent_task_id: parent_task || null,
-      notes,
+      task_type: task_type || null,
+      original_due_date: dueDateParsed || undefined,
+      notes: notes || '',
       attachments: attachments || [],
-      estimated_hours: estimated_hours || 0,
+      estimated_hours: estimated_hours || undefined,
       actual_hours: undefined,
       rejection_reason: undefined,
       rejection_count: 0,
+      carried_forward_from_id: undefined,
       carry_forward_count: 0,
-      task_type: task_type || 'general',
-      video_stage_id: video_stage || null,
-      original_due_date: dueDateParsed || undefined,
+      video_stage_id: video_stage || undefined,
+      drive_link: undefined,
+      completion_notes: undefined,
+      hold_periods: [],
+      total_hold_seconds: 0,
+      actual_work_seconds: 0,
+      work_efficiency_percent: 0,
     });
 
-    // Django: Set original_due_date if due_date provided and not already set
     if (newTask.due_date && !newTask.original_due_date) {
       await TaskModel.update(newTask.numeric_id, {
         original_due_date: newTask.due_date
@@ -280,7 +286,7 @@ async function createHandler(request: NextRequest, user: any) {
     let assigned_to_name = null;
     if (newTask.assigned_to_id) {
       const assignee = await UserModel.findByNumericId(newTask.assigned_to_id);
-      assigned_to_name = assignee ? `${assignee.first_name} ${assignee.last_name}`.trim() || assignee.username : null;
+      assigned_to_name = assignee?.username || null;
     }
 
     const is_overdue = newTask.due_date && isOverdueByDate(newTask.due_date) && newTask.status !== TaskStatus.COMPLETED;

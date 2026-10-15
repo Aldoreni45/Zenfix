@@ -54,13 +54,13 @@ async function handler(request: NextRequest, user: any) {
         let reviewer_name = null;
         if (a.reviewer_id) {
           const reviewer = await UserModel.findByNumericId(a.reviewer_id);
-          reviewer_name = reviewer ? `${reviewer.first_name} ${reviewer.last_name}`.trim() || reviewer.username : null;
+          reviewer_name = reviewer?.username || null;
         }
 
         let requested_by_name = null;
         if (a.requested_by_id) {
           const requester = await UserModel.findByNumericId(a.requested_by_id);
-          requested_by_name = requester ? `${requester.first_name} ${requester.last_name}`.trim() || requester.username : null;
+          requested_by_name = requester?.username || null;
         }
 
         return {
@@ -189,13 +189,13 @@ async function createHandler(request: NextRequest, user: any) {
     let reviewer_name = null;
     if (newApproval.reviewer_id) {
       const reviewer = await UserModel.findByNumericId(newApproval.reviewer_id);
-      reviewer_name = reviewer ? `${reviewer.first_name} ${reviewer.last_name}`.trim() || reviewer.username : null;
+      reviewer_name = reviewer?.username || null;
     }
 
     let requested_by_name = null;
     if (newApproval.requested_by_id) {
       const requester = await UserModel.findByNumericId(newApproval.requested_by_id);
-      requested_by_name = requester ? `${requester.first_name} ${requester.last_name}`.trim() || requester.username : null;
+      requested_by_name = requester?.username || null;
     }
 
     const approvalResponse = {

@@ -18,7 +18,7 @@ async function handler(request: NextRequest, user: any) {
           id: n.numeric_id,
           receiver: n.recipient_id,
           receiver_email: recipient?.email || '',
-          receiver_name: recipient ? `${recipient.first_name} ${recipient.last_name}`.trim() || recipient.username : '',
+          receiver_name: recipient?.username || '',
           title: n.title,
           message: n.message,
           type: n.notification_type,

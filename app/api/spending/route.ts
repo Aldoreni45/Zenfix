@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
           return {
             ...spending,
             client_name: client?.name || spending.client_name,
-            employee_name: employee ? `${employee.first_name} ${employee.last_name}` : spending.employee_name,
+            employee_name: employee?.username || spending.employee_name,
             employee_email: employee?.email || spending.employee_email,
           };
         })
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         client_id,
         client_name: client.name,
         employee_id,
-        employee_name: `${employee.first_name} ${employee.last_name}`,
+        employee_name: employee.username,
         employee_email: employee.email,
         amount: Number(amount),
         description,
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         location: location || '',
         date: new Date(date),
         created_by: user.userId,
-        created_by_name: creator ? `${creator.first_name} ${creator.last_name}`.trim() || creator.username : user.username,
+        created_by_name: creator?.username || user.username,
         notes: notes || '',
         receipt_url: receipt_url || '',
         status: 'pending',
