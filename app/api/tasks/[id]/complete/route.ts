@@ -9,6 +9,7 @@ import { TaskStatus } from '@/lib/types/models';
 import { loadProtocolContent } from '@/lib/api-helpers/video-protocol';
 import { handleError, handleForbidden, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
+import { computeTaskWorkStats } from '@/lib/task-work-stats';
 
 async function handler(request: NextRequest, user: any, id: string) {
   try {
@@ -58,43 +59,39 @@ async function handler(request: NextRequest, user: any, id: string) {
       return handleValidationError('Drive link is required to complete a task.');
     }
 
-    // Calculate final work efficiency
+    const completedAt = new Date();
+
+    // Calculate final work efficiency. Close any still-open hold period (the
+    // UI prevents completing while on hold, but be defensive) and then let the
+    // shared helper derive the exact same numbers the API returns on read.
     const holdPeriods = taskDoc.hold_periods || [];
-    let totalHoldSeconds = taskDoc.total_hold_seconds || 0;
-    
-    // Check if there's an active hold period (shouldn't happen, but handle it)
     const activeHoldIndex = holdPeriods.findIndex(hp => !hp.ended_at);
     if (activeHoldIndex !== -1) {
-      // Close the active hold period
-      const holdEndedAt = new Date();
       const holdStartedAt = new Date(holdPeriods[activeHoldIndex].started_at);
-      const holdDurationSeconds = Math.floor((holdEndedAt.getTime() - holdStartedAt.getTime()) / 1000);
-      holdPeriods[activeHoldIndex].ended_at = holdEndedAt;
-      holdPeriods[activeHoldIndex].duration_seconds = holdDurationSeconds;
-      totalHoldSeconds += holdDurationSeconds;
+      holdPeriods[activeHoldIndex].ended_at = completedAt;
+      holdPeriods[activeHoldIndex].duration_seconds = Math.floor(
+        (completedAt.getTime() - holdStartedAt.getTime()) / 1000
+      );
     }
 
-    // Calculate total elapsed time
-    const startTime = taskDoc.started_at ? new Date(taskDoc.started_at) : new Date(taskDoc.created_at);
-    const endTime = new Date();
-    const totalElapsedSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-    
-    // Calculate final work efficiency
-    let workEfficiency = 0;
-    if (totalElapsedSeconds > 0) {
-      const actualWorkSeconds = totalElapsedSeconds - totalHoldSeconds;
-      workEfficiency = Math.max(0, Math.min(100, (actualWorkSeconds / totalElapsedSeconds) * 100));
-    }
+    const workStats = computeTaskWorkStats(
+      {
+        ...taskDoc,
+        hold_periods: holdPeriods,
+        completed_at: completedAt,
+      },
+      completedAt
+    );
 
     const updateData: any = {
       status: TaskStatus.COMPLETED,
-      completed_at: new Date(),
+      completed_at: completedAt,
       drive_link: drive_link.trim(),
       completion_notes: completion_notes || undefined,
       hold_periods: holdPeriods,
-      total_hold_seconds: totalHoldSeconds,
-      actual_work_seconds: totalElapsedSeconds - totalHoldSeconds,
-      work_efficiency_percent: Math.round(workEfficiency),
+      total_hold_seconds: workStats.total_hold_seconds,
+      actual_work_seconds: workStats.actual_work_seconds,
+      work_efficiency_percent: workStats.work_efficiency_percent,
     };
 
     if (notes !== undefined) {

@@ -759,6 +759,14 @@ export interface Task {
   rejection_count: number;
   drive_link?: string;
   completion_notes?: string;
+  hold_periods?: Array<{
+    started_at?: string;
+    ended_at?: string | null;
+    duration_seconds?: number | null;
+  }>;
+  total_hold_seconds?: number;
+  actual_work_seconds?: number;
+  work_efficiency_percent?: number;
   submitted_by_name?: string;
   submitted_at?: string;
   is_overdue: boolean;
@@ -907,6 +915,11 @@ export interface TaskHistoryItem {
   due_date: string | null;
   due_time?: string | null;
   completed_at?: string | null;
+  started_at?: string | null;
+  total_seconds?: number | null;
+  total_hold_seconds?: number;
+  actual_work_seconds?: number | null;
+  work_efficiency_percent?: number | null;
   created_at: string;
   updated_at: string;
   carry_forward_count: number;
@@ -923,8 +936,15 @@ export interface TaskHistoryPage {
 
 export interface TaskHistoryUserDetail {
   user: TaskHistoryUser & { status: string };
+  filter?: {
+    date: string | null;
+    start: string | null;
+    end: string | null;
+    all_time: boolean;
+  };
   counts: TaskHistorySummary;
   recent_tasks: TaskHistoryItem[];
+  completed_tasks?: TaskHistoryItem[];
   activity: ActivityLog[];
   all_time: { assigned: number; completed: number; pending: number; overdue: number };
 }

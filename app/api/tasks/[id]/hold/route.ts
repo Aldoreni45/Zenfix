@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/middleware';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
+import { computeTaskWorkStats } from '@/lib/task-work-stats';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,9 +43,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       };
 
       const updatedHoldPeriods = [...(task.hold_periods || []), newHoldPeriod];
+
+      // Snapshot the stats at the moment work is paused (the open period keeps
+      // growing in the API response while the task stays on hold).
+      const workStats = computeTaskWorkStats({
+        ...task,
+        status: 'on_hold',
+        hold_periods: updatedHoldPeriods,
+      });
+
       const updatedTask = await TaskModel.update(taskId, {
         status: 'on_hold',
         hold_periods: updatedHoldPeriods,
+        total_hold_seconds: workStats.total_hold_seconds,
+        actual_work_seconds: workStats.actual_work_seconds,
+        work_efficiency_percent: workStats.work_efficiency_percent,
       });
       
       // Log activity

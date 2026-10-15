@@ -709,8 +709,15 @@ export interface TaskHistoryUserDetail {
     department_name?: string | null;
     status: UserStatus;
   };
+  filter?: {
+    date: string | null;
+    start: string | null;
+    end: string | null;
+    all_time: boolean;
+  };
   counts: TaskHistorySummary;
   recent_tasks: Task[];
+  completed_tasks?: Task[];
   activity: ActivityLog[];
   all_time: {
     assigned: number;

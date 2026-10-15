@@ -50,6 +50,12 @@ async function handler(request: NextRequest, user: any, id: string) {
       // Clear any previous completion so a restarted (e.g. rejected) task
       // measures a fresh cycle for "time taken".
       completed_at: undefined,
+      // Reset hold tracking together with the new start time so the fresh
+      // cycle's hold time and efficiency start from zero.
+      hold_periods: [],
+      total_hold_seconds: 0,
+      actual_work_seconds: 0,
+      work_efficiency_percent: 0,
     });
 
     if (!updatedTask) {

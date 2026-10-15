@@ -13,6 +13,7 @@ import { formatDate } from '@/lib/api-helpers/response-formatter';
 import { handleError, handleForbidden, handleValidationError } from '@/lib/api-helpers/error-handler';
 import { logActivity } from '@/lib/api-helpers/activity-logger';
 import { getDaysUntilDue, isOverdueByDate, parseDueDateUTC, toDateOnlyISO } from '@/lib/date-utils';
+import { computeTaskWorkStats } from '@/lib/task-work-stats';
 
 async function getHandler(request: NextRequest, user: any, id: string) {
   try {
@@ -43,22 +44,26 @@ async function getHandler(request: NextRequest, user: any, id: string) {
     let assigned_to_name = null;
     if (taskDoc.assigned_to_id) {
       const assignee = await UserModel.findByNumericId(taskDoc.assigned_to_id);
-      assigned_to_name = assignee?.username || null;
+      assigned_to_name = assignee ? formatUserName(assignee) : null;
     }
 
     let assigned_manager_name = null;
     if (taskDoc.assigned_manager_id) {
       const manager = await UserModel.findByNumericId(taskDoc.assigned_manager_id);
-      assigned_manager_name = manager?.username || null;
+      assigned_manager_name = manager ? formatUserName(manager) : null;
     }
 
     let created_by_name = null;
     if (taskDoc.created_by_id) {
       const creator = await UserModel.findByNumericId(taskDoc.created_by_id);
-      created_by_name = creator?.username || null;
+      created_by_name = creator ? formatUserName(creator) : null;
     }
 
     const is_overdue = taskDoc.due_date && isOverdueByDate(taskDoc.due_date) && taskDoc.status !== TaskStatus.COMPLETED && taskDoc.status !== TaskStatus.CANCELLED;
+
+    // Work stats are computed live so an in-progress/on-hold task always shows
+    // up-to-the-second hold time and efficiency instead of a stale 0.
+    const work_stats = computeTaskWorkStats(taskDoc);
 
     const taskResponse = {
       id: taskDoc.numeric_id,
@@ -101,6 +106,10 @@ async function getHandler(request: NextRequest, user: any, id: string) {
       video_stage_id: taskDoc.video_stage_id,
       drive_link: taskDoc.drive_link,
       completion_notes: taskDoc.completion_notes,
+      hold_periods: taskDoc.hold_periods || [],
+      total_hold_seconds: work_stats.total_hold_seconds,
+      actual_work_seconds: work_stats.actual_work_seconds,
+      work_efficiency_percent: work_stats.work_efficiency_percent,
       is_overdue,
       comments: [],
       created_at: formatDate(taskDoc.created_at),
@@ -315,10 +324,25 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
 
     let assigned_to_name = null;
     if (updatedTask.assigned_to_id) {
-      assigned_to_name = formatUserName(updatedTask.assigned_to_id);
+      const assignee = await UserModel.findByNumericId(updatedTask.assigned_to_id);
+      assigned_to_name = assignee ? formatUserName(assignee) : null;
+    }
+
+    let assigned_manager_name = null;
+    if (updatedTask.assigned_manager_id) {
+      const manager = await UserModel.findByNumericId(updatedTask.assigned_manager_id);
+      assigned_manager_name = manager ? formatUserName(manager) : null;
+    }
+
+    let created_by_name = null;
+    if (updatedTask.created_by_id) {
+      const creator = await UserModel.findByNumericId(updatedTask.created_by_id);
+      created_by_name = creator ? formatUserName(creator) : null;
     }
 
     const is_overdue = updatedTask.due_date && isOverdueByDate(updatedTask.due_date) && updatedTask.status !== TaskStatus.COMPLETED;
+
+    const work_stats = computeTaskWorkStats(updatedTask);
 
     const taskResponse = {
       id: updatedTask.numeric_id,
@@ -332,7 +356,9 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
       assigned_to_name,
       assigned_by_id: updatedTask.assigned_by_id,
       assigned_manager_id: updatedTask.assigned_manager_id,
+      assigned_manager_name,
       created_by_id: updatedTask.created_by_id,
+      created_by_name,
       department_id: updatedTask.department_id,
       priority: updatedTask.priority,
       priority_name: formatPriorityName(updatedTask.priority),
@@ -359,6 +385,10 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
       video_stage_id: updatedTask.video_stage_id,
       drive_link: updatedTask.drive_link,
       completion_notes: updatedTask.completion_notes,
+      hold_periods: updatedTask.hold_periods || [],
+      total_hold_seconds: work_stats.total_hold_seconds,
+      actual_work_seconds: work_stats.actual_work_seconds,
+      work_efficiency_percent: work_stats.work_efficiency_percent,
       is_overdue,
       comments: [],
       created_at: formatDate(updatedTask.created_at),

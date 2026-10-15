@@ -17,6 +17,7 @@ import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useEmployees } from '@/lib/hooks';
 import { formatDueDate, getDueDateStatus, todayLocalISO, formatDateTime, formatDuration, formatSeconds } from '@/lib/date-utils';
+import { computeTaskWorkStats } from '@/lib/task-work-stats';
 
 function getStatusColor(status: string, isOverdue: boolean) {
   if (isOverdue) return 'bg-red-500/10 text-red-400 border-red-500/20';
@@ -58,6 +59,7 @@ export default function TaskDetailPage() {
   const [reassigning, setReassigning] = useState(false);
   const [deletePanel, setDeletePanel] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const fetchTask = useCallback(async () => {
     setLoading(true);
@@ -74,6 +76,16 @@ export default function TaskDetailPage() {
   useEffect(() => {
     fetchTask();
   }, [fetchTask]);
+
+  // Keep the work-efficiency numbers ticking live while the task is running or
+  // on hold. Completed/cancelled tasks are static and do not need a timer.
+  useEffect(() => {
+    if (!task) return;
+    const current = String(task.status || '').toLowerCase();
+    if (current !== 'in_progress' && current !== 'on_hold') return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [task]);
 
   const runAction = async (action: () => Promise<any>, successMessage: string) => {
     setActing(true);
@@ -237,6 +249,9 @@ export default function TaskDetailPage() {
   const isAssignee = Boolean(idsMatch || namesMatch);
   const isOverdue = task.is_overdue;
   const status = String(task.status || '').toLowerCase();
+  // Live work stats: recomputed every second while running/on hold so the
+  // panel reflects real elapsed and hold time instead of a static 0.
+  const workStats = computeTaskWorkStats(task, now);
   const isOpen = ['pending', 'assigned', 'in_progress', 'on_hold', 'blocked', 'submitted', 'rejected'].includes(status);
   const isVideoTask = Boolean(task.video_stage_id);
   const isLockedStatus = status === 'completed' || status === 'cancelled';
@@ -339,20 +354,20 @@ export default function TaskDetailPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-800/50 rounded-xl border border-white/5">
             <div className="text-center">
               <p className="text-xs text-slate-500 mb-1">Work Efficiency</p>
-              <p className={cn('text-2xl font-bold', task.work_efficiency_percent >= 70 ? 'text-green-400' : task.work_efficiency_percent >= 40 ? 'text-yellow-400' : 'text-red-400')}>
-                {task.work_efficiency_percent || 0}%
+              <p className={cn('text-2xl font-bold', workStats.work_efficiency_percent >= 70 ? 'text-green-400' : workStats.work_efficiency_percent >= 40 ? 'text-yellow-400' : 'text-red-400')}>
+                {workStats.work_efficiency_percent}%
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-slate-500 mb-1">Total Hold Time</p>
               <p className="text-lg font-semibold text-orange-400">
-                {formatSeconds(task.total_hold_seconds || 0)}
+                {formatSeconds(workStats.total_hold_seconds)}
               </p>
             </div>
             <div className="text-center">
               <p className="text-xs text-slate-500 mb-1">Actual Work Time</p>
               <p className="text-lg font-semibold text-cyan-400">
-                {formatSeconds(task.actual_work_seconds || 0)}
+                {formatSeconds(workStats.actual_work_seconds)}
               </p>
             </div>
           </div>

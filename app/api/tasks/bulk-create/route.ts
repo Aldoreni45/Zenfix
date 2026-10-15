@@ -113,6 +113,10 @@ async function handler(request: NextRequest, user: any) {
         task_type: task_type || 'general',
         video_stage_id: video_stage || null,
         original_due_date: due_date ? parseDueDateUTC(due_date) || undefined : undefined,
+        hold_periods: [],
+        total_hold_seconds: 0,
+        actual_work_seconds: 0,
+        work_efficiency_percent: 0,
       });
 
       // Send notification

@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth/middleware';
 import { TaskModel } from '@/lib/mongodb/models/task';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
+import { computeTaskWorkStats } from '@/lib/task-work-stats';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,33 +51,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const holdStartedAt = new Date(holdPeriods[activeHoldIndex].started_at);
       const holdDurationSeconds = Math.floor((holdEndedAt.getTime() - holdStartedAt.getTime()) / 1000);
 
-      // Update the hold period
+      // Update the hold period (close it)
       holdPeriods[activeHoldIndex].ended_at = holdEndedAt;
       holdPeriods[activeHoldIndex].duration_seconds = holdDurationSeconds;
 
-      // Calculate total hold time
-      const newTotalHoldSeconds = (task.total_hold_seconds || 0) + holdDurationSeconds;
-
-      // Calculate work efficiency
-      // Total time from start to now (or completion if completed)
-      const startTime = task.started_at ? new Date(task.started_at) : new Date(task.created_at);
-      const endTime = task.completed_at ? new Date(task.completed_at) : new Date();
-      const totalElapsedSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
-      
-      // Work efficiency = (Total time - Hold time) / Total time * 100
-      // If total time is 0, efficiency is 0
-      let workEfficiency = 0;
-      if (totalElapsedSeconds > 0) {
-        const actualWorkSeconds = totalElapsedSeconds - newTotalHoldSeconds;
-        workEfficiency = Math.max(0, Math.min(100, (actualWorkSeconds / totalElapsedSeconds) * 100));
-      }
+      // Recompute totals from the full hold history so the persisted snapshot
+      // always matches what the API returns / the UI displays.
+      const workStats = computeTaskWorkStats({
+        ...task,
+        hold_periods: holdPeriods,
+      });
 
       const updatedTask = await TaskModel.update(taskId, {
         status: 'in_progress',
         hold_periods: holdPeriods,
-        total_hold_seconds: newTotalHoldSeconds,
-        actual_work_seconds: totalElapsedSeconds - newTotalHoldSeconds,
-        work_efficiency_percent: Math.round(workEfficiency),
+        total_hold_seconds: workStats.total_hold_seconds,
+        actual_work_seconds: workStats.actual_work_seconds,
+        work_efficiency_percent: workStats.work_efficiency_percent,
       });
       
       // Log activity
