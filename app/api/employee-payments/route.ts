@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireOwner } from '@/lib/auth/middleware';
 import { EmployeePaymentModel } from '@/lib/mongodb/models/employee-payment';
+import { SpendingModel } from '@/lib/mongodb/models/spending';
 import { UserModel } from '@/lib/mongodb/models/user';
 
 export async function GET(request: NextRequest) {
@@ -83,6 +84,22 @@ export async function POST(request: NextRequest) {
         created_by: user.userId,
         created_by_name: creator?.username || user.username,
       });
+
+      // Mark the employee's "Yet to Pay" spendings as paid (oldest first) up to
+      // the amount paid, so already-paid spendings are never asked for again.
+      const paidAmount = Number(amount_paid || 0);
+      if (paidAmount > 0) {
+        const pendingSpendings = (
+          await SpendingModel.findAll({ employee_id: Number(employee_id), status: 'pending' })
+        ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        let remaining = paidAmount;
+        for (const spending of pendingSpendings) {
+          if (remaining <= 0) break;
+          await SpendingModel.update(spending.numeric_id, { status: 'approved' });
+          remaining -= spending.amount;
+        }
+      }
 
       return NextResponse.json(payment, { status: 201 });
     } catch (error) {

@@ -492,6 +492,7 @@ export const apiEndpoints = {
   clientProgress: (id: number) => `/clients/${id}/progress`,
   clientMonthlyTarget: (id: number) => `/clients/${id}/monthly_target`,
   clientMonthlyProtocol: (id: number) => `/clients/${id}/monthly_protocol`,
+  clientTransactions: (id: number) => `/clients/${id}/transactions`,
   allClientProgress: '/clients/all_progress',
   
   // Monthly Targets
@@ -645,6 +646,7 @@ export interface Client {
   company_name: string;
   contact_person: string;
   phone: string;
+  follow_up_number?: string;
   email: string;
   address?: string;
   instagram_username?: string;

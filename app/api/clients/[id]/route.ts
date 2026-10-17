@@ -38,6 +38,7 @@ async function getHandler(request: NextRequest, user: any, id: string) {
       contact_person: clientDoc.contact_person,
       email: clientDoc.email,
       phone: clientDoc.phone,
+      follow_up_number: clientDoc.follow_up_number,
       website: clientDoc.website,
       industry: clientDoc.industry,
       description: clientDoc.description,
@@ -85,6 +86,7 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
       contact_person,
       email,
       phone,
+      follow_up_number,
       website,
       industry,
       description,
@@ -115,6 +117,16 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
         );
       }
       updateData.phone = cleanPhone;
+    }
+    if (follow_up_number !== undefined) {
+      const cleanFollowUp = normalizePhone(follow_up_number);
+      if (cleanFollowUp && !isValidPhone(cleanFollowUp)) {
+        return NextResponse.json(
+          { error: { follow_up_number: PHONE_ERROR } },
+          { status: 400 }
+        );
+      }
+      updateData.follow_up_number = cleanFollowUp;
     }
     if (website !== undefined) updateData.website = website;
     if (industry !== undefined) updateData.industry = industry;
@@ -178,6 +190,7 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
       contact_person: updatedClient.contact_person,
       email: updatedClient.email,
       phone: updatedClient.phone,
+      follow_up_number: updatedClient.follow_up_number,
       website: updatedClient.website,
       industry: updatedClient.industry,
       description: updatedClient.description,

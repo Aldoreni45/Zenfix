@@ -9,6 +9,7 @@ export interface ClientDocument {
   contact_person?: string;
   email?: string;
   phone?: string;
+  follow_up_number?: string;
   website?: string;
   industry?: string;
   description?: string;

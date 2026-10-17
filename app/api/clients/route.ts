@@ -91,6 +91,7 @@ async function handler(request: NextRequest, user: any) {
           contact_person: c.contact_person,
           email: c.email,
           phone: c.phone,
+          follow_up_number: c.follow_up_number,
           website: c.website,
           industry: c.industry,
           description: c.description,
@@ -138,6 +139,7 @@ async function createHandler(request: NextRequest, user: any) {
       contact_person,
       email,
       phone,
+      follow_up_number,
       website,
       industry,
       description,
@@ -157,10 +159,25 @@ async function createHandler(request: NextRequest, user: any) {
       return handleValidationError('Name is required');
     }
 
-    // Phone is optional, but when provided it must be exactly 10 digits.
+    // Phone is required and must be exactly 10 digits.
     const cleanPhone = normalizePhone(phone);
-    if (cleanPhone && !isValidPhone(cleanPhone)) {
+    if (!cleanPhone) {
+      return NextResponse.json(
+        { error: { phone: 'Phone number is required.' } },
+        { status: 400 }
+      );
+    }
+    if (!isValidPhone(cleanPhone)) {
       return NextResponse.json({ error: { phone: PHONE_ERROR } }, { status: 400 });
+    }
+
+    // Follow-up number is optional, but when provided it must be exactly 10 digits.
+    const cleanFollowUp = normalizePhone(follow_up_number);
+    if (cleanFollowUp && !isValidPhone(cleanFollowUp)) {
+      return NextResponse.json(
+        { error: { follow_up_number: PHONE_ERROR } },
+        { status: 400 }
+      );
     }
 
     // Validate assigned_manager
@@ -179,6 +196,7 @@ async function createHandler(request: NextRequest, user: any) {
       contact_person,
       email,
       phone: cleanPhone,
+      follow_up_number: cleanFollowUp,
       website,
       industry,
       description,
@@ -237,6 +255,7 @@ async function createHandler(request: NextRequest, user: any) {
       contact_person: newClient.contact_person,
       email: newClient.email,
       phone: newClient.phone,
+      follow_up_number: newClient.follow_up_number,
       website: newClient.website,
       industry: newClient.industry,
       description: newClient.description,

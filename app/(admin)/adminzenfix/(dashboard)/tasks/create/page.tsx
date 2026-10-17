@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Loader2, Save, ArrowLeft, Calendar, User } from 'lucide-react';
+import { Loader2, Save, ArrowLeft, Calendar, User, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -40,6 +40,7 @@ export default function CreateTaskPage() {
 
   const [form, setForm] = useState({
     title: '',
+    client: '',
     task_type: 'general',
     priority: 'medium',
     due_date: '',
@@ -81,6 +82,11 @@ export default function CreateTaskPage() {
       setSubmitting(false);
       return;
     }
+    if (!form.client) {
+      setFieldErrors({ client: 'Client is required' });
+      setSubmitting(false);
+      return;
+    }
     if (!form.assigned_to) {
       setFieldErrors({ assigned_to: 'Assigned To is required' });
       setSubmitting(false);
@@ -99,6 +105,7 @@ export default function CreateTaskPage() {
 
     const payload: Record<string, any> = {
       title: form.title.trim(),
+      client: Number(form.client),
       task_type: form.task_type,
       priority: form.priority,
       due_date: form.due_date,
@@ -133,6 +140,10 @@ export default function CreateTaskPage() {
 
     setSubmitting(false);
   };
+
+  const clientOptions = (clients || [])
+    .slice()
+    .sort((a: any, b: any) => String(a.name).localeCompare(String(b.name)));
 
   return (
     <div className="space-y-6">
@@ -174,7 +185,32 @@ export default function CreateTaskPage() {
           {fieldErrors.title && <p className="text-red-400 text-xs">{fieldErrors.title}</p>}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Client */}
+          <div className="space-y-2">
+            <Label htmlFor="client" className="text-slate-300">
+              <Building2 className="inline h-3.5 w-3.5 mr-1" />
+              Client <span className="text-red-400">*</span>
+            </Label>
+            <select
+              id="client"
+              value={form.client}
+              onChange={(e) => setField('client', e.target.value)}
+              className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
+            >
+              <option value="" className="bg-slate-900">Select a client…</option>
+              {clientOptions.map((c: any) => (
+                <option key={c.id} value={c.id} className="bg-slate-900">
+                  {c.name}
+                  {c.status && c.status !== 'active'
+                    ? ` (${c.status_name || c.status})`
+                    : ''}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.client && <p className="text-red-400 text-xs">{fieldErrors.client}</p>}
+          </div>
+
           {/* Priority */}
           <div className="space-y-2">
             <Label htmlFor="priority" className="text-slate-300">Priority</Label>
@@ -213,6 +249,7 @@ export default function CreateTaskPage() {
                 </option>
               ))}
             </select>
+            {fieldErrors.assigned_to && <p className="text-red-400 text-xs">{fieldErrors.assigned_to}</p>}
           </div>
 
           {/* Due Date */}

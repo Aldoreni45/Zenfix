@@ -67,11 +67,34 @@ export async function POST(request: NextRequest) {
   return requireOwnerOrManager(async (req, user) => {
     try {
       const body = await request.json();
-      const { client_id, employee_id, amount, description, category, location, date, notes, receipt_url } = body;
+      const { client_id, employee_id, amount, description, category, location, date, status, receipt_url } = body;
 
       if (!client_id || !employee_id || !amount || !description || !category || !date) {
         return NextResponse.json(
           { error: 'client_id, employee_id, amount, description, category, and date are required' },
+          { status: 400 }
+        );
+      }
+
+      // Location is mandatory for every spending entry.
+      const cleanLocation = typeof location === 'string' ? location.trim() : '';
+      if (!cleanLocation) {
+        return NextResponse.json(
+          { error: 'location is required' },
+          { status: 400 }
+        );
+      }
+
+      // Payment status: 'paid'/'approved' → approved, 'unpaid'/'pending' → pending.
+      const normalizedStatus =
+        status === 'paid' || status === 'approved'
+          ? 'approved'
+          : status === 'unpaid' || status === 'pending'
+            ? 'pending'
+            : null;
+      if (status !== undefined && status !== '' && !normalizedStatus) {
+        return NextResponse.json(
+          { error: "status must be one of: paid, unpaid, approved, pending" },
           { status: 400 }
         );
       }
@@ -104,13 +127,14 @@ export async function POST(request: NextRequest) {
         amount: Number(amount),
         description,
         category,
-        location: location || '',
+        location: cleanLocation,
         date: new Date(date),
         created_by: user.userId,
         created_by_name: creator?.username || user.username,
-        notes: notes || '',
+        notes: '',
         receipt_url: receipt_url || '',
-        status: 'pending',
+        // 'approved' = already paid, 'pending' = yet to pay.
+        status: normalizedStatus || 'approved',
       });
 
       return NextResponse.json(spending, { status: 201 });

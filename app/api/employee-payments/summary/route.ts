@@ -20,9 +20,14 @@ export async function GET(request: NextRequest) {
             employee_name: spending.employee_name || 'Unknown',
             employee_email: spending.employee_email || '',
             total_spending: 0,
+            pending_spending: 0,
           });
         }
-        employeeMap.get(empId).total_spending += spending.amount;
+        const emp = employeeMap.get(empId);
+        emp.total_spending += spending.amount;
+        // Only "Yet to Pay" (pending) spendings are owed.
+        // "Already Paid" (approved) spendings are excluded — they are settled.
+        if (spending.status === 'pending') emp.pending_spending += spending.amount;
       });
       
       // Get all manual payment records
@@ -39,15 +44,20 @@ export async function GET(request: NextRequest) {
         const manualPayment = manualPaymentMap.get(employeeData.employee_id);
         const totalSpending = employeeData.total_spending;
         const amountPaid = manualPayment?.amount_paid || 0;
-        
+        // What is actually owed = sum of "Yet to Pay" spendings only.
+        // Spendings added as "Already Paid" never show up here.
+        const amountPending = employeeData.pending_spending;
+        const status: 'pending' | 'partial' | 'completed' =
+          amountPending <= 0 ? 'completed' : amountPaid > 0 ? 'partial' : 'pending';
+
         return {
           employee_id: employeeData.employee_id,
           employee_name: employeeData.employee_name,
           employee_email: employeeData.employee_email,
           total_spending: totalSpending,
           amount_paid: amountPaid,
-          amount_pending: totalSpending - amountPaid,
-          status: manualPayment?.status || 'pending',
+          amount_pending: amountPending,
+          status,
           payment_date: manualPayment?.payment_date || null,
           notes: manualPayment?.notes || '',
           has_manual_payment: !!manualPayment,

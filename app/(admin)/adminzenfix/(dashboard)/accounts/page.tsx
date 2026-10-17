@@ -68,7 +68,7 @@ export default function AccountsPage() {
   const [paymentConfirm, setPaymentConfirm] = useState<any>(null);
 
   const [form, setForm] = useState({
-    client_id: '', employee_id: '', amount: '', description: '', category: '', location: '',
+    client_id: '', employee_id: '', amount: '', description: '', category: '', location: '', paid_status: 'unpaid',
     date: new Date().toISOString().split('T')[0], notes: '', total_spending: '', amount_paid: '', month: new Date().toISOString().slice(0, 7),
   });
 
@@ -140,6 +140,14 @@ export default function AccountsPage() {
           toast.error('Select a client, employee, and date');
           return;
         }
+        if (!form.location.trim()) {
+          toast.error('Location is required');
+          return;
+        }
+        if (!form.paid_status) {
+          toast.error('Select whether this spending is already paid or yet to pay');
+          return;
+        }
         const items = spendItems.filter((it) => it.amount !== '' || it.category !== '');
         if (items.length === 0) {
           toast.error('Add at least one amount and category');
@@ -158,9 +166,9 @@ export default function AccountsPage() {
             amount: Number(it.amount),
             description: it.category,
             category: it.category,
-            location: form.location,
+            location: form.location.trim(),
             date: form.date,
-            notes: form.notes,
+            status: form.paid_status === 'paid' ? 'approved' : 'pending',
           };
           const res = await api.post(apiEndpoints.spending, payload);
           if (res.error) toast.error(`Failed to add ${it.category}`);
@@ -224,7 +232,7 @@ export default function AccountsPage() {
 
   const resetForm = () => {
     setForm({
-      client_id: '', employee_id: '', amount: '', description: '', category: '', location: '',
+      client_id: '', employee_id: '', amount: '', description: '', category: '', location: '', paid_status: 'unpaid',
       date: new Date().toISOString().split('T')[0], notes: '', total_spending: '', amount_paid: '', month: new Date().toISOString().slice(0, 7),
     });
     setSpendItems([{ ...emptySpendItem }]);
@@ -248,7 +256,7 @@ export default function AccountsPage() {
         const payload = {
           employee_id: paymentConfirm.employee_id,
           total_spending: paymentConfirm.total_spending,
-          amount_paid: paymentConfirm.total_spending,
+          amount_paid: paymentConfirm.amount_pending,
           status: 'completed',
           payment_date: new Date().toISOString(),
           notes: 'Paid from spending summary',
@@ -258,7 +266,7 @@ export default function AccountsPage() {
         else toast.success('Payment recorded successfully');
       } else {
         const res = await api.put(apiEndpoints.employeePaymentItem(paymentConfirm.manual_payment_id), {
-          amount_paid: paymentConfirm.total_spending,
+          amount_paid: paymentConfirm.amount_pending,
           status: 'completed',
           payment_date: new Date().toISOString(),
         });
@@ -461,8 +469,20 @@ export default function AccountsPage() {
                     <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="bg-slate-800/50 border-white/10 text-white" required />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-slate-200 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</Label>
-                    <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Where was this spent?" className="bg-slate-800/50 border-white/10 text-white" />
+                    <Label className="text-slate-200 flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location *</Label>
+                    <Input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} placeholder="Where was this spent?" className="bg-slate-800/50 border-white/10 text-white" required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-slate-200 flex items-center gap-1.5"><Wallet className="h-3.5 w-3.5" /> Payment Status *</Label>
+                    <select
+                      value={form.paid_status}
+                      onChange={(e) => setForm({ ...form, paid_status: e.target.value })}
+                      className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white"
+                      required
+                    >
+                      <option value="unpaid">Yet to Pay</option>
+                      <option value="paid">Already Paid</option>
+                    </select>
                   </div>
 
                   {/* Multiple spending line items */}
@@ -519,11 +539,6 @@ export default function AccountsPage() {
                     >
                       <Plus className="h-4 w-4 mr-2" /> Add Item
                     </Button>
-                  </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <Label className="text-slate-200">Notes</Label>
-                    <textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Additional details..." className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white" />
                   </div>
                 </>
               )}

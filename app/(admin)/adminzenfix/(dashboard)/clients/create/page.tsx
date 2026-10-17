@@ -11,6 +11,7 @@ import {
   Loader2,
   Mail,
   Phone,
+  PhoneCall,
   Video,
   User as UserIcon,
 } from 'lucide-react';
@@ -40,6 +41,7 @@ export default function CreateClientPage() {
     contact_person: '',
     email: '',
     phone: '',
+    follow_up_number: '',
     monthly_video_target: '5',
     status: 'active',
   });
@@ -88,8 +90,24 @@ export default function CreateClientPage() {
       return;
     }
 
-    if (form.phone.trim() && !isValidPhone(form.phone)) {
+    // Phone is required.
+    if (!form.phone.trim()) {
+      setFieldErrors({ phone: 'Phone number is required' });
+      toast.error('Phone number is required');
+      setSubmitting(false);
+      return;
+    }
+
+    if (!isValidPhone(form.phone)) {
       setFieldErrors({ phone: PHONE_ERROR });
+      toast.error(PHONE_ERROR);
+      setSubmitting(false);
+      return;
+    }
+
+    // Follow-up number is optional, but must be valid when provided.
+    if (form.follow_up_number.trim() && !isValidPhone(form.follow_up_number)) {
+      setFieldErrors({ follow_up_number: PHONE_ERROR });
       toast.error(PHONE_ERROR);
       setSubmitting(false);
       return;
@@ -100,6 +118,7 @@ export default function CreateClientPage() {
       contact_person: form.contact_person.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
+      follow_up_number: form.follow_up_number.trim(),
       monthly_video_target: Number(form.monthly_video_target) || 5,
       status: form.status,
     };
@@ -212,13 +231,14 @@ export default function CreateClientPage() {
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-slate-200 flex items-center gap-1.5">
                 <Phone className="h-3.5 w-3.5 text-slate-400" />
-                Phone Number
+                Phone Number <span className="text-red-400">*</span>
               </Label>
               <Input
                 id="phone"
                 type="tel"
                 inputMode="numeric"
                 maxLength={10}
+                required
                 value={form.phone}
                 onChange={(e) => setField('phone', restrictPhoneInput(e.target.value))}
                 placeholder="10-digit number"
@@ -229,6 +249,32 @@ export default function CreateClientPage() {
               />
               {fieldErrors.phone && (
                 <p className="text-xs text-red-400 mt-1">{fieldErrors.phone}</p>
+              )}
+            </div>
+
+            {/* Follow-up Number */}
+            <div className="space-y-2">
+              <Label htmlFor="follow_up_number" className="text-slate-200 flex items-center gap-1.5">
+                <PhoneCall className="h-3.5 w-3.5 text-slate-400" />
+                Follow-up Number
+              </Label>
+              <Input
+                id="follow_up_number"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                value={form.follow_up_number}
+                onChange={(e) => setField('follow_up_number', restrictPhoneInput(e.target.value))}
+                placeholder="10-digit number"
+                className={cn(
+                  'bg-slate-800/50 border-white/10 text-white placeholder:text-slate-500',
+                  fieldErrors.follow_up_number && 'border-red-500/80 focus-visible:ring-red-500'
+                )}
+              />
+              {fieldErrors.follow_up_number ? (
+                <p className="text-xs text-red-400 mt-1">{fieldErrors.follow_up_number}</p>
+              ) : (
+                <p className="text-xs text-slate-500">Optional alternate contact number</p>
               )}
             </div>
 

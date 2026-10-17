@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, requireOwner } from '@/lib/auth/middleware';
 import { EmployeePaymentModel } from '@/lib/mongodb/models/employee-payment';
+import { SpendingModel } from '@/lib/mongodb/models/spending';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,6 +44,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
       const updateData: any = {};
       if (amount_paid !== undefined) {
+        const previouslyPaid = existingPayment.amount_paid || 0;
         updateData.amount_paid = Number(amount_paid);
         updateData.amount_pending = existingPayment.total_spending - Number(amount_paid);
         
@@ -51,6 +53,21 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           updateData.payment_date = new Date();
         } else if (Number(amount_paid) > 0) {
           updateData.status = 'partial';
+        }
+
+        // Mark "Yet to Pay" spendings as paid (oldest first) for the extra amount.
+        const extraPaid = Number(amount_paid) - previouslyPaid;
+        if (extraPaid > 0) {
+          const pendingSpendings = (
+            await SpendingModel.findAll({ employee_id: existingPayment.employee_id, status: 'pending' })
+          ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+          let remaining = extraPaid;
+          for (const spending of pendingSpendings) {
+            if (remaining <= 0) break;
+            await SpendingModel.update(spending.numeric_id, { status: 'approved' });
+            remaining -= spending.amount;
+          }
         }
       }
       if (notes !== undefined) updateData.notes = notes;
