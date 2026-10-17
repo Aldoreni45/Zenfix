@@ -282,7 +282,9 @@ function VideoCard({ video, users, onAction, canManage, onRenameVideo }: { video
                     className="w-full rounded border border-white/10 bg-slate-800 px-2 py-1.5 text-xs text-white"
                   >
                     <option value="" className="bg-slate-900">Select employee...</option>
-                    {users.map((u: any) => (
+                    {users
+                      .filter((u: any) => u.status === 'active')
+                      .map((u: any) => (
                       <option key={u.id} value={u.id} className="bg-slate-900">
                         {getUserDisplayName(u)}
                       </option>

@@ -8,8 +8,9 @@ import {
   Users,
   Crown,
   Loader2,
-  Ban,
-  CheckCircle,
+  Check,
+  X,
+  Eye,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -200,7 +201,7 @@ export default function UsersPage() {
                 users.map((u: any) => (
                   <tr key={u.id} className="border-b border-white/5 hover:bg-white/5">
                     <td className="p-4">
-                      <div className="flex items-center gap-3">
+                      <Link href={`/adminzenfix/users/${u.id}`} className="flex items-center gap-3 hover:text-cyan-300 transition-colors">
                         <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-purple-600 flex items-center justify-center text-white font-semibold">
                           {(u.full_name || u.username || 'U')[0]}
                         </div>
@@ -210,7 +211,7 @@ export default function UsersPage() {
                           </p>
                           <p className="text-sm text-gray-400">{u.email || u.username}</p>
                         </div>
-                      </div>
+                      </Link>
                     </td>
                     <td className="p-4">
                       <span className={cn('px-2 py-1 rounded-full text-xs font-medium capitalize border', ROLE_COLORS[u.role] || 'bg-slate-500/10 text-slate-400')}>
@@ -228,24 +229,36 @@ export default function UsersPage() {
                     </td>
                     {isOwner && (
                       <td className="p-4">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleStatus(u.id, u.status)}
-                          disabled={updatingStatus === u.id || u.role === 'owner'}
-                          className={cn(
-                            'h-8 w-8 p-0',
-                            u.status === 'active' ? 'text-red-400 hover:text-red-300 hover:bg-red-500/10' : 'text-green-400 hover:text-green-300 hover:bg-green-500/10'
-                          )}
-                        >
-                          {updatingStatus === u.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : u.status === 'active' ? (
-                            <Ban className="h-4 w-4" />
-                          ) : (
-                            <CheckCircle className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Link href={`/adminzenfix/users/${u.id}`} title="View details">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-white hover:bg-white/5"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title={u.status === 'active' ? 'Active — click to block' : 'Blocked — click to activate'}
+                            onClick={() => handleToggleStatus(u.id, u.status)}
+                            disabled={updatingStatus === u.id || u.role === 'owner'}
+                            className={cn(
+                              'h-8 w-8 p-0',
+                              u.status === 'active' ? 'text-green-400 hover:text-green-300 hover:bg-green-500/10' : 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                            )}
+                          >
+                            {updatingStatus === u.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : u.status === 'active' ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </td>
                     )}
                   </tr>

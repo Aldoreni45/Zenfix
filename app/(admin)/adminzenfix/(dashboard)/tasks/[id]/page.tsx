@@ -531,7 +531,7 @@ export default function TaskDetailPage() {
               >
                 <option value="">Select employee...</option>
                 {(employees || [])
-                  .filter((u: any) => u.id !== task.assigned_to_id)
+                  .filter((u: any) => u.status === 'active' && u.id !== task.assigned_to_id)
                   .map((u: any) => (
                     <option key={u.id} value={u.id} className="bg-slate-900">
                       {getUserDisplayName(u)}

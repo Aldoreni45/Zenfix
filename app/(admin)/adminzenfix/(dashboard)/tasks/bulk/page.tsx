@@ -200,7 +200,9 @@ export default function BulkCreateTasksPage() {
               className="w-full h-10 rounded-xl bg-slate-800/50 border border-white/10 px-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
             >
               <option value="" className="bg-slate-900">Unassigned</option>
-              {(allUsers || []).map((u: any) => (
+              {(allUsers || [])
+                .filter((u: any) => u.status === 'active')
+                .map((u: any) => (
                 <option key={u.id} value={u.id} className="bg-slate-900">
                   {getUserDisplayName(u)} — {u.role_name || u.role}
                 </option>

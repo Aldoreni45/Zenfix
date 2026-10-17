@@ -6,7 +6,7 @@ import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
 import { ActivityAction } from '@/lib/types/models';
 import { UserStatus } from '@/lib/types/models';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
-import { checkRateLimit, clientIp, tooManyRequests } from '@/lib/api-helpers/rate-limit';
+import { checkRateLimit, clientIp, resetRateLimit, tooManyRequests } from '@/lib/api-helpers/rate-limit';
 import { logError } from '@/lib/logger';
 
 const LOGIN_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
@@ -32,11 +32,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const rateLimit = checkRateLimit(
-      `login:${clientIp(request)}:${String(username).toLowerCase()}`,
-      LOGIN_MAX_ATTEMPTS,
-      LOGIN_WINDOW_MS
-    );
+    const rateLimitKey = `login:${clientIp(request)}:${String(username).toLowerCase()}`;
+    const rateLimit = checkRateLimit(rateLimitKey, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS);
     if (!rateLimit.allowed) {
       return tooManyRequests(rateLimit.retryAfterSeconds);
     }
@@ -67,6 +64,9 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       );
     }
+
+    // Successful authentication: clear the failure budget for this key.
+    resetRateLimit(rateLimitKey);
 
     // Log login activity
     await ActivityLogModel.create({

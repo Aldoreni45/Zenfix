@@ -4,9 +4,9 @@ import { ClientModel } from '@/lib/mongodb/models/client';
 import { UserModel } from '@/lib/mongodb/models/user';
 import { formatUserName } from '@/lib/api-helpers/data-enrichment';
 import { formatDate } from '@/lib/api-helpers/response-formatter';
-import { handleError, handleValidationError } from '@/lib/api-helpers/error-handler';
+import { handleError, handleValidationError, handleForbidden } from '@/lib/api-helpers/error-handler';
 import { ActivityLogModel } from '@/lib/mongodb/models/activity-log';
-import { ActivityAction } from '@/lib/types/models';
+import { ActivityAction, UserRole } from '@/lib/types/models';
 import { normalizePhone, isValidPhone, PHONE_ERROR } from '@/lib/validation';
 
 async function getHandler(request: NextRequest, user: any, id: string) {
@@ -123,7 +123,17 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
     if (instagram_username !== undefined) updateData.instagram_username = instagram_username;
     if (instagram_url !== undefined) updateData.instagram_url = instagram_url;
     if (notes !== undefined) updateData.notes = notes;
-    if (status !== undefined) updateData.status = status;
+    if (status !== undefined) {
+      // Blocking/activating a client is owner-only, mirroring the
+      // owner-only PATCH /users/[id]/status endpoint.
+      if (user.role !== UserRole.OWNER) {
+        return handleForbidden('Only the owner can block or activate clients.');
+      }
+      if (!['active', 'inactive'].includes(status)) {
+        return handleValidationError('Invalid status');
+      }
+      updateData.status = status;
+    }
     if (assigned_team !== undefined) updateData.assigned_team_ids = assigned_team;
     if (monthly_video_target !== undefined) updateData.monthly_video_target = monthly_video_target;
     if (start_date !== undefined) updateData.start_date = start_date ? new Date(start_date) : undefined;

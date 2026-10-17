@@ -2,19 +2,46 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Plus, Search, Pencil, Users, TrendingUp, Calendar } from 'lucide-react';
+import { Plus, Search, Pencil, Users, TrendingUp, Calendar, Ban, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useClients, useCanManage } from '@/lib/hooks';
+import { useClients, useCanManage, useIsOwner } from '@/lib/hooks';
 import { cn } from '@/lib/utils';
+import { api, apiEndpoints, extractApiErrorMessage } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function ClientsPage() {
   const { data: clients, loading, error, refetch } = useClients();
   const canManage = useCanManage();
+  const isOwner = useIsOwner();
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  // Default view shows active clients only; inactive/blocked clients appear
+  // only when explicitly picked from the dropdown below.
+  const [statusFilter, setStatusFilter] = useState('active');
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
 
-  const filteredClients = clients?.filter((client: any) => {
+  const handleToggleStatus = async (clientId: number, currentStatus: string) => {
+    if (!isOwner) return;
+    
+    setUpdatingStatus(clientId);
+    try {
+      const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      const res = await api.patch(`${apiEndpoints.client(clientId)}`, { status: newStatus });
+      
+      if (res.error) {
+        toast.error(extractApiErrorMessage(res));
+      } else {
+        toast.success(`Client ${newStatus === 'active' ? 'activated' : 'blocked'} successfully`);
+        refetch();
+      }
+    } catch (err) {
+      toast.error('Failed to update client status');
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  const filteredClients = (clients?.filter((client: any) => {
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       (client.name || '').toLowerCase().includes(q) ||
@@ -25,7 +52,11 @@ export default function ClientsPage() {
     const matchesStatus = statusFilter === 'all' || client.status === statusFilter;
 
     return matchesSearch && matchesStatus;
-  }) || [];
+  }) || []).sort((a: any, b: any) => {
+    // Active clients stay on top; blocked/inactive sink to the bottom.
+    const rank = (status: string) => (status === 'active' ? 0 : 1);
+    return rank(a.status) - rank(b.status);
+  });
 
   const getProgressColor = (percentage: number) => {
     if (percentage >= 75) return 'bg-green-500';
@@ -79,9 +110,9 @@ export default function ClientsPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="bg-slate-800/50 border border-white/10 text-white rounded-lg px-4 py-2"
         >
-          <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
+          <option value="all">All Status</option>
         </select>
       </div>
 
@@ -198,28 +229,51 @@ export default function ClientsPage() {
                       )}
                     </td>
                     <td className="p-4 text-right">
-                      {canManage ? (
-                        <Link href={`/adminzenfix/clients/${client.id}?edit=1`}>
+                      <div className="flex items-center justify-end gap-1">
+                        {canManage ? (
+                          <Link href={`/adminzenfix/clients/${client.id}?edit=1`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-slate-400 hover:text-white hover:bg-white/5"
+                            >
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link href={`/adminzenfix/clients/${client.id}`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-slate-400 hover:text-white hover:bg-white/5"
+                            >
+                              View
+                            </Button>
+                          </Link>
+                        )}
+                        {isOwner && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-slate-400 hover:text-white hover:bg-white/5"
+                            title={client.status === 'active' ? 'Active — click to block' : 'Blocked — click to activate'}
+                            onClick={() => handleToggleStatus(client.id, client.status)}
+                            disabled={updatingStatus === client.id}
+                            className={cn(
+                              'h-8 w-8 p-0',
+                              client.status === 'active' ? 'text-green-400 hover:text-green-300 hover:bg-green-500/10' : 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                            )}
                           >
-                            <Pencil className="h-4 w-4 mr-2" />
-                            Edit
+                            {updatingStatus === client.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : client.status === 'active' ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <Ban className="h-4 w-4" />
+                            )}
                           </Button>
-                        </Link>
-                      ) : (
-                        <Link href={`/adminzenfix/clients/${client.id}`}>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-slate-400 hover:text-white hover:bg-white/5"
-                          >
-                            View
-                          </Button>
-                        </Link>
-                      )}
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

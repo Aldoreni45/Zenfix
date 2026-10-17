@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Edit, Trash2, Save, X, Loader2, Mail, Phone,
   Building2, Video, User as UserIcon, Target, CheckCircle2, AlertTriangle,
+  Ban,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ export default function ClientDetailPage() {
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const [form, setForm] = useState({
     name: '',
@@ -104,9 +106,11 @@ export default function ClientDetailPage() {
       contact_person: form.contact_person.trim(),
       email: form.email.trim(),
       phone: form.phone.trim(),
-      status: form.status,
       monthly_video_target: Number(form.monthly_video_target) || 5,
     };
+    // Only the owner may block/activate a client (same rule as users), so
+    // other roles never send a status field.
+    if (isOwner) payload.status = form.status;
 
     const res = await api.put(apiEndpoints.client(clientId), payload);
     setSaving(false);
@@ -129,6 +133,27 @@ export default function ClientDetailPage() {
     } else {
       toast.success('Client deleted');
       router.push('/adminzenfix/clients');
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!isOwner || !client) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const newStatus = client.status === 'active' ? 'inactive' : 'active';
+      const res = await api.patch(apiEndpoints.client(clientId), { status: newStatus });
+      
+      if (res.error) {
+        toast.error(extractApiErrorMessage(res));
+      } else {
+        toast.success(`Client ${newStatus === 'active' ? 'activated' : 'blocked'} successfully`);
+        await fetchClient();
+      }
+    } catch (err) {
+      toast.error('Failed to update client status');
+    } finally {
+      setUpdatingStatus(false);
     }
   };
 
@@ -188,10 +213,35 @@ export default function ClientDetailPage() {
               </Button>
             )}
             {isOwner && (
-              <Button onClick={handleDelete} disabled={deleting} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10">
-                {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
-                Delete
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleToggleStatus}
+                  disabled={updatingStatus}
+                  className={cn(
+                    client.status === 'active' ? 'border-red-500/50 text-red-400 hover:bg-red-500/10' : 'border-green-500/50 text-green-400 hover:bg-green-500/10'
+                  )}
+                >
+                  {updatingStatus ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : client.status === 'active' ? (
+                    <>
+                      <Ban className="h-4 w-4 mr-2" />
+                      Block
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Activate
+                    </>
+                  )}
+                </Button>
+                <Button onClick={handleDelete} disabled={deleting} variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                  {deleting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trash2 className="h-4 w-4 mr-2" />}
+                  Delete
+                </Button>
+              </>
             )}
           </div>
         )}
@@ -326,10 +376,10 @@ export default function ClientDetailPage() {
             )}
           </div>
 
-          {/* Status */}
+          {/* Status (owner-only: block/activate lives on the header button) */}
           <div className="space-y-2">
             <Label className="text-slate-200">Status</Label>
-            {editing ? (
+            {editing && isOwner ? (
               <select value={form.status} onChange={(e) => setField('status', e.target.value)} className="w-full rounded-md border border-white/10 bg-slate-800/50 px-3 py-2 text-sm text-white capitalize">
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value} className="bg-slate-900 text-white">{opt.label}</option>

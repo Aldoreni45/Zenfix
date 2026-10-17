@@ -95,6 +95,7 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
 
     const body = await request.json();
     const {
+      username,
       first_name,
       last_name,
       phone,
@@ -131,6 +132,23 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
     }
 
     const updateData: any = {};
+    if (username !== undefined) {
+      const cleanUsername = String(username).trim();
+      if (!cleanUsername) {
+        return NextResponse.json(
+          { error: 'Username is required.' },
+          { status: 400 }
+        );
+      }
+      const existingUser = await UserModel.findByUsername(cleanUsername);
+      if (existingUser && existingUser.numeric_id !== numericId) {
+        return NextResponse.json(
+          { error: 'Username is already taken.' },
+          { status: 400 }
+        );
+      }
+      updateData.username = cleanUsername;
+    }
     if (first_name !== undefined) updateData.first_name = String(first_name).trim();
     if (last_name !== undefined) updateData.last_name = String(last_name).trim();
     if (phone !== undefined) {
@@ -147,7 +165,7 @@ async function patchHandler(request: NextRequest, user: any, id: string) {
     if (avatar !== undefined) updateData.avatar = avatar;
     if (body.role !== undefined) updateData.role = body.role;
 
-    // Handle department
+    // Handle department. The payload carries the department NAME (not its id).
     if (department !== undefined) {
       if (department === null || department === '') {
         updateData.department_id = undefined;
