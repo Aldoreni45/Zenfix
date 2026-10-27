@@ -1,36 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Menu, X, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const navItems = [
-  { id: "home",         label: "Home" },
-  { id: "services",     label: "Services" },
-  { id: "process",      label: "Process" },
-  { id: "portfolio",    label: "Portfolio" },
-  { id: "pricing",      label: "Pricing" },
-  { id: "faq",          label: "FAQ" },
+  { href: "/",           label: "Home" },
+  { href: "/services/",  label: "Services" },
+  { href: "/about-us/",  label: "About" },
+  { href: "/works/",     label: "Portfolio" },
+  { href: "/testimonial/", label: "Testimonials" },
+  { href: "/contact/",   label: "Contact" },
 ];
 
 export default function Navbar() {
-  const [active, setActive]     = useState("home");
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
-      const scrollPos = window.scrollY + 100;
-      navItems.forEach(({ id }) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        if (scrollPos >= el.offsetTop && scrollPos < el.offsetTop + el.offsetHeight) {
-          setActive(id);
-        }
-      });
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
@@ -62,7 +55,7 @@ export default function Navbar() {
             
             {/* LOGO */}
             <div className="flex items-center shrink-0">
-              <Link href="#home" onClick={closeMenu}>
+              <Link href="/" onClick={closeMenu}>
                 <Image
                   src="/projects/zenfixin_logo_2.png"
                   alt="ZenFixin Logo"
@@ -79,14 +72,14 @@ export default function Navbar() {
             <nav className="hidden lg:flex flex-1 items-center justify-center gap-8">
               {navItems.map((item) => (
                 <Link
-                  key={item.id}
-                  href={`#${item.id}`}
+                  key={item.href}
+                  href={item.href}
                   className={`text-sm font-medium tracking-wide uppercase transition-colors relative group py-2 ${
-                    active === item.id ? "text-white" : "text-gray-400 hover:text-white"
+                    pathname === item.href ? "text-white" : "text-gray-400 hover:text-white"
                   }`}
                 >
                   {item.label}
-                  {active === item.id && (
+                  {pathname === item.href && (
                     <motion.div
                       layoutId="activeNavIndicator"
                       className="absolute -bottom-1 left-0 w-full h-[2px] bg-gradient-to-r from-electric-cyan via-royal-blue to-purple rounded-full shadow-[0_0_10px_rgba(6,182,212,0.5)]"
@@ -95,10 +88,10 @@ export default function Navbar() {
                 </Link>
               ))}
             </nav>
-            
+
             <div className="hidden lg:flex flex-shrink-0 items-center gap-4">
-              <Link 
-                href="#contact" 
+              <Link
+                href="/contact/"
                 className="relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-medium text-white transition-all duration-300 bg-gradient-to-r from-royal-blue to-purple rounded-full hover:scale-105 active:scale-95 hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] overflow-hidden group"
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -134,16 +127,16 @@ export default function Navbar() {
             <nav className="flex flex-col items-center gap-8">
               {navItems.map((item, i) => (
                 <motion.div
-                  key={item.id}
+                  key={item.href}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.1, duration: 0.4 }}
                 >
                   <Link
-                    href={`#${item.id}`}
+                    href={item.href}
                     onClick={closeMenu}
                     className={`text-xl md:text-2xl font-heading font-medium uppercase tracking-widest transition-all py-2 ${
-                      active === item.id ? "text-transparent bg-clip-text bg-gradient-to-r from-electric-cyan via-royal-blue to-purple" : "text-gray-400 hover:text-white"
+                      pathname === item.href ? "text-transparent bg-clip-text bg-gradient-to-r from-electric-cyan via-royal-blue to-purple" : "text-gray-400 hover:text-white"
                     }`}
                   >
                     {item.label}
@@ -156,9 +149,9 @@ export default function Navbar() {
                 transition={{ delay: navItems.length * 0.1, duration: 0.4 }}
                 className="mt-8"
               >
-                <Link 
-                  href="#contact" 
-                  onClick={closeMenu} 
+                <Link
+                  href="/contact/"
+                  onClick={closeMenu}
                   className="px-6 md:px-8 py-3 md:py-4 rounded-full bg-gradient-to-r from-electric-cyan via-royal-blue to-purple text-white font-medium tracking-wide uppercase hover:shadow-[0_0_30px_rgba(6,182,212,0.4)] active:scale-95 transition-all flex items-center gap-2 min-h-[48px]"
                 >
                   Book Strategy Call

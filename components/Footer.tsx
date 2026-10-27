@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import { Facebook, Instagram, Linkedin, Twitter, Mail, MapPin, Phone } from "lucide-react";
@@ -14,7 +16,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-16 xl:gap-20 mb-16 md:mb-20 lg:mb-24">
           
           <div className="lg:col-span-4 md:pr-6 lg:pr-8">
-            <Link href="#home" className="inline-flex items-center gap-3 mb-8">
+            <Link href="/" className="inline-flex items-center gap-3 mb-8">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-electric-cyan to-royal-blue flex items-center justify-center shadow-lg shadow-electric-cyan/20 overflow-hidden">
                 <Image src="/z_logo.png" alt="ZenFix Logo" width={40} height={40} className="w-full h-full object-contain" />
               </div>
@@ -46,33 +48,32 @@ export default function Footer() {
               <a href="#" className="w-12 h-12 rounded-full glass border border-white/10 flex items-center justify-center text-gray-400 hover:text-white hover:bg-electric-cyan hover:border-electric-cyan hover:scale-110 transition-all duration-300"><Facebook size={20} /></a>
             </div>
           </div>
-          
+
           <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-10">
             <div>
               <h4 className="text-white font-bold mb-8 uppercase tracking-widest text-sm">Company</h4>
               <ul className="space-y-5">
-                <li><Link href="#about" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">About Us</Link></li>
-                <li><Link href="#process" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Our Process</Link></li>
-                <li><Link href="#portfolio" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Case Studies</Link></li>
-                <li><Link href="#contact" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Careers</Link></li>
+                <li><Link href="/about-us/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">About Us</Link></li>
+                <li><Link href="/services/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Our Process</Link></li>
+                <li><Link href="/works/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Case Studies</Link></li>
+                <li><Link href="/contact/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Careers</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-white font-bold mb-8 uppercase tracking-widest text-sm">Services</h4>
               <ul className="space-y-5">
-                <li><Link href="#services" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">SEO Mastery</Link></li>
-                <li><Link href="#services" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Google Ads</Link></li>
-                <li><Link href="#services" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Social Media</Link></li>
-                <li><Link href="#services" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Content Marketing</Link></li>
+                <li><Link href="/services/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">SEO Mastery</Link></li>
+                <li><Link href="/services/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Google Ads</Link></li>
+                <li><Link href="/services/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Social Media</Link></li>
+                <li><Link href="/services/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Content Marketing</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-white font-bold mb-8 uppercase tracking-widest text-sm">Resources</h4>
               <ul className="space-y-5">
-                <li><Link href="#blog" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Blog</Link></li>
-                <li><Link href="#" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Resources</Link></li>
-                <li><Link href="#" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Case Studies</Link></li>
-                <li><Link href="#" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">FAQ</Link></li>
+                <li><Link href="/works/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Portfolio</Link></li>
+                <li><Link href="/testimonial/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Testimonials</Link></li>
+                <li><Link href="/contact/" className="text-gray-400 font-medium hover:text-electric-cyan transition-colors">Contact</Link></li>
               </ul>
             </div>
             <div>

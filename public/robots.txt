@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Disallow: /adminzenfix/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /static/
+
+Sitemap: https://zenfixin.com/sitemap.xml

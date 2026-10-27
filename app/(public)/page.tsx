@@ -1,21 +1,29 @@
 import HeroSlider from "@/components/HeroSlider";
-import Achievements from "@/components/Achievements";
 import WhyChooseUs from "@/components/WhyChooseUs";
 import ServicesSection from "@/components/ServicesSection";
 import MarketingProcess from "@/components/MarketingProcess";
 import WorkProcess from "@/components/WorkProcess";
-import CaseStudies from "@/components/CaseStudies";
 import QuoteSection from "@/components/QuoteSection"; // Trusted By Marquee
 import dynamic from "next/dynamic";
 import FounderMessage from "@/components/FounderMessage";
-import CompanyStats from "@/components/CompanyStats";
-import TestimonialsSection from "@/components/TestimonialsSection";
-import Pricing from "@/components/Pricing";
 import FAQ from "@/components/FAQ";
 import ContactSection from "@/components/ContactSection";
 import CTABanner from "@/components/CTABanner";
 import FloatingContact from "@/components/FloatingContact";
 import Footer from "@/components/Footer";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: 'Zenfixin | Digital Marketing & Creative Media',
+  description: 'Zenfixin is a digital marketing agency providing SEO, social media management, video editing, content creation, and brand strategy services.',
+  openGraph: {
+    title: 'Zenfixin | Digital Marketing & Creative Media',
+    description: 'Zenfixin is a digital marketing agency providing SEO, social media management, video editing, content creation, and brand strategy services.',
+    url: 'https://zenfixin.com/',
+    siteName: 'Zenfixin',
+    type: 'website',
+  },
+};
 
 const TechStack = dynamic(() => import("@/components/TechStack/TechStack"), {
   loading: () => (
@@ -33,10 +41,7 @@ export default function Home() {
       {/* 1. Hero */}
       <HeroSlider />
 
-      {/* 2. Achievements */}
-      <Achievements />
-
-      {/* 3. Trusted By Marquee */}
+      {/* 2. Trusted By Marquee */}
       <QuoteSection />
       
       {/* 3. Services */}
@@ -51,23 +56,11 @@ export default function Home() {
       {/* 6. Work Process */}
       <WorkProcess />
       
-      {/* 7. Case Studies */}
-      <CaseStudies />
-      
-      {/* 8. Technologies We Use */}
+      {/* 7. Technologies We Use */}
       <TechStack />
       
-      {/* 7. Founder Message */}
+      {/* 8. Founder Message */}
       <FounderMessage />
-      
-      {/* 8. Company Stats */}
-      <CompanyStats />
-      
-      {/* 9. Testimonials */}
-      <TestimonialsSection />
-      
-      {/* 8. Pricing */}
-      <Pricing />
       
       {/* 9. FAQ */}
       <FAQ />
